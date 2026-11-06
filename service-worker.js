@@ -1,4 +1,4 @@
-const CACHE_NAME = "my-planner-v3";
+const CACHE_NAME = "my-planner-v4";
 const FILES = ["./","./index.html","./style.css","./script.js","./manifest.json","./icon.svg"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)));
@@ -13,4 +13,26 @@ self.addEventListener("fetch", event => {
   event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
     const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(event.request,copy)); return response;
   }).catch(() => caches.match("./index.html"))));
+});
+self.addEventListener("push", event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data ? event.data.text() : "有一项任务需要处理。" }; }
+  const title = data.title || "My Planner 提醒";
+  const options = {
+    body: data.body || "你设置的任务提醒时间到了。",
+    icon: "./icon.svg",
+    badge: "./icon.svg",
+    data: { url: data.url || "./" }
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "./", self.location.origin).href;
+  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(clients => {
+    for (const client of clients) {
+      if (client.url.startsWith(self.location.origin) && "focus" in client) return client.focus();
+    }
+    return self.clients.openWindow(target);
+  }));
 });
