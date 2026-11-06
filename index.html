@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="description" content="My Planner 个人日程与待办管理">
+  <title>My Planner</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">YOUR PERSONAL SPACE</p>
+        <h1>My Planner</h1>
+        <p class="subtitle">把想做的事，一件一件完成。</p>
+      </div>
+      <button id="todayBtn" class="button button-ghost" type="button">回到今天</button>
+    </header>
+
+    <main>
+      <section class="overview">
+        <div class="overview-date">
+          <span id="todayLabel">今天</span>
+          <strong id="todayDate">----</strong>
+        </div>
+        <div class="stat">
+          <strong id="totalCount">0</strong>
+          <span>今日任务</span>
+        </div>
+        <div class="stat">
+          <strong id="doneCount">0</strong>
+          <span>已完成</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-copy"><span>今日进度</span><strong id="progressText">0%</strong></div>
+          <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+        </div>
+      </section>
+
+      <section class="main-grid">
+        <aside class="panel calendar-panel">
+          <div class="section-heading">
+            <div><p class="eyebrow">CALENDAR</p><h2>日历</h2></div>
+            <div class="calendar-nav">
+              <button id="prevMonth" class="icon-button" aria-label="上个月">‹</button>
+              <strong id="monthLabel"></strong>
+              <button id="nextMonth" class="icon-button" aria-label="下个月">›</button>
+            </div>
+          </div>
+          <div class="calendar-weekdays">
+            <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+          </div>
+          <div id="calendarGrid" class="calendar-grid"></div>
+          <p class="calendar-hint"><i></i> 有任务的日期</p>
+        </aside>
+
+        <section class="panel tasks-panel">
+          <div class="section-heading task-heading">
+            <div><p class="eyebrow">TASK MANAGER</p><h2 id="selectedDateTitle">今日任务</h2></div>
+            <button id="longTermBtn" class="button button-ghost" type="button">长期任务</button>
+          </div>
+
+          <form id="taskForm" class="task-form">
+            <label class="sr-only" for="taskInput">任务内容</label>
+            <input id="taskInput" maxlength="160" placeholder="添加一件要做的事…" autocomplete="off" required>
+            <select id="priorityInput" aria-label="优先级">
+              <option value="medium">中优先级</option>
+              <option value="high">高优先级</option>
+              <option value="low">低优先级</option>
+            </select>
+            <button class="button button-primary" type="submit">＋ 添加</button>
+          </form>
+
+          <div class="task-toolbar">
+            <div id="taskTabs" class="tabs">
+              <button class="tab active" data-filter="all" type="button">全部</button>
+              <button class="tab" data-filter="active" type="button">未完成</button>
+              <button class="tab" data-filter="completed" type="button">已完成</button>
+            </div>
+            <span id="taskCountLabel" class="muted"></span>
+          </div>
+          <ul id="taskList" class="task-list"></ul>
+          <div id="emptyState" class="empty-state">
+            <div class="empty-icon">✦</div>
+            <strong>这里还很空</strong>
+            <p>添加一项任务，开始安排今天吧。</p>
+          </div>
+        </section>
+      </section>
+      <p class="storage-note">数据保存在当前浏览器中。清除浏览器数据或更换设备前，请先导出备份。</p>
+    </main>
+    <footer>MY PLANNER <span>·</span> PLAN A LITTLE, ACHIEVE A LOT.</footer>
+  </div>
+
+  <dialog id="editDialog" class="edit-dialog">
+    <form id="editForm" method="dialog">
+      <div class="section-heading"><div><p class="eyebrow">EDIT TASK</p><h2>编辑任务</h2></div><button id="closeDialog" class="icon-button" type="button" aria-label="关闭">×</button></div>
+      <input id="editText" maxlength="160" required aria-label="任务内容">
+      <div class="dialog-fields">
+        <label>日期<input id="editDate" type="date"></label>
+        <label>优先级<select id="editPriority"><option value="high">高</option><option value="medium">中</option><option value="low">低</option></select></label>
+      </div>
+      <div class="dialog-actions"><button id="cancelEdit" class="button button-ghost" type="button">取消</button><button class="button button-primary" type="submit">保存修改</button></div>
+    </form>
+  </dialog>
+
+  <script src="script.js"></script>
+</body>
+</html>
