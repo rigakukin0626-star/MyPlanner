@@ -12,6 +12,7 @@ let filter = "all", showLongTerm = false, editingId = null, tasks = loadTasks();
 // Supabase Project URL + Publishable key（可安全放在前端；不要使用 Secret key）
 const SUPABASE_URL = "https://nushjnpeftksloyzojgd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_bDN-tQp_ZUu77LxcAVpjgQ_fM9f3-c9";
+const VAPID_PUBLIC_KEY = "BC3QDoy-5gL0f8rN2WGdjuqlHd8YlAn-SKCjvMgJzK1rbcsaASS0Tbh-1YQfzaiPRKkpuS-BSNQJxY4ofMSYxrs";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 let currentUser = null, cloudReady = false, syncQueue = Promise.resolve();
 
@@ -52,6 +53,7 @@ async function refreshAuthUI(){
   $("authEmail").hidden=!!currentUser; $("authPassword").hidden=!!currentUser;
   $("signInBtn").hidden=!!currentUser; $("signUpBtn").hidden=!!currentUser; $("signOutBtn").hidden=!currentUser;
   $("authForm").classList.toggle("signed-in",!!currentUser);
+  $("enableNotificationsBtn").hidden = !currentUser;
   if(currentUser){try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus("云端读取失败："+e.message);}}
   else{cloudReady=false;setAuthStatus("尚未登录。当前任务保存在本设备；登录后可同步。")}
 }
@@ -70,6 +72,39 @@ $("signUpBtn").addEventListener("click",async()=>{
 });
 $("signOutBtn").addEventListener("click",async()=>{const {error}=await supabaseClient.auth.signOut();if(error)setAuthStatus("退出失败："+error.message);else{currentUser=null;cloudReady=false;await refreshAuthUI()}});
 supabaseClient.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;if(!currentUser){cloudReady=false;setAuthStatus("尚未登录。当前任务保存在本设备；登录后可同步。")}});
+
+
+function urlBase64ToUint8Array(base64String){
+  const padding="=".repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,"+").replace(/_/g,"/");
+  const raw=atob(base64),output=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)output[i]=raw.charCodeAt(i);
+  return output;
+}
+$("enableNotificationsBtn").addEventListener("click",async()=>{
+  const status=$("notificationStatus");
+  if(!currentUser){status.textContent="请先登录账号。";return}
+  if(!("serviceWorker" in navigator)||!("PushManager" in window)){status.textContent="此浏览器不支持推送通知。";return}
+  try{
+    status.textContent="正在申请通知权限…";
+    const permission=await Notification.requestPermission();
+    if(permission!=="granted"){status.textContent="通知权限未开启，请在浏览器设置中允许通知。";return}
+    const registration=await navigator.serviceWorker.ready;
+    let subscription=await registration.pushManager.getSubscription();
+    if(!subscription){
+      subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});
+    }
+    const data=subscription.toJSON();
+    const {error}=await supabaseClient.from("push_subscriptions").upsert({
+      user_id:currentUser.id,
+      endpoint:data.endpoint,
+      p256dh:data.keys.p256dh,
+      auth:data.keys.auth
+    },{onConflict:"endpoint"});
+    if(error)throw error;
+    status.textContent="设备通知已开启！";
+  }catch(error){console.error(error);status.textContent="开启失败："+error.message}
+});
 
 function toLocalDateTimeInput(value){const d=new Date(value);if(Number.isNaN(d.getTime()))return "";const local=new Date(d.getTime()-d.getTimezoneOffset()*60000);return local.toISOString().slice(0,16)}
 function priorityName(p){return({high:"高",medium:"中",low:"低"})[p]||"中"}
