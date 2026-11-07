@@ -892,6 +892,7 @@ function chatMessageActions(bubble,item){
  });
  bubble.addEventListener("pointermove",e=>{if(Math.abs(e.clientX-startX)>12||Math.abs(e.clientY-startY)>12)cancel()});
  bubble.addEventListener("pointerup",cancel);bubble.addEventListener("pointercancel",cancel);bubble.addEventListener("pointerleave",cancel);
+ bubble.addEventListener("selectstart",e=>e.preventDefault());
  bubble.addEventListener("contextmenu",e=>{e.preventDefault();cancel();if(!longPressed)chatOpenMessageMenu(item,bubble)});
 }
 function chatRenderMessages(){
