@@ -327,6 +327,7 @@ refreshReminderDisplay();
 
 /* My Planner Chat V1. Requires the chat database SQL before use. */
 let chatPeer=null,chatSubscription=null,chatRefreshBusy=false,chatLastSignature="",chatReloadQueued=false;
+let chatConfirmedCache=[],chatCachePeer=null;
 const chatPending=new Map();
 function chatText(zh,ja,en){return tr(ja,zh,en)}
 function updateChatLanguage(){
@@ -338,7 +339,7 @@ function updateChatLanguage(){
 }
 function chatStatus(message){$("chatStatus").textContent=message}
 function chatError(error){chatStatus(error?.message||String(error))}
-function chatShowList(){document.body.classList.remove("chat-open");chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
+function chatShowList(){document.body.classList.remove("chat-open");chatConfirmedCache=[];chatCachePeer=null;chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
 function chatStopRealtime(){if(chatSubscription){supabaseClient.removeChannel(chatSubscription);chatSubscription=null}}
 async function loadChatFriends(){
  if(chatPeer)return;
@@ -372,7 +373,7 @@ function chatAppendRealtime(item){
 }
 async function openChat(id,name){
  chatStopRealtime();
- chatLastSignature="";chatPeer=id;document.body.classList.add("chat-open");
+ chatLastSignature="";chatConfirmedCache=[];chatCachePeer=id;chatPeer=id;document.body.classList.add("chat-open");
  $("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");
  $("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
  const userId=currentUser.id;
@@ -385,6 +386,34 @@ async function openChat(id,name){
  });
  await loadChatMessages();
 }
+function chatRenderMessages(){
+ if(!currentUser||!chatPeer)return;
+ const root=$("chatMessages");
+ const confirmed=chatCachePeer===chatPeer?chatConfirmedCache:[];
+ for(const [key,item] of chatPending){
+  if(item.peer===chatPeer&&item.serverId&&confirmed.some(m=>String(m.id)===String(item.serverId)))chatPending.delete(key);
+ }
+ const pending=[...chatPending.entries()].filter(([,item])=>item.peer===chatPeer);
+ const signature=confirmed.map(m=>m.id).join(",")+"|"+pending.map(([key,item])=>key+":"+item.status).join(",");
+ if(signature===chatLastSignature)return;
+ chatLastSignature=signature;
+ const fragment=document.createDocumentFragment();
+ for(const item of confirmed){
+  const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);
+  const body=document.createElement("span");body.textContent=item.body;
+  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
+  div.append(body,time);fragment.append(div);
+ }
+ for(const [key,item] of pending){
+  const div=document.createElement("div");div.className="chat-bubble mine";div.dataset.pendingKey=key;
+  const body=document.createElement("span");body.textContent=item.body;
+  const time=document.createElement("small");time.textContent=item.status==="failed"?chatText("发送失败","送信失敗","Failed"):item.status==="sent"?chatText("已发送","送信済み","Sent"):chatText("发送中…","送信中…","Sending...");
+  div.append(body,time);fragment.append(div);
+ }
+ root.replaceChildren(fragment);
+ root.scrollTop=root.scrollHeight;
+ requestAnimationFrame(()=>{if(chatPeer&&root.isConnected)root.scrollTop=root.scrollHeight});
+}
 async function loadChatMessages(){
  if(!currentUser||!chatPeer)return;
  if(chatRefreshBusy){chatReloadQueued=true;return}
@@ -393,31 +422,9 @@ async function loadChatMessages(){
  const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+chatPeer+"),and(sender_id.eq."+chatPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:true}).limit(200);
  if(error){chatRefreshBusy=false;chatError(error.message);return}
  if(chatPeer!==requestedPeer){chatRefreshBusy=false;return}
- const root=$("chatMessages");
- const confirmed=data||[];
- for(const [key,item] of chatPending){
-  if(item.peer!==requestedPeer)continue;
-  if(item.serverId&&confirmed.some(m=>String(m.id)===String(item.serverId)))chatPending.delete(key);
- }
- const pending=[...chatPending.entries()].filter(([,item])=>item.peer===requestedPeer);
- const signature=confirmed.map(m=>m.id).join(",")+"|"+pending.map(([key,item])=>key+":"+item.status).join(",");
- if(signature!==chatLastSignature){
-  chatLastSignature=signature;
-  root.replaceChildren();
-  for(const item of confirmed){
-   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);
-   const body=document.createElement("span");body.textContent=item.body;
-   const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
-   div.append(body,time);root.append(div);
-  }
-  for(const [,item] of pending){
-   const div=document.createElement("div");div.className="chat-bubble mine";
-   const body=document.createElement("span");body.textContent=item.body;
-   const time=document.createElement("small");time.textContent=item.status==="failed"?chatText("发送失败","送信失敗","Failed"):chatText("发送中…","送信中…","Sending...");
-   div.append(body,time);root.append(div);
-  }
-  root.scrollTop=root.scrollHeight;
- }
+ chatConfirmedCache=data||[];
+ chatCachePeer=requestedPeer;
+ chatRenderMessages();
  chatRefreshBusy=false;
  if(chatReloadQueued){chatReloadQueued=false;queueMicrotask(loadChatMessages)}
 }
@@ -437,21 +444,16 @@ $("chatSendForm").addEventListener("submit",async e=>{
  const key="pending-"+Date.now()+"-"+Math.random().toString(36).slice(2);
  chatPending.set(key,{peer,body,status:"sending",serverId:null});
  input.value="";
- // Render immediately, without waiting for the network.
- const root=$("chatMessages"),bubble=document.createElement("div");
- bubble.className="chat-bubble mine";bubble.dataset.pendingKey=key;
- const message=document.createElement("span");message.textContent=body;
- const state=document.createElement("small");state.textContent=chatText("发送中…","送信中…","Sending...");
- bubble.append(message,state);root.append(bubble);root.scrollTop=root.scrollHeight;
- chatLastSignature="";
+ // Always render from the local pending queue first; network work starts afterward.
+ chatRenderMessages();
  try{
   const {data,error}=await supabaseClient.from("chat_messages").insert({sender_id:currentUser.id,recipient_id:peer,body}).select("id").single();
   if(error)throw error;
   const pending=chatPending.get(key);if(pending){pending.serverId=data.id;pending.status="sent"}
-  if(chatPeer===peer){state.textContent=chatText("已发送","送信済み","Sent");await loadChatMessages()}
+  if(chatPeer===peer){chatRenderMessages();await loadChatMessages()}
  }catch(error){
   const pending=chatPending.get(key);if(pending)pending.status="failed";
-  if(chatPeer===peer){state.textContent=chatText("发送失败","送信失敗","Failed");chatError(error)}
+  if(chatPeer===peer){chatRenderMessages();chatError(error)}
  }
 
 });
