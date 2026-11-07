@@ -61,6 +61,26 @@ function applyLanguage(){
  const note=document.querySelector(".storage-note");if(note)note.textContent=tr("データはこの端末にも保存されます。端末を変更する前に同期を確認してください。","数据也保存在本设备。更换设备前请确认已同步。","Data is also stored on this device. Check sync before switching devices.");
  if(!currentUser)setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."));
  render();
+ const staticLabels={
+  appearanceTitle:["外観 / テーマ","外观 / 主题","Appearance"],
+  appearanceDescription:["表示モードを選択してください。設定はこの端末に保存されます。","选择显示模式，设置将保存在本设备。","Choose a display mode. Your preference is saved on this device."],
+  notificationSettingsLabel:["通知設定","通知设置","Notification settings"],
+  chatSearchUsername:["ユーザー名で友達を検索","搜索好友用户名","Search friends by username"],
+  chatGroupName:["グループ名","群名称","Group name"],
+  chatGroupJoinCode:["グループ招待コード","群邀请码","Group invite code"]
+ };
+ const idx=uiLanguage==="ja"?0:uiLanguage==="zh"?1:2;
+ for(const [id,values] of Object.entries(staticLabels)){
+  const el=$(id);if(!el)continue;
+  if(["chatSearchUsername","chatGroupName","chatGroupJoinCode"].includes(id))el.placeholder=values[idx];
+  else if(id==="notificationSettingsLabel"){const label=el.querySelector(".bilingual");if(label)label.textContent=values[idx];}
+  else el.textContent=values[idx];
+ }
+ document.querySelectorAll("[data-appearance]").forEach(btn=>{
+  const labels={auto:["システムに合わせる","跟随系统","System"],light:["ライト","浅色","Light"],dark:["ダーク","深色","Dark"]};
+  const key=btn.dataset.appearance;if(labels[key])btn.textContent=labels[key][idx];
+ });
+ updateWelcomeLanguage();
  window.chatRefreshLocalizedViews?.();
 }
 const STORAGE_KEY = "myPlannerTasks";
@@ -180,7 +200,7 @@ const welcomeTranslations={
  ja:{subtitle:"ログインしてチャットと予定を管理",login:"ログイン",register:"新規登録",username:"ユーザー名",usernameHint:"英小文字・数字・_（3〜20文字）",email:"メールアドレス",emailHint:"メールアドレス",password:"パスワード",passwordHint:"6文字以上",submitRegister:"アカウント登録",footnote:"登録後、メール認証が必要な場合があります",invalid:"ユーザー名は英小文字・数字・_ の3〜20文字にしてください",registering:"登録中…",signingIn:"ログイン中…",nameFailed:"アカウントは作成されましたが、ユーザー名を保存できませんでした：",checkEmail:"登録を受け付けました。確認メールを開いてからログインしてください。",registerFailed:"登録失敗：",loginFailed:"ログイン失敗："},
  en:{subtitle:"Sign in to chat and manage your plans",login:"Sign in",register:"Sign up",username:"Username",usernameHint:"3–20 lowercase letters, numbers or underscores",email:"Email",emailHint:"Email address",password:"Password",passwordHint:"At least 6 characters",submitRegister:"Create account",footnote:"You may need to verify your email after signing up",invalid:"Use 3–20 lowercase letters, numbers or underscores",registering:"Creating account…",signingIn:"Signing in…",nameFailed:"Account created, but username could not be saved: ",checkEmail:"Registration submitted. Check your email to verify your account, then sign in.",registerFailed:"Sign-up failed: ",loginFailed:"Sign-in failed: "}
 };
-function welcomeBrowserLanguage(){const primary=(navigator.language||"").toLowerCase().split("-")[0];if(["zh","ja","en"].includes(primary))return primary;return detectBrowserLanguage()}
+function welcomeBrowserLanguage(){return uiLanguage;}
 function welcomeText(key){return (welcomeTranslations[welcomeBrowserLanguage()]||welcomeTranslations.en)[key]}
 function updateWelcomeLanguage(){
  const t=welcomeText;
@@ -219,7 +239,7 @@ $("welcomeAuthForm").addEventListener("submit",async e=>{
  e.preventDefault();
  const email=$("welcomeEmail").value.trim(),password=$("welcomePassword").value;
  const username=$("welcomeUsername").value.trim().toLowerCase();
- if(welcomeMode==="register"&&!/^[a-z0-9_]{3,20}$/.test(username)){$("welcomeStatus").textContent="用户名需要3–20位小写字母、数字或下划线";return}
+ if(welcomeMode==="register"&&!/^[a-z0-9_]{3,20}$/.test(username)){$("welcomeStatus").textContent=welcomeText("invalid");return}
  const btn=$("welcomeSubmit");btn.disabled=true;
  $("welcomeStatus").textContent=welcomeMode==="register"?welcomeText("registering"):welcomeText("signingIn");
  try{
@@ -231,7 +251,7 @@ $("welcomeAuthForm").addEventListener("submit",async e=>{
     const {error:nameError}=await supabaseClient.rpc("chat_set_username",{new_username:username});
     if(nameError)$("welcomeStatus").textContent=welcomeText("nameFailed")+nameError.message;
     await refreshAuthUI();
-   }else $("welcomeStatus").textContent="注册申请已提交，请检查邮箱中的验证邮件，然后返回登录。";
+   }else $("welcomeStatus").textContent=welcomeText("checkEmail");
   }else{
    const {error}=await supabaseClient.auth.signInWithPassword({email,password});
    if(error)throw error;
