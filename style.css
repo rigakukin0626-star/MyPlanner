@@ -825,3 +825,12 @@ html[data-theme="dark"] body :is(input,textarea)::placeholder {
 }
 html[data-theme="dark"] body :is(button,input,textarea,select) { caret-color:#60a5fa; }
 html[data-theme="dark"] body svg:not([fill="none"]) { color:#60a5fa; }
+
+/* V113: cover ALL text-bearing elements including divs, headings and nested controls. */
+html[data-theme="dark"] body :not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon):not(stop):not(use),
+html[data-theme="dark"] body :not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon):not(stop):not(use)::before,
+html[data-theme="dark"] body :not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon):not(stop):not(use)::after {
+ color:#60a5fa!important;
+}
+html[data-theme="dark"] body input::placeholder,
+html[data-theme="dark"] body textarea::placeholder {color:#60a5fa!important;opacity:1!important}
