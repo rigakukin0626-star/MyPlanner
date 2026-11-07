@@ -128,15 +128,27 @@
  groupMenu.id="lineGroupMenu";groupMenu.className="line-popup-menu line-group-menu";groupMenu.hidden=true;
  groupMenu.setAttribute("role","menu");
  groupMenu.append(menuEntry("invite","invite"),menuEntry("members","members"));
- groupHeader?.append(more,groupMenu);
+ groupHeader?.append(more);
+ // Safari clips menus inside the conversation's overflow:hidden surface.
+ // Render beside the conversation, keeping it under #pageChat for styling.
+ root.append(groupMenu);
  const closeGroupMenu=()=>{groupMenu.hidden=true;more.setAttribute("aria-expanded","false")};
+ function placeGroupMenu(){
+  const rect=more.getBoundingClientRect();
+  groupMenu.style.width=Math.min(280,window.innerWidth-24)+"px";
+  groupMenu.style.top=Math.max(8,Math.min(rect.bottom+8,window.innerHeight-132))+"px";
+  groupMenu.style.right=Math.max(12,window.innerWidth-rect.right)+"px";
+  groupMenu.style.left="auto";
+ }
  more.addEventListener("click",event=>{
-  event.preventDefault();
+  event.preventDefault();event.stopPropagation();
   const willOpen=groupMenu.hidden;
+  closePopup();
+  if(willOpen)placeGroupMenu();
   groupMenu.hidden=!willOpen;
-  if(willOpen){const rect=more.getBoundingClientRect();groupMenu.style.top=Math.min(rect.bottom+8,window.innerHeight-125)+"px";groupMenu.style.right=Math.max(12,window.innerWidth-rect.right)+"px";}
   more.setAttribute("aria-expanded",String(willOpen));
  });
+ window.addEventListener("resize",()=>{if(!groupMenu.hidden)placeGroupMenu()},{passive:true});
  groupMenu.addEventListener("click",event=>{
   const button=event.target.closest("[data-line-action]");
   if(!button)return;
@@ -152,6 +164,7 @@
   closeGroupMenu();
  },{passive:true});
  $("chatGroupBack")?.addEventListener("click",closeGroupMenu);
+ document.addEventListener("visibilitychange",()=>{if(document.hidden)closeGroupMenu()});
  // Proper back navigation for the separate group invite/member screens.
  const invitePanel=$("chatGroupInvitePanel");
  const inviteHead=document.createElement("header");
