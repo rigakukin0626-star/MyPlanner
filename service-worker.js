@@ -1,5 +1,5 @@
-const CACHE_NAME = "my-planner-v58";
-const FILES = ["./","./index.html","./style.css","./script.js","./manifest.json","./icon.svg"];
+const CACHE_NAME = "my-planner-v59";
+const FILES = ["./","./index.html","./style.css?v=59","./script.js?v=59","./manifest.json?v=59","./icon.svg"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)));
   self.skipWaiting();
@@ -17,7 +17,11 @@ self.addEventListener("fetch", event => {
     }).catch(()=>caches.match("./index.html")));
     return;
   }
-  if (/\/(script\.js|style\.css)$/.test(new URL(event.request.url).pathname)) {\n    event.respondWith(fetch(event.request).catch(()=>caches.match(event.request)));\n    return;\n  }\n  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
+  if (/\/(script\.js|style\.css)$/.test(new URL(event.request.url).pathname)) {
+    event.respondWith(fetch(event.request).catch(()=>caches.match(event.request)));
+    return;
+  }
+  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
     const copy = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(event.request,copy)); return response;
   }).catch(() => caches.match("./index.html"))));
 });
