@@ -899,7 +899,7 @@ function chatAttachStoredPhoto(node,path,isGroup=false){
  const failed=(error)=>{
   if(!wrap.isConnected)return;
   img.hidden=true;retry.hidden=false;
-  img.removeAttribute("src");
+  img.onerror=null;img.onload=null;img.removeAttribute("src");
   const details=String(error?.cause?.signed||"")+" "+String(error?.cause?.download||"")+" "+String(error?.message||"");
   const denied=/401|403|unauthori[sz]ed|permission|row.level|rls|not allowed|access denied/i.test(details);
   retry.textContent=denied?
