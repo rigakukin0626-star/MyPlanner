@@ -76,3 +76,13 @@ Supabase SQL Editor. It was NOT automatically applied.
 - Group member read totals rely on the PostgreSQL table `chat_group_read_receipts`. **GitHub Pages cannot install this table.** Run `supabase/group-read-receipts-v176.sql` manually from the Supabase SQL Editor, then reopen the group from each participant's device.
 - The read feature does not display counts if the table or its RLS privileges are missing. Only a group participant can read the count data, and each member can update only their own timestamp; server trigger assigns the timestamp.
 - These GitHub commits leave the existing Supabase database, files, messages, group membership and local user data unchanged.
+
+## v179 — Reply layout and contextual menu repair
+
+- Source main SHA: `fe0fabcc9bde3dddf1ef209c2e542f1243f3be30`.
+- Stable rollback branch: `backup-before-reply-context-v179`.
+- Working branch: `fix-reply-context-layout-v179`.
+- Rebuilt private and group reply message DOM using a dedicated block and quote stack. Old reply grid/flex overrides (v177/v178) were removed and normal-text grid selectors no longer target replies.
+- Long-press actions now have fixed, viewport-aware positioning near their message and dismiss on scroll.
+- No Supabase, user data, messages, storage or RLS policies were modified by this change.
+- Browser-based mobile viewport layout regression passed for alternating received/sent replies; live iOS Safari validation remains necessary.
