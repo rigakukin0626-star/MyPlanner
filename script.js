@@ -359,13 +359,31 @@ async function loadChatFriends(){
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name]));
  for(const id of ids){const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";const name=names.get(id)||id.slice(0,8);const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=(name.trim()[0]||"?").toUpperCase();const content=document.createElement("span");content.className="chat-friend-info";const title=document.createElement("strong");title.textContent=name;const subtitle=document.createElement("small");subtitle.textContent=chatText("点击开始聊天","タップしてチャット","Tap to chat");content.append(title,subtitle);const arrow=document.createElement("span");arrow.className="chat-friend-chevron";arrow.textContent="›";btn.append(avatar,content,arrow);btn.addEventListener("click",()=>openChat(id,name));root.append(btn)}
 }
+function chatAppendRealtime(item){
+ if(!currentUser||!chatPeer||!item||!(item.sender_id===chatPeer&&item.recipient_id===currentUser.id||item.sender_id===currentUser.id&&item.recipient_id===chatPeer))return;
+ const root=$("chatMessages");
+ if(root.querySelector('[data-message-id="'+item.id+'"]'))return;
+ const bubble=document.createElement("div");bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
+ bubble.dataset.messageId=String(item.id);
+ const body=document.createElement("span");body.textContent=item.body;
+ const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
+ bubble.append(body,time);root.append(bubble);root.scrollTop=root.scrollHeight;
+ chatLastSignature="";
+}
 async function openChat(id,name){
- chatLastSignature="";chatPeer=id;document.body.classList.add("chat-open");$("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");$("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
- await loadChatMessages();chatStopRealtime();
- chatSubscription=supabaseClient.channel("private-chat-"+currentUser.id+"-"+id)
- .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"recipient_id=eq."+currentUser.id},payload=>{if(chatPeer===payload.new.sender_id)loadChatMessages()})
- .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"sender_id=eq."+currentUser.id},payload=>{if(chatPeer===payload.new.recipient_id)loadChatMessages()})
- .subscribe();
+ chatStopRealtime();
+ chatLastSignature="";chatPeer=id;document.body.classList.add("chat-open");
+ $("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");
+ $("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
+ const userId=currentUser.id;
+ chatSubscription=supabaseClient.channel("private-chat-"+userId+"-"+id)
+ .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"recipient_id=eq."+userId},payload=>{if(chatPeer===payload.new.sender_id){chatAppendRealtime(payload.new);loadChatMessages()}})
+ .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"sender_id=eq."+userId},payload=>{if(chatPeer===payload.new.recipient_id){chatAppendRealtime(payload.new);loadChatMessages()}})
+ .subscribe(status=>{
+  if(chatPeer!==id)return;
+  if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")chatStatus(chatText("实时连接中断，正在使用备用同步","リアルタイム接続が中断しました","Realtime unavailable; using backup sync"));
+ });
+ await loadChatMessages();
 }
 async function loadChatMessages(){
  if(!currentUser||!chatPeer)return;
@@ -387,7 +405,7 @@ async function loadChatMessages(){
   chatLastSignature=signature;
   root.replaceChildren();
   for(const item of confirmed){
-   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
+   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);
    const body=document.createElement("span");body.textContent=item.body;
    const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
    div.append(body,time);root.append(div);
@@ -442,7 +460,7 @@ $("chatSendForm").addEventListener("submit",async e=>{
 setInterval(()=>{
  if(document.hidden||document.body.dataset.activePage!=="chat"||!currentUser)return;
  if(chatPeer)loadChatMessages();else loadChatFriends();
-},2000);
+},1000);
 document.addEventListener("visibilitychange",()=>{
  if(!document.hidden&&document.body.dataset.activePage==="chat"&&currentUser){if(chatPeer)loadChatMessages();else loadChatFriends()}
 });
