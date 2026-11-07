@@ -954,6 +954,13 @@ function chatMessageActions(bubble,item){
  bubble.addEventListener("selectstart",e=>e.preventDefault());
  bubble.addEventListener("contextmenu",e=>{e.preventDefault();cancel();if(!longPressed)chatOpenMessageMenu(item,bubble)});
 }
+function chatBubbleAvatar(bubble, senderId, isGroup=false){
+ const mine=senderId===currentUser?.id;
+ let label=mine?chatText("我","私","Me"):isGroup?String(senderId||"?").slice(0,1).toUpperCase():String($("chatPeerName")?.textContent||$("chatTitle")?.textContent||"?").trim().slice(0,1).toUpperCase();
+ if(!label)label="?";
+ bubble.dataset.avatar=label;
+ bubble.classList.add("chat-with-avatar");
+}
 function chatRenderMessages(){
  if(!currentUser||!chatPeer)return;
  const root=$("chatMessages");
@@ -968,13 +975,13 @@ function chatRenderMessages(){
  chatLastSignature=signature;
  const fragment=document.createDocumentFragment();
  for(const item of confirmed){
-  const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);
+  const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);chatBubbleAvatar(div,item.sender_id);
   const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else chatDisplayBody(body,item.body);
   const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString()+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
   div.append(body,time);chatMessageActions(div,item);fragment.append(div);
  }
  for(const [key,item] of pending){
-  const div=document.createElement("div");div.className="chat-bubble mine";div.dataset.pendingKey=key;
+  const div=document.createElement("div");div.className="chat-bubble mine";div.dataset.pendingKey=key;chatBubbleAvatar(div,currentUser.id);
   const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else chatMessageContent(body,item.body);
   const time=document.createElement("small");
   const sentAt=new Date(item.createdAt).toLocaleString();
@@ -1346,7 +1353,7 @@ function groupRenderMessages(items){
  const root=$("chatGroupMessages"),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<140;
  const fragment=document.createDocumentFragment();
  for(const item of items){
-  const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
+  const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");chatBubbleAvatar(bubble,item.sender_id,true);
   const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):item.sender_id.slice(0,8);
   const body=document.createElement("span");
   if(item.body.startsWith("[myplanner-group-image]:")){
