@@ -557,6 +557,12 @@ function updateChatLanguage(){
  $("chatBack").setAttribute("aria-label",chatText("返回","戻る","Back"));
  $("chatBack").style.setProperty("--chat-back-label",JSON.stringify(chatText("返回","戻る","Back")));
 
+ const listSearch=$("chatListSearchInput");
+ if(listSearch){listSearch.placeholder=chatText("搜索好友或群聊","友達やグループを検索","Search friends or groups");listSearch.setAttribute("aria-label",listSearch.placeholder)}
+ const listClear=$("chatListSearchClear");
+ if(listClear)listClear.setAttribute("aria-label",chatText("清除搜索","検索をクリア","Clear search"));
+ const listEmpty=$("chatListSearchEmpty");
+ if(listEmpty)listEmpty.textContent=chatText("没有匹配的聊天","一致するチャットはありません","No matching chats");
  $("chatPrivateMode").textContent=chatText("私聊","個人チャット","Private");
  $("chatGroupMode").textContent=chatText("群聊","グループ","Groups");
  $("chatGroupName").placeholder=chatText("群名称","グループ名","Group name");
@@ -703,7 +709,7 @@ async function loadChatFriends(){
   const content=document.createElement("span");content.className="chat-friend-info";
   const title=document.createElement("strong");title.textContent=name;
   const subtitle=document.createElement("small");const m=last.get(id);
-  subtitle.textContent=m?(m.sender_id===currentUser.id?chatText("我：","私：","Me: "):"")+(m.body.startsWith(CHAT_IMAGE_PREFIX)?chatText("📷 照片","📷 写真","📷 Photo"):m.body):chatText("开始聊天","チャットを始める","Start chatting");
+  subtitle.textContent=m?(m.sender_id===currentUser.id?chatText("我：","私：","Me: "):"")+(m.body.startsWith(CHAT_IMAGE_PREFIX)?chatText("📷 照片","📷 写真","📷 Photo"):chatPlainBody(m.body)):chatText("开始聊天","チャットを始める","Start chatting");
   content.append(title,subtitle);
   const meta=document.createElement("span");meta.className="chat-friend-meta";
   if(m){const when=document.createElement("small");when.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});meta.append(when)}
