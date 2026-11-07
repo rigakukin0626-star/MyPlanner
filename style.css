@@ -61,3 +61,31 @@
  .auth-panel.is-signed-in .notification-settings{grid-column:1/-1}
  .auth-panel:not(.is-signed-in) .auth-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 }
+
+/* v20: compact, touch-friendly calendar */
+.calendar-panel{min-width:0}
+.calendar-panel .section-heading{margin-bottom:14px;align-items:center}
+.calendar-panel .section-heading h2{font-size:17px}
+.calendar-nav{gap:7px;white-space:nowrap}
+.calendar-nav strong{font-size:12px;min-width:0;text-align:center}
+.calendar-nav .icon-button{width:32px;height:32px;flex:0 0 32px;border-radius:10px}
+.calendar-weekdays{margin-bottom:5px;font-size:11px}
+.calendar-grid{gap:3px 4px}
+.calendar-day{aspect-ratio:auto;height:37px;min-height:37px;border-radius:10px;font-size:12px;touch-action:manipulation}
+.calendar-day.has-tasks:after{bottom:3px;width:4px;height:4px}
+.calendar-hint{margin:11px 0 0;font-size:10px}
+@media(max-width:760px){
+ .calendar-panel{padding:15px 16px}
+ .calendar-panel .section-heading{margin-bottom:12px}
+ .calendar-panel .section-heading h2{font-size:17px}
+ .calendar-grid{gap:2px 4px}
+ .calendar-day{height:39px;min-height:39px;max-height:39px;font-size:13px}
+ .calendar-hint{margin-top:9px}
+ .main-grid{gap:13px}
+}
+@media(max-width:370px){
+ .calendar-panel .section-heading{gap:6px}
+ .calendar-nav{gap:4px}
+ .calendar-nav strong{font-size:11px}
+ .calendar-nav .icon-button{width:28px;height:28px;flex-basis:28px}
+}
