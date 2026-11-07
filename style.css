@@ -334,3 +334,9 @@ body.chat-open .bottom-tabs{z-index:50!important;}
 #pageChat .chat-send input:focus{border-color:#2563eb!important;}
 #pageChat .chat-send button{background:#2563eb!important;color:#fff!important;}
 #pageChat .chat-friend:hover{background:#f5f8ff!important;}
+
+/* v50 photo sharing */
+#pageChat .chat-photo-picker{display:flex;align-items:center;justify-content:center;flex:0 0 38px;width:38px;height:38px;border-radius:50%;background:#e0ebff;color:#2563eb;font-size:28px;font-weight:400;cursor:pointer;line-height:1}
+#pageChat .chat-photo{display:block;max-width:min(230px,60vw);max-height:300px;width:auto;height:auto;object-fit:contain;border-radius:12px;cursor:pointer}
+#pageChat .chat-bubble:has(.chat-photo){padding:5px!important}
+#pageChat .chat-send input[type=file]{display:none!important}
