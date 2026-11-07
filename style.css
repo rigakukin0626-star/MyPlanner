@@ -109,3 +109,12 @@
  #pageCalendar>.calendar-panel{padding:17px}
  .bottom-tabs .tab{min-width:0}
 }
+
+/* v22: consistent navigation icons and centered iPhone reminder date */
+.bottom-tabs .tab-icon{display:flex;align-items:center;justify-content:center;height:25px;width:25px}
+.bottom-tabs .tab-icon svg{display:block;width:23px;height:23px}
+.task-form>.task-field-reminder input[type="datetime-local"]{display:block;width:100%;height:48px;min-height:48px;text-align:center;font-size:13px;padding:0 8px;line-height:normal;box-sizing:border-box}
+.task-form>.task-field-reminder input[type="datetime-local"]::-webkit-datetime-edit{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-width:0;padding:0;text-align:center}
+.task-form>.task-field-reminder input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper{display:flex;align-items:center;justify-content:center;min-width:0;padding:0}
+.task-form>.task-field-reminder input[type="datetime-local"]::-webkit-calendar-picker-indicator{margin:0 0 0 4px;flex-shrink:0}
+@media(max-width:760px){.task-form>.task-field-reminder input[type="datetime-local"]{height:49px;min-height:49px;font-size:12px}}
