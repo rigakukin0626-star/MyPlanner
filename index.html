@@ -149,37 +149,52 @@
   </dialog>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-/* v135: independent navigation recovery, even when a page module fails. */
+/* v136: repair page shell independently from app initialization. */
 (function(){
-  function navigate(event){
+  function setup(){
+    const main=document.getElementById("appMain");
+    if(!main)return;
+    const tasks=document.getElementById("pageTasks"),calendarPage=document.getElementById("pageCalendar"),settings=document.getElementById("pageSettings");
+    const overview=main.querySelector(".overview"),grid=main.querySelector(".main-grid");
+    const taskPanel=grid?.querySelector(".tasks-panel"),calendar=grid?.querySelector(".calendar-panel");
+    if(overview&&overview.parentElement!==tasks)tasks.append(overview);
+    if(taskPanel&&taskPanel.parentElement!==tasks)tasks.append(taskPanel);
+    if(calendar&&calendar.parentElement!==calendarPage)calendarPage.append(calendar);
+    const auth=document.getElementById("authPanel");
+    if(auth&&auth.parentElement!==settings)settings.append(auth);
+    if(grid&&!grid.querySelector(".panel"))grid.remove();
+    const initial=document.querySelector(".bottom-tabs .tab.active")?.dataset.target||"tasks";
+    activate(initial);
+  }
+  function activate(page){
+    if(!["tasks","longterm","calendar","chat","settings"].includes(page))page="tasks";
+    const panel=document.querySelector(".tasks-panel"),destination=document.getElementById(page==="longterm"?"pageLongTerm":"pageTasks");
+    if(panel&&destination&&(page==="tasks"||page==="longterm")){
+      if(page==="longterm"){
+        const countdown=destination.querySelector(".countdown-panel");
+        if(countdown)destination.insertBefore(panel,countdown);else destination.append(panel);
+      }else destination.append(panel);
+    }
+    document.querySelectorAll(".app-page").forEach(el=>el.classList.toggle("active",el.dataset.page===page));
+    document.querySelectorAll(".bottom-tabs .tab").forEach(el=>el.classList.toggle("active",el.dataset.target===page));
+    document.body.dataset.activePage=page;
+    document.body.classList.remove("chat-open");
+    window.scrollTo(0,0);
+  }
+  document.addEventListener("DOMContentLoaded",setup,{once:true});
+  document.addEventListener("click",function(event){
     const button=event.target.closest?.(".bottom-tabs .tab[data-target]");
     if(!button)return;
     event.preventDefault();
     event.stopImmediatePropagation();
     const page=button.dataset.target;
+    activate(page);
     try{
-      if(typeof switchPlannerPage==="function"){
-        switchPlannerPage(page);
-        return;
-      }
-    }catch(error){console.error("Navigation module error:",error)}
-    document.querySelectorAll(".app-page").forEach(el=>el.classList.toggle("active",el.dataset.page===page));
-    document.querySelectorAll(".bottom-tabs .tab").forEach(el=>el.classList.toggle("active",el===button));
-    document.body.dataset.activePage=page;
-    document.body.classList.toggle("chat-open",false);
-    const panel=document.querySelector(".tasks-panel");
-    const target=document.getElementById(page==="longterm"?"pageLongTerm":"pageTasks");
-    if(panel&&target&&(page==="tasks"||page==="longterm")){
-      if(page==="longterm"){
-        const countdown=target.querySelector(".countdown-panel");
-        if(countdown)target.insertBefore(panel,countdown);else target.append(panel);
-      }else target.append(panel);
-    }
-    window.scrollTo(0,0);
-  }
-  document.addEventListener("click",navigate,true);
+      if(typeof switchPlannerPage==="function")switchPlannerPage(page);
+    }catch(error){console.error("Navigation error:",error);activate(page)}
+  },true);
 })();
 </script>
-  <script src="script.js?v=135"></script>
+  <script src="script.js?v=136"></script>
 </body>
 </html>
