@@ -61,6 +61,18 @@ function applyLanguage(){
  const note=document.querySelector(".storage-note");if(note)note.textContent=tr("データはこの端末にも保存されます。端末を変更する前に同期を確認してください。","数据也保存在本设备。更换设备前请确认已同步。","Data is also stored on this device. Check sync before switching devices.");
  if(!currentUser)setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."));
  render();
+ if(typeof chatMode!=="undefined"){
+  chatLastSignature="";
+  groupLastSignature="";
+  if(chatPeer)chatRenderMessages();
+  if(chatActiveGroup){
+   try{const cached=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+chatActiveGroup.id)||"null");if(Array.isArray(cached?.items))groupRenderMessages(cached.items)}catch{}
+  }
+  if(chatMode==="group"&&!chatActiveGroup){
+   groupListSignature="";
+   groupShowCachedList();
+  }
+ }
 }
 const STORAGE_KEY = "myPlannerTasks";
 const $ = (id) => document.getElementById(id);
@@ -631,6 +643,23 @@ async function openChat(id,name){
 }
 const CHAT_IMAGE_PREFIX="[myplanner-image]:";
 const chatImageUrlCache=new Map();
+const chatImageUrlRequests=new Map();
+async function chatGetSignedImageUrl(path){
+ const cached=chatImageUrlCache.get(path);
+ if(cached&&cached.expires>Date.now())return cached.url;
+ if(chatImageUrlRequests.has(path))return chatImageUrlRequests.get(path);
+ const request=(async()=>{
+  const {data,error}=await supabaseClient.storage.from("chat-photos").createSignedUrl(path,3600);
+  if(error||!data?.signedUrl)throw error||new Error("Photo URL unavailable");
+  chatImageUrlCache.set(path,{url:data.signedUrl,expires:Date.now()+3300000});
+  if(chatImageUrlCache.size>250){
+   for(const [key,value] of chatImageUrlCache){if(value.expires<=Date.now()||chatImageUrlCache.size>200)chatImageUrlCache.delete(key)}
+  }
+  return data.signedUrl;
+ })();
+ chatImageUrlRequests.set(path,request);
+ try{return await request}finally{chatImageUrlRequests.delete(path)}
+}
 function chatOpenPhotoPreview(url){
  if(!url)return;
  let overlay=document.getElementById("chatPhotoPreview");
@@ -647,14 +676,11 @@ function chatOpenPhotoPreview(url){
 function chatMessageContent(node,body){
  if(typeof body==="string"&&body.startsWith(CHAT_IMAGE_PREFIX)){
   const path=body.slice(CHAT_IMAGE_PREFIX.length);
-  if(!/^([0-9a-f-]{36})\/([0-9a-f-]{36})\/([0-9a-f-]{36})\.(jpg|png|webp|gif)$/.test(path)){node.textContent="图片格式无效";return}
+  if(!/^([0-9a-f-]{36})\/([0-9a-f-]{36})\/([0-9a-f-]{36})\.(jpg|png|webp|gif)$/i.test(path)){node.textContent=chatText("图片格式无效","画像形式が無効です","Invalid photo format");return}
   const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.decoding="async";img.alt=chatText("照片加载中…","写真を読み込み中…","Loading photo…");
   node.append(img);
-  const cached=chatImageUrlCache.get(path);
-  if(cached&&cached.expires>Date.now()){img.src=cached.url;return}
-  supabaseClient.storage.from("chat-photos").createSignedUrl(path,3600).then(({data,error})=>{
-   if(!error&&data?.signedUrl){img.src=data.signedUrl;chatImageUrlCache.set(path,{url:data.signedUrl,expires:Date.now()+3300000})}
-   else if(error)node.append(document.createTextNode(chatText("照片加载失败","写真を読み込めません","Photo unavailable")));
+  chatGetSignedImageUrl(path).then(url=>{if(img.isConnected)img.src=url}).catch(()=>{
+   if(img.isConnected)img.alt=chatText("照片加载失败","写真を読み込めません","Photo unavailable");
   });
   img.addEventListener("load",()=>{img.alt=chatText("聊天照片","チャット写真","Chat photo");if(Date.now()<chatAutoScrollUntil)chatScrollToLatest()});
   img.addEventListener("error",()=>{img.alt=chatText("照片加载失败","写真を読み込めません","Photo failed to load")});
@@ -669,7 +695,7 @@ function chatRenderMessages(){
   if(item.peer===chatPeer&&((item.serverId&&confirmed.some(m=>String(m.id)===String(item.serverId)))||(item.status==="uncertain"&&confirmed.some(m=>m.sender_id===currentUser.id&&m.recipient_id===item.peer&&m.body===item.body&&Math.abs(new Date(m.created_at).getTime()-item.createdAt)<120000))))chatPending.delete(key);
  }
  const pending=[...chatPending.entries()].filter(([,item])=>item.peer===chatPeer);
- const signature=confirmed.map(m=>m.id+":"+(m.read_at||"")).join(",")+"|"+pending.map(([key,item])=>key+":"+item.status).join(",");
+ const signature=uiLanguage+"|"+confirmed.map(m=>m.id+":"+(m.read_at||"")).join(",")+"|"+pending.map(([key,item])=>key+":"+item.status).join(",");
  if(signature===chatLastSignature)return;
  chatLastSignature=signature;
  const fragment=document.createDocumentFragment();
@@ -936,6 +962,14 @@ async function groupLoadList(force=false){
   if(currentUser?.id!==userId||chatMode!=="group"||chatActiveGroup)return;
   groupListLastLoaded=Date.now();
   groupRenderList(groups);
+  const validGroups=new Set(groups.map(g=>g.id));
+  try{
+   for(let i=sessionStorage.length-1;i>=0;i--){
+    const key=sessionStorage.key(i);
+    const prefix="myplanner-group-msg-"+userId+"-";
+    if(key?.startsWith(prefix)&&!validGroups.has(key.slice(prefix.length)))sessionStorage.removeItem(key);
+   }
+  }catch{}
   try{localStorage.setItem(groupListCacheKey,JSON.stringify({userId,groups}))}catch{}
  }catch(error){groupError(error)}
  finally{groupListLoading=false}
@@ -948,7 +982,7 @@ function groupClose(){
  $("chatGroupConversation").hidden=true;$("chatModeSwitch").hidden=false;
  $("chatGroups").hidden=chatMode!=="group";$("chatGroupTools").hidden=chatMode!=="group";
  document.body.classList.remove("chat-open");
- if(chatMode==="group")groupLoadList();
+ if(chatMode==="group")groupLoadList(true);
 }
 async function groupOpen(group){
  if(groupMessageRefreshTimer){clearTimeout(groupMessageRefreshTimer);groupMessageRefreshTimer=null}
@@ -970,7 +1004,7 @@ function groupScheduleRefresh(){
 }
 function groupShowCachedMessages(groupId){
  if(!currentUser)return;
- try{const cache=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+groupId)||"null");if(Array.isArray(cache?.items)&&chatActiveGroup?.id===groupId){groupRenderMessages(cache.items);groupLastSignature=cache.items.map(m=>m.id).join(",")}}catch{}
+ try{const cache=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+groupId)||"null");if(Array.isArray(cache?.items)&&chatActiveGroup?.id===groupId){groupRenderMessages(cache.items);groupLastSignature=uiLanguage+"|"+cache.items.map(m=>m.id).join(",")}}catch{}
 }
 function groupRenderMessages(items){
  const root=$("chatGroupMessages"),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<140;
@@ -983,9 +1017,8 @@ function groupRenderMessages(items){
    const path=item.body.slice("[myplanner-group-image]:".length);
    if(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp|gif)$/i.test(path)){
     const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.alt=chatText("群照片","グループ写真","Group photo");body.append(img);
-    const cached=chatImageUrlCache.get(path);
-    if(cached&&cached.expires>Date.now())img.src=cached.url;
-    else supabaseClient.storage.from("chat-photos").createSignedUrl(path,3600).then(({data,error})=>{if(!error&&data?.signedUrl){img.src=data.signedUrl;chatImageUrlCache.set(path,{url:data.signedUrl,expires:Date.now()+3300000})}});
+    img.decoding="async";
+    chatGetSignedImageUrl(path).then(url=>{if(img.isConnected)img.src=url}).catch(()=>{if(img.isConnected)img.alt=chatText("照片加载失败","写真を読み込めません","Photo unavailable")});
     img.addEventListener("click",()=>chatOpenPhotoPreview(img.src));
    }else body.textContent=chatText("照片无效","無効な画像","Invalid photo");
   }else body.textContent=item.body;
@@ -1005,7 +1038,7 @@ async function groupLoadMessages(){
   const {data,error}=await supabaseClient.from("chat_group_messages").select("id,sender_id,body,created_at").eq("group_id",groupId).order("created_at",{ascending:false}).limit(150);
   if(error)throw error;
   if(!chatActiveGroup||chatActiveGroup.id!==groupId)return;
-  const items=(data||[]).reverse(),signature=items.map(m=>m.id).join(",");
+  const items=(data||[]).reverse(),signature=uiLanguage+"|"+items.map(m=>m.id).join(",");
   if(signature===groupLastSignature)return;
   groupLastSignature=signature;
   groupRenderMessages(items);
