@@ -984,13 +984,13 @@ function chatBubbleAvatar(bubble, senderId, isGroup=false){
  bubble.dataset.avatar=label;
  bubble.classList.add("chat-with-avatar");
  if(!mine){
-  bubble.addEventListener("click",event=>{
-   const rect=bubble.getBoundingClientRect();
-   const size=56,gap=10;
-   const onAvatar=event.clientX>=rect.left-size-gap&&event.clientX<rect.left-1&&event.clientY>=rect.bottom-size&&event.clientY<=rect.bottom;
-   if(!onAvatar)return;
-   event.preventDefault();event.stopPropagation();chatCloseMessageMenu();chatSetRemarkFor(senderId);
-  });
+  const avatar=document.createElement("button");
+  avatar.type="button";avatar.className="chat-avatar-action";
+  avatar.textContent=label;
+  avatar.setAttribute("aria-label",chatText("设置用户备注","相手の表示名を設定","Set contact nickname"));
+  avatar.addEventListener("pointerdown",event=>event.stopPropagation());
+  avatar.addEventListener("click",event=>{event.preventDefault();event.stopPropagation();chatCloseMessageMenu();chatSetRemarkFor(senderId)});
+  bubble.append(avatar);
  }
 }
 function chatRenderMessages(){
