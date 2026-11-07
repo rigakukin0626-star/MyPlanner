@@ -1789,7 +1789,7 @@ $("chatGroupAddByUsername").addEventListener("click",async()=>{
  }catch(error){status.textContent=error?.message||String(error)}
  finally{button.disabled=false}
 });
-$("chatGroupManage").addEventListener("click",groupShowMembers);
+$("chatGroupManage").addEventListener("click",()=>groupShowMembers());
 $("chatGroupMembersClose").addEventListener("click",()=>{$("chatGroupMembersPanel").hidden=true});
 $("chatGroupDisband").addEventListener("click",async()=>{
  if(!currentUser||!chatActiveGroup||chatActiveGroup.created_by!==currentUser.id)return;
