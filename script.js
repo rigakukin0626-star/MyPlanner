@@ -722,6 +722,7 @@ async function openChat(id,name){
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"recipient_id=eq."+userId},payload=>{if(chatPeer===payload.new.sender_id){chatAppendRealtime(payload.new);loadChatMessages()}})
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"sender_id=eq."+userId},payload=>{if(chatPeer===payload.new.recipient_id){chatAppendRealtime(payload.new);loadChatMessages()}})
  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"chat_messages",filter:"sender_id=eq."+userId},payload=>{if(chatPeer===payload.new.recipient_id)loadChatMessages()})
+ .on("postgres_changes",{event:"DELETE",schema:"public",table:"chat_messages"},()=>{if(chatPeer===id&&currentUser?.id===userId){chatLastSignature="";loadChatMessages()}})
  .subscribe(status=>{
   if(chatPeer!==id)return;
   if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")chatStatus(chatText("实时连接中断，正在使用备用同步","リアルタイム接続が中断しました","Realtime unavailable; using backup sync"));
@@ -1048,7 +1049,7 @@ function scheduleChatReconcile(){
 setInterval(()=>{
  if(document.hidden||document.body.dataset.activePage!=="chat"||!currentUser)return;
  if(chatActiveGroup){if(Date.now()-groupMessageLastFetched>12000)groupLoadMessages();return}
- if(chatPeer){if(Date.now()-chatLastFetchAt>6500)loadChatMessages()}else if(chatMode==="private"&&Date.now()-chatFriendsLastLoaded>20000)loadChatFriends();
+ if(chatPeer){if(!document.hidden&&document.body.dataset.activePage==="chat"&&Date.now()-chatLastFetchAt>3000)loadChatMessages()}else if(chatMode==="private"&&Date.now()-chatFriendsLastLoaded>20000)loadChatFriends();
 },3000);
 function chatRefreshAfterReconnect(){
  if(document.hidden||document.body.dataset.activePage!=="chat"||!currentUser)return;
