@@ -1848,9 +1848,17 @@ function groupShowCachedMessages(groupId){
 function groupRenderMessages(items){
  const root=$("chatGroupMessages"),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<140;
  const hidden=groupHiddenIds(chatActiveGroup?.id);
+ const visibleItems=items.filter(item=>!hidden.has(String(item.id)));
+ const oldNodes=[...root.children];
+ const oldIds=oldNodes.map(node=>node.dataset.groupMessageId);
+ const context=uiLanguage+"|"+[...new Set(visibleItems.map(item=>item.sender_id))]
+   .map(id=>id+":"+chatRemarkFor(id)).join(",");
+ const canAppend=oldIds.length>0&&root.dataset.renderContext===context
+   &&visibleItems.length>=oldIds.length
+   &&oldIds.every((id,i)=>id===String(visibleItems[i].id));
  const fragment=document.createDocumentFragment();
- for(const item of items){
-  if(hidden.has(String(item.id)))continue;
+ const incoming=canAppend?visibleItems.slice(oldIds.length):visibleItems;
+ for(const item of incoming){
   const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.dataset.groupMessageCreated=item.created_at;bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");chatBubbleAvatar(bubble,item.sender_id,true);
   const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):(chatRemarkFor(item.sender_id)||item.sender_id.slice(0,8));
   const body=document.createElement("span");
@@ -1868,10 +1876,9 @@ function groupRenderMessages(items){
   const time=document.createElement("small");time.className="chat-clock";time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});time.dataset.baseClock=time.textContent;
   bubble.append(body,time);groupMessageActions(bubble,item);fragment.append(bubble);
  }
- const oldNodes=[...root.children],newNodes=[...fragment.children];
- let appendOnly=oldNodes.length>0&&newNodes.length>=oldNodes.length;
- if(appendOnly){for(let i=0;i<oldNodes.length;i++){if(!oldNodes[i].dataset.groupMessageId||oldNodes[i].dataset.groupMessageId!==newNodes[i].dataset.groupMessageId){appendOnly=false;break}}}
- if(appendOnly){for(let i=oldNodes.length;i<newNodes.length;i++)root.append(newNodes[i])}else root.replaceChildren(fragment);
+ if(canAppend)root.append(fragment);
+ else root.replaceChildren(fragment);
+ root.dataset.renderContext=context;
  if(nearBottom||!root.dataset.loaded)root.scrollTop=root.scrollHeight;root.dataset.loaded="1";
  groupReceiptPaint();
 }
