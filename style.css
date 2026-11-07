@@ -834,3 +834,12 @@ html[data-theme="dark"] body :not(svg):not(path):not(circle):not(rect):not(line)
 }
 html[data-theme="dark"] body input::placeholder,
 html[data-theme="dark"] body textarea::placeholder {color:#60a5fa!important;opacity:1!important}
+
+/* V114: login/register modal lives outside normal dark-theme panel rules. */
+html[data-theme="dark"] .welcome-auth,
+html[data-theme="dark"] .welcome-auth-card { background:#17181b!important; }
+html[data-theme="dark"] .welcome-modes { background:#24262c!important;border:1px solid #41444c!important; }
+html[data-theme="dark"] .welcome-modes button,
+html[data-theme="dark"] .welcome-modes button.active { background:transparent!important;color:#60a5fa!important;box-shadow:none!important; }
+html[data-theme="dark"] .welcome-modes button.active { background:#343943!important; }
+html[data-theme="dark"] #welcomeSubmit { background:#505660!important;color:#60a5fa!important;border-color:#505660!important; }
