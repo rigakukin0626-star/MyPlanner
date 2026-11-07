@@ -381,3 +381,11 @@ body.chat-open .bottom-tabs{z-index:50!important;}
 #pageChat .chat-add input{min-width:0;flex:1 1 auto;border-radius:12px}
 #pageChat #chatPasteCode{background:#eef3ff!important;color:#2563eb!important;border:0!important;border-radius:10px;white-space:nowrap;padding:10px!important}
 #pageChat #chatAddFriend{white-space:nowrap;padding:10px 13px!important;border-radius:10px}
+
+/* v62: unique username and exact username friend lookup */
+#pageChat .chat-username-section{display:grid;gap:9px;margin-bottom:17px;padding-bottom:15px;border-bottom:1px solid #e0e9f8}
+#pageChat .chat-username-section>label{font-size:12px;font-weight:700;color:#526787}
+#pageChat .chat-username-row{display:flex;gap:8px;align-items:center}
+#pageChat .chat-username-row input{min-width:0;flex:1;border:1px solid #dbe4f2;border-radius:11px;padding:10px;font-size:14px}
+#pageChat .chat-username-row button{white-space:nowrap;padding:10px 13px;border-radius:11px}
+#pageChat .chat-search-result:not(:empty){display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;background:#fff;border-radius:11px;color:#264675;font-size:13px}
