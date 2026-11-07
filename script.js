@@ -590,6 +590,37 @@ let chatFriendsRequestId=0;
 let chatFriendsLoading=false;
 let chatFriendsLastLoaded=0;
 const CHAT_FRIEND_CACHE_KEY="myplanner-friends-v1";
+const CHAT_PIN_KEY="myplanner-chat-pins-v1";
+function chatPinnedPeers(){
+ try{const saved=JSON.parse(localStorage.getItem(CHAT_PIN_KEY)||"{}");return Array.isArray(saved[currentUser?.id])?saved[currentUser.id]:[]}catch{return []}
+}
+function chatTogglePin(id){
+ if(!currentUser)return;
+ let saved={};try{saved=JSON.parse(localStorage.getItem(CHAT_PIN_KEY)||"{}")||{}}catch{}
+ const pinned=new Set(chatPinnedPeers());
+ if(pinned.has(id))pinned.delete(id);else pinned.add(id);
+ saved[currentUser.id]=[...pinned];
+ try{localStorage.setItem(CHAT_PIN_KEY,JSON.stringify(saved))}catch(error){console.warn("Chat pin preference could not be saved",error)}
+ const root=$("chatFriends");
+ if(root&&!chatPeer){
+  const rows=[...root.querySelectorAll(".chat-friend[data-peer-id]")];
+  rows.sort((a,b)=>Number(pinned.has(b.dataset.peerId))-Number(pinned.has(a.dataset.peerId))||Number(a.dataset.originalOrder)-Number(b.dataset.originalOrder));
+  rows.forEach(row=>{root.append(row);const pin=row.querySelector(".chat-pin-button");if(pin){const isPinned=pinned.has(row.dataset.peerId);pin.textContent=isPinned?"★":"☆";pin.setAttribute("aria-pressed",String(isPinned));pin.title=isPinned?chatText("取消置顶","ピン留めを解除","Unpin chat"):chatText("置顶聊天","チャットをピン留め","Pin chat");}});
+ }
+}
+function chatAddPinControl(row,id,order){
+ row.dataset.peerId=id;row.dataset.originalOrder=String(order);
+ const pinned=chatPinnedPeers().includes(id);
+ const pin=document.createElement("span");pin.className="chat-pin-button";pin.textContent=pinned?"★":"☆";
+ pin.setAttribute("role","button");pin.setAttribute("tabindex","0");pin.setAttribute("aria-pressed",String(pinned));
+ pin.title=pinned?chatText("取消置顶","ピン留めを解除","Unpin chat"):chatText("置顶聊天","チャットをピン留め","Pin chat");
+ pin.setAttribute("aria-label",pin.title);
+ const toggle=e=>{e.preventDefault();e.stopPropagation();chatTogglePin(id)};
+ pin.addEventListener("click",toggle);
+ pin.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){toggle(e)}});
+ row.append(pin);
+}
+
 function chatShowCachedFriends(){
  if(!currentUser||chatPeer)return;
  try{
@@ -600,7 +631,7 @@ function chatShowCachedFriends(){
   const root=$("chatFriends");
   if(root.children.length)return;
   const fragment=document.createDocumentFragment();
-  for(const friend of saved.friends){
+  for(const [order,friend] of saved.friends.entries()){
    if(typeof friend.id!=="string"||typeof friend.name!=="string")continue;
    const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
    const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=(friend.name.trim()[0]||"?").toUpperCase();
@@ -610,7 +641,7 @@ function chatShowCachedFriends(){
    content.append(title,subtitle);
    const meta=document.createElement("span");meta.className="chat-friend-meta";
    if(friend.time){const when=document.createElement("small");when.textContent=friend.time;meta.append(when)}
-   btn.append(avatar,content,meta);btn.addEventListener("click",()=>openChat(friend.id,friend.name));fragment.append(btn);
+   btn.append(avatar,content,meta);chatAddPinControl(btn,friend.id,order);btn.addEventListener("click",()=>openChat(friend.id,friend.name));fragment.append(btn);
   }
   if(!chatPeer)root.replaceChildren(fragment);
  }catch(error){console.warn("Cached friends unavailable",error)}
@@ -646,7 +677,9 @@ async function loadChatFriends(){
  }
  const sorted=[...ids].sort((a,b)=>(last.get(b)?.created_at||"").localeCompare(last.get(a)?.created_at||""));
  const cachedFriends=[];
- for(const id of sorted){
+ const pinnedIds=new Set(chatPinnedPeers());
+ sorted.sort((a,b)=>Number(pinnedIds.has(b))-Number(pinnedIds.has(a)));
+ for(const [order,id] of sorted.entries()){
   const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
   const name=names.get(id)||id.slice(0,8);
   const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=(name.trim()[0]||"?").toUpperCase();
@@ -658,7 +691,7 @@ async function loadChatFriends(){
   const meta=document.createElement("span");meta.className="chat-friend-meta";
   if(m){const when=document.createElement("small");when.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});meta.append(when)}
   if(unread.get(id)){const count=document.createElement("b");count.className="chat-unread";count.textContent=unread.get(id)>99?"99+":String(unread.get(id));meta.append(count)}
-  btn.append(avatar,content,meta);btn.addEventListener("click",()=>openChat(id,name));fragment.append(btn);
+  btn.append(avatar,content,meta);chatAddPinControl(btn,id,order);btn.addEventListener("click",()=>openChat(id,name));fragment.append(btn);
   cachedFriends.push({id,name,preview:subtitle.textContent,time:m?new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""});
  }
  if(requestId===chatFriendsRequestId&&!chatPeer)root.replaceChildren(fragment);
