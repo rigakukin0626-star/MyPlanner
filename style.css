@@ -409,3 +409,6 @@ body.auth-required{overflow:hidden}
 #welcomeSubmit{margin-top:5px;width:100%;padding:14px;border-radius:12px;font-size:16px}
 #welcomeStatus{font-size:13px;line-height:1.5;color:#b45309;min-height:20px;margin:12px 0 0}
 .welcome-footnote{text-align:center;font-size:12px;color:#9ba8ba;margin:9px 0 0}
+
+/* v67: back label is localized by updateChatLanguage instead of hard-coded Chinese */
+#pageChat .chat-conversation-header #chatBack::after{content:var(--chat-back-label,"戻る")!important}
