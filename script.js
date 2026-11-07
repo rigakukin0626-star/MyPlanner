@@ -582,7 +582,7 @@ function updateChatLanguage(){
    if(empty)empty.textContent=chatText("还没有群聊，创建或加入一个吧","グループはまだありません。作成または参加してください","No groups yet. Create or join one.");
   }
  }
- const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"]};
+ const labels={chatTitle:["チャット","聊天","Chats"],chatAddFriend:["友達を追加","添加好友","Add Friend"]};
  for(const [id,values] of Object.entries(labels)){const el=$(id);if(el)el.textContent=values[uiLanguage==="ja"?0:uiLanguage==="zh"?1:2]}
  $("chatFriendCode").placeholder=chatText("粘贴好友的邀请码","友達のコードを貼り付け","Paste friend code");
  $("accountUsernameHeading").textContent=chatText("账号","アカウント","Account");
@@ -612,7 +612,7 @@ function updateChatLanguage(){
  if(listClear)listClear.setAttribute("aria-label",chatText("清除搜索","検索をクリア","Clear search"));
  const listEmpty=$("chatListSearchEmpty");
  if(listEmpty)listEmpty.textContent=chatText("没有匹配的聊天","一致するチャットはありません","No matching chats");
- $("chatPrivateMode").textContent=chatText("私聊","個人チャット","Private");
+ $("chatPrivateMode").textContent=chatText("好友","友だち","Friends");
  $("chatGroupMode").textContent=chatText("群聊","グループ","Groups");
  $("chatGroupName").placeholder=chatText("群名称","グループ名","Group name");
  $("chatCreateGroup").textContent=chatText("创建群聊","グループを作成","Create group");
@@ -633,7 +633,7 @@ function updateChatLanguage(){
  $("chatGroupDisband").textContent=chatText("解散群聊","グループを解散","Disband group");
  $("chatGroupMessageInput").placeholder=chatText("输入群消息…","グループメッセージ…","Group message...");
  $("chatGroupSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
- $("chatTitle").textContent=chatMode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
+ $("chatTitle").textContent=chatText("聊天","チャット","Chats");
  $("chatMessageInput").placeholder=chatText("输入消息…","メッセージを入力…","Type a message...");
  $("chatSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
  window.chatRefreshListHeader?.();window.refreshLineChatNavigation?.();
@@ -1462,7 +1462,7 @@ function groupMode(mode){
  $("chatToggleAdd").setAttribute("aria-label",mode==="group"?chatText("创建或加入群聊","グループを作成・参加","Create or join a group"):chatText("添加好友","友達を追加","Add friend"));
  $("chatStatus").hidden=mode==="group";
  if(mode==="private"&&$("chatStatus").dataset.friendsSyncedCount!==undefined)updateChatLanguage();
- $("chatTitle").textContent=mode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
+ $("chatTitle").textContent=chatText("聊天","チャット","Chats");
  if(mode==="group"){groupShowCachedList();groupLoadList()}else loadChatFriends();
 }
 async function groupLoadList(force=false){
