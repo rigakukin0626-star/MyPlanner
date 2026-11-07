@@ -283,7 +283,7 @@ function switchPlannerPage(page){
   updateLongTermFormMode();
  }
  if(page==="calendar")renderCalendar();
- if(page==="chat")loadChatFriends();
+ if(page==="chat"){if(chatPeer)loadChatMessages();else loadChatFriends();}
  window.scrollTo({top:0,behavior:"instant"});
 }
 function updatePlannerTabLanguage(){
@@ -325,7 +325,7 @@ document.querySelector("#taskForm")?.addEventListener("submit",()=>queueMicrotas
 refreshReminderDisplay();
 
 /* My Planner Chat V1. Requires the chat database SQL before use. */
-let chatPeer=null,chatSubscription=null;
+let chatPeer=null,chatSubscription=null,chatRefreshBusy=false;
 function chatText(zh,ja,en){return tr(ja,zh,en)}
 function updateChatLanguage(){
  const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"],chatBack:["戻る","返回","Back"]};
@@ -339,6 +339,7 @@ function chatError(error){chatStatus(error?.message||String(error))}
 function chatShowList(){chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
 function chatStopRealtime(){if(chatSubscription){supabaseClient.removeChannel(chatSubscription);chatSubscription=null}}
 async function loadChatFriends(){
+ if(chatPeer)return;
  updateChatLanguage();
  if(!currentUser){$("chatIdentity").textContent=chatText("请先到设置登录账号。","設定からログインしてください。","Sign in from Settings first.");$("chatFriends").replaceChildren();$("chatAddFriend").disabled=true;return}
  $("chatAddFriend").disabled=false;
@@ -358,12 +359,14 @@ async function openChat(id,name){
  chatSubscription=supabaseClient.channel("private-chat-"+currentUser.id+"-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages"},payload=>{if(chatPeer&&(payload.new.sender_id===chatPeer||payload.new.sender_id===currentUser.id))loadChatMessages()}).subscribe();
 }
 async function loadChatMessages(){
- if(!currentUser||!chatPeer)return;
+ if(!currentUser||!chatPeer||chatRefreshBusy)return;
+ chatRefreshBusy=true;
  const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+chatPeer+"),and(sender_id.eq."+chatPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:true}).limit(200);
- if(error){chatError(error.message);return}
+ if(error){chatRefreshBusy=false;chatError(error.message);return}
  const root=$("chatMessages");root.replaceChildren();
  for(const item of data||[]){const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");const body=document.createElement("span");body.textContent=item.body;const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();div.append(body,time);root.append(div)}
  root.scrollTop=root.scrollHeight;
+ chatRefreshBusy=false;
 }
 $("chatAddFriend").addEventListener("click",async()=>{
  if(!currentUser)return;
@@ -381,5 +384,14 @@ $("chatSendForm").addEventListener("submit",async e=>{
  const {error}=await supabaseClient.from("chat_messages").insert({sender_id:currentUser.id,recipient_id:chatPeer,body});
  btn.disabled=false;
  if(error){chatError(error);return}
- input.value="";await loadChatMessages();
+ input.value="";chatStatus(chatText("消息已发送","送信しました","Message sent"));await loadChatMessages();
+});
+
+/* v39: mobile Safari may suspend Realtime sockets; periodically reconcile from DB while chat is visible. */
+setInterval(()=>{
+ if(document.hidden||document.body.dataset.activePage!=="chat"||!currentUser)return;
+ if(chatPeer)loadChatMessages();else loadChatFriends();
+},4000);
+document.addEventListener("visibilitychange",()=>{
+ if(!document.hidden&&document.body.dataset.activePage==="chat"&&currentUser){if(chatPeer)loadChatMessages();else loadChatFriends()}
 });
