@@ -278,7 +278,7 @@ function switchPlannerPage(page){
   showLongTerm=page==="longterm";
   const panel=document.querySelector(".tasks-panel");
   const destination=$(page==="longterm"?"pageLongTerm":"pageTasks");
-  if(panel&&destination)destination.append(panel);
+  if(panel&&destination){if(page==="longterm"){const countdown=destination.querySelector(".countdown-panel");if(countdown)destination.insertBefore(panel,countdown);else destination.append(panel);}else destination.append(panel);}
   filter="all";updateTabs();renderTasks();renderLongTermCountdowns();
   updateLongTermFormMode();
  }
