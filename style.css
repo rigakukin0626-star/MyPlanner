@@ -877,3 +877,14 @@ html[data-theme="dark"] :is(.chat-friends,.chat-messages,.task-list) {scrollbar-
  button,.tab,.bottom-tabs button,.appearance-options button,.icon-button,
  input,select,textarea {transition:none!important;animation:none!important;}
 }
+
+/* V117: high-specificity text color to override legacy ID-based white rules */
+html[data-theme="dark"] body :not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon):not(stop):not(use):not(#_mp_color_a#_mp_color_b#_mp_color_c),
+html[data-theme="dark"] body :not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon):not(stop):not(use):not(#_mp_color_a#_mp_color_b#_mp_color_c)::before,
+html[data-theme="dark"] body :not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon):not(stop):not(use):not(#_mp_color_a#_mp_color_b#_mp_color_c)::after {
+ color:#60a5fa!important;
+ -webkit-text-fill-color:#60a5fa!important;
+}
+html[data-theme="dark"] body :is(input,textarea)::placeholder{
+ color:#60a5fa!important;-webkit-text-fill-color:#60a5fa!important;
+}
