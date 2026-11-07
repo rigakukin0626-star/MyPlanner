@@ -227,3 +227,9 @@
 .chat-bubble small{font-size:10px;color:#7c8ba3;}
 #chatConversation[hidden],#chatFriends[hidden]{display:none!important;}
 @media(max-width:520px){.chat-panel{padding:16px}.chat-add{flex-wrap:wrap}.chat-add input{flex-basis:100%}.bottom-tabs .tab{min-width:0;padding:8px 1px}.bottom-tabs .tab span:last-child{font-size:10px;}}
+
+/* v38: keep all five navigation items in one row on narrow iPhones */
+.bottom-tabs{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:2px!important;padding:7px 5px calc(7px + env(safe-area-inset-bottom))!important;}
+.bottom-tabs>.tab{width:100%;min-width:0!important;max-width:none!important;padding:7px 0!important;gap:3px;}
+.bottom-tabs>.tab span:last-child{font-size:clamp(9px,2.5vw,12px)!important;white-space:nowrap;}
+.bottom-tabs .tab-icon,.bottom-tabs .tab-icon svg{width:22px;height:22px;}
