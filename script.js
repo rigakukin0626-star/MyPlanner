@@ -1178,13 +1178,13 @@ function chatRenderMessages(){
  const fragment=document.createDocumentFragment();
  for(const item of confirmed){
   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);chatBubbleAvatar(div,item.sender_id);
-  const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else chatDisplayBody(body,item.body);
+  const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else{if(chatParseReply(item.body))div.classList.add("chat-reply-bubble");chatDisplayBody(body,item.body);}
   const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
   div.append(body,time);chatMessageActions(div,item);fragment.append(div);
  }
  for(const [key,item] of pending){
   const div=document.createElement("div");div.className="chat-bubble mine";div.dataset.pendingKey=key;chatBubbleAvatar(div,currentUser.id);
-  const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else chatMessageContent(body,item.body);
+  const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else{if(chatParseReply(item.body))div.classList.add("chat-reply-bubble");chatDisplayBody(body,item.body);}
   const time=document.createElement("small");
   const sentAt=new Date(item.createdAt).toLocaleString();
   const state=item.status==="failed"?chatText("发送失败","送信失敗","Failed"):item.status==="uncertain"?chatText("发送超时·待确认","送信確認中","Delivery unconfirmed"):item.status==="sent"?"":chatText("发送中…","送信中…","Sending...");
@@ -1870,7 +1870,7 @@ function groupRenderMessages(items){
    }else body.textContent=chatText("照片无效","無効な画像","Invalid photo");
   }else{
    const reply=groupParseReply(item.body);
-   if(reply){const quote=document.createElement("div");quote.className="chat-quoted-message";const label=document.createElement("strong");label.textContent=chatText("回复消息","返信","Reply");const content=document.createElement("span");content.textContent=reply.quote;quote.append(label,content);body.append(quote);const text=document.createElement("div");text.className="chat-reply-text";text.textContent=reply.text;body.append(text)}
+   if(reply){bubble.classList.add("chat-reply-bubble");const quote=document.createElement("div");quote.className="chat-quoted-message";const label=document.createElement("strong");label.textContent=chatText("回复消息","返信","Reply");const content=document.createElement("span");content.textContent=reply.quote;quote.append(label,content);body.append(quote);const text=document.createElement("div");text.className="chat-reply-text";text.textContent=reply.text;body.append(text)}
    else body.textContent=item.body;
   }
   const time=document.createElement("small");time.className="chat-clock";time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});time.dataset.baseClock=time.textContent;

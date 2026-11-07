@@ -1106,3 +1106,104 @@ button,input,textarea,select{
   padding:11px 12px 9px!important;
  }
 }
+
+/* v178: stable BLOCK layout for replies. The v176 grid and v177 flex rules
+   conflict with nested quote + body + timestamp on Mobile Safari.
+   Avatar remains absolutely positioned; reply children stay in normal flow. */
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble,
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble:has(.chat-quoted-message){
+ display:block!important;
+ position:relative!important;
+ width:fit-content!important;
+ min-width:190px!important;
+ max-width:min(78%,460px)!important;
+ min-height:0!important;
+ height:auto!important;
+ padding:12px 13px 10px!important;
+ border-radius:19px 19px 19px 8px!important;
+ overflow:visible!important;
+ box-sizing:border-box!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble.mine{
+ border-radius:19px 19px 8px 19px!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble>span{
+ display:block!important;
+ position:static!important;
+ width:100%!important;
+ height:auto!important;
+ max-width:100%!important;
+ min-width:0!important;
+ overflow:visible!important;
+ box-sizing:border-box!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble .chat-quoted-message{
+ display:block!important;
+ position:static!important;
+ width:100%!important;
+ max-width:100%!important;
+ min-width:0!important;
+ height:auto!important;
+ margin:0 0 9px!important;
+ padding:8px 10px!important;
+ background:var(--field)!important;
+ border:0!important;
+ border-left:3px solid var(--accent)!important;
+ border-radius:9px!important;
+ overflow:hidden!important;
+ box-sizing:border-box!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble .chat-quoted-message>strong{
+ display:block!important;
+ margin:0 0 3px!important;
+ font-size:12px!important;
+ font-weight:650!important;
+ line-height:1.35!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble .chat-quoted-message>span{
+ display:block!important;
+ width:100%!important;
+ max-width:100%!important;
+ min-width:0!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+ white-space:nowrap!important;
+ font-size:12px!important;
+ line-height:1.45!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble .chat-reply-text{
+ display:block!important;
+ position:static!important;
+ width:100%!important;
+ min-width:0!important;
+ max-width:100%!important;
+ height:auto!important;
+ margin:0!important;
+ padding:0!important;
+ font-size:16px!important;
+ line-height:1.5!important;
+ white-space:pre-wrap!important;
+ overflow-wrap:anywhere!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble>small{
+ display:block!important;
+ position:static!important;
+ width:100%!important;
+ height:auto!important;
+ min-height:17px!important;
+ max-width:100%!important;
+ margin:7px 0 0!important;
+ padding:0!important;
+ font-size:11px!important;
+ line-height:17px!important;
+ text-align:right!important;
+ white-space:nowrap!important;
+ overflow:visible!important;
+ box-sizing:border-box!important;
+}
+@media(max-width:719px){
+ #pageChat .chat-messages .chat-bubble.chat-reply-bubble{
+  min-width:170px!important;
+  max-width:calc(100% - 90px)!important;
+ }
+}
