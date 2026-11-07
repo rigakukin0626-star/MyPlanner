@@ -375,8 +375,14 @@ function chatStatus(message){$("chatStatus").textContent=message}
 function chatError(error){chatStatus(error?.message||String(error))}
 function chatShowList(){document.body.classList.remove("chat-open");chatConfirmedCache=[];chatCachePeer=null;chatReadLastId=null;chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
 function chatStopRealtime(){if(chatSubscription){supabaseClient.removeChannel(chatSubscription);chatSubscription=null}}
+let chatFriendsRequestId=0;
+let chatFriendsLoading=false;
+let chatFriendsLastLoaded=0;
 async function loadChatFriends(){
- if(chatPeer)return;
+ if(chatPeer||chatFriendsLoading)return;
+ chatFriendsLoading=true;
+ const requestId=++chatFriendsRequestId;
+ try{
  const {data:{user:verifiedUser},error:authError}=await supabaseClient.auth.getUser();
  if(authError){chatError(authError);return}
  currentUser=verifiedUser||null;
@@ -388,8 +394,8 @@ async function loadChatFriends(){
  if(error){chatError(chatText("好友列表读取失败：","友達一覧の読み込みに失敗：","Failed to load friends: ")+error.message);return}
  const ids=[...new Set((data||[]).map(f=>f.user_a===currentUser.id?f.user_b:f.user_a))];
  chatStatus(chatText("好友列表已同步（"+ids.length+"）","友達一覧を同期しました（"+ids.length+"）","Friends synced ("+ids.length+")"));
- const root=$("chatFriends");root.replaceChildren();
- if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");root.append(empty);return}
+ const root=$("chatFriends");const fragment=document.createDocumentFragment();
+ if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");fragment.append(empty);if(requestId===chatFriendsRequestId&&!chatPeer)root.replaceChildren(fragment);return}
  const {data:profiles}=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name]));
  const {data:recent}=await supabaseClient.from("chat_messages").select("sender_id,recipient_id,body,created_at,read_at").or("sender_id.eq."+currentUser.id+",recipient_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(200);
@@ -413,8 +419,10 @@ async function loadChatFriends(){
   const meta=document.createElement("span");meta.className="chat-friend-meta";
   if(m){const when=document.createElement("small");when.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});meta.append(when)}
   if(unread.get(id)){const count=document.createElement("b");count.className="chat-unread";count.textContent=unread.get(id)>99?"99+":String(unread.get(id));meta.append(count)}
-  btn.append(avatar,content,meta);btn.addEventListener("click",()=>openChat(id,name));root.append(btn);
+  btn.append(avatar,content,meta);btn.addEventListener("click",()=>openChat(id,name));fragment.append(btn);
  }
+ if(requestId===chatFriendsRequestId&&!chatPeer)root.replaceChildren(fragment);
+ }finally{chatFriendsLoading=false;chatFriendsLastLoaded=Date.now()}
 }
 function chatAppendRealtime(item){
  if(!currentUser||!chatPeer||!item||!(item.sender_id===chatPeer&&item.recipient_id===currentUser.id||item.sender_id===currentUser.id&&item.recipient_id===chatPeer))return;
@@ -586,7 +594,7 @@ $("chatSendForm").addEventListener("submit",async e=>{
 /* v39: mobile Safari may suspend Realtime sockets; periodically reconcile from DB while chat is visible. */
 setInterval(()=>{
  if(document.hidden||document.body.dataset.activePage!=="chat"||!currentUser)return;
- if(chatPeer){if(Date.now()-chatLastFetchAt>2500)loadChatMessages()}else if(Date.now()-chatLastFetchAt>10000)loadChatFriends();
+ if(chatPeer){if(Date.now()-chatLastFetchAt>2500)loadChatMessages()}else if(Date.now()-chatFriendsLastLoaded>10000)loadChatFriends();
 },1000);
 document.addEventListener("visibilitychange",()=>{
  if(!document.hidden&&document.body.dataset.activePage==="chat"&&currentUser){if(chatPeer)loadChatMessages();else loadChatFriends()}
