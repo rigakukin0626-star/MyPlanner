@@ -1448,14 +1448,14 @@ function groupMarkSeen(groupId,when){
 */
 let groupReceiptState={
  groupId:null,readers:new Map(),members:[],ready:false,messagesReady:false,lastRecordedMessageId:null,
- lastPoll:0,lastWrite:0,polling:false,writing:false
+ lastPoll:0,lastWrite:0,lastMemberFetch:0,polling:false,writing:false
 };
 let groupReceiptTimer=null;
 function groupReceiptReset(groupId=null){
  if(groupReceiptTimer){clearInterval(groupReceiptTimer);groupReceiptTimer=null}
  groupReceiptState={
   groupId,readers:new Map(),members:[],ready:false,messagesReady:false,lastRecordedMessageId:null,
-  lastPoll:0,lastWrite:0,polling:false,writing:false
+  lastPoll:0,lastWrite:0,lastMemberFetch:0,polling:false,writing:false
  };
 }
 function groupReceiptIsActive(groupId){
@@ -1531,14 +1531,16 @@ async function groupReceiptPoll(force=false){
  if(!force&&now-state.lastPoll<minimumDelay)return;
  state.lastPoll=now;state.polling=true;
  try{
+  const refreshMembers=!state.members.length||now-state.lastMemberFetch>60000;
   const [membership,receipts]=await Promise.all([
-   supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId),
+   refreshMembers?supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId):Promise.resolve({data:state.members,error:null}),
    supabaseClient.from("chat_group_read_receipts").select("user_id,last_read_at").eq("group_id",groupId)
   ]);
   if(membership.error)throw membership.error;
   if(receipts.error)throw receipts.error;
   if(groupReceiptState!==state||chatActiveGroup?.id!==groupId)return;
   state.members=membership.data||[];
+  if(refreshMembers)state.lastMemberFetch=now;
   state.readers=new Map((receipts.data||[]).map(row=>[row.user_id,row.last_read_at]));
   state.ready=true;
   groupReceiptPaint();
