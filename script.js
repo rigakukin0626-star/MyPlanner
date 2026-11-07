@@ -1585,20 +1585,20 @@ async function groupLoadInviteFriends(){
  const cached=root.dataset.groupId===groupId&&root.dataset.userId===currentUser.id&&root.children.length>0;
  if(!cached){root.replaceChildren();root.dataset.groupId=groupId;root.dataset.userId=currentUser.id}
  if(!isOwner){root.replaceChildren();return}
- if(!cached){const loading=document.createElement("p");loading.className="group-panel-loading";loading.textContent=chatText("正在加载好友…","友達を読み込み中…","Loading friends...");root.append(loading)}
+ // Keep the panel stable while fetching; no temporary loading text or layout jump.
  const [friendsResult,membersResult]=await Promise.all([
   supabaseClient.from("chat_friends").select("user_a,user_b").or("user_a.eq."+currentUser.id+",user_b.eq."+currentUser.id),
   supabaseClient.from("chat_group_members").select("user_id").eq("group_id",groupId)
  ]);
  if(!chatActiveGroup||chatActiveGroup.id!==groupId||$("chatGroupInvitePanel").hidden)return;
- root.replaceChildren();
- if(friendsResult.error||membersResult.error){root.textContent=(friendsResult.error||membersResult.error).message;return}
+ if(friendsResult.error||membersResult.error){if(!cached)root.textContent=(friendsResult.error||membersResult.error).message;return}
  const ids=[...new Set((friendsResult.data||[]).map(f=>f.user_a===currentUser.id?f.user_b:f.user_a))].filter(id=>id!==currentUser.id);
  const members=new Set((membersResult.data||[]).map(m=>m.user_id));
  if(!ids.length){root.textContent=chatText("还没有好友，可以先添加好友","友達がまだいません","No friends yet");return}
  const {data:profiles,error}=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);
  if(!chatActiveGroup||chatActiveGroup.id!==groupId||$("chatGroupInvitePanel").hidden)return;
- if(error){root.textContent=error.message;return}
+ if(error){if(!cached)root.textContent=error.message;return}
+ const fragment=document.createDocumentFragment();
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name]));
  for(const id of ids){
   const row=document.createElement("div");row.className="chat-group-invite-friend";
@@ -1613,8 +1613,9 @@ async function groupLoadInviteFriends(){
    members.add(id);btn.textContent=chatText("已在群里","参加済み","Joined");
    $("chatGroupInviteFeedback").textContent=chatText("已添加好友到群聊","友達をグループに追加しました","Friend added to group");
   });
-  row.append(name,btn);root.append(row);
+  row.append(name,btn);fragment.append(row);
  }
+ root.replaceChildren(fragment);
 }
 $("chatGroupInviteClose").addEventListener("click",()=>{$("chatGroupInvitePanel").hidden=true});
 $("chatGroupCopyInvite").addEventListener("click",async()=>{
