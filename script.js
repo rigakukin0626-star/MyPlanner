@@ -81,7 +81,8 @@ function applyLanguage(){
   const key=btn.dataset.appearance;if(labels[key])btn.textContent=labels[key][idx];
  });
  updateWelcomeLanguage();
- updateChatLanguage();
+ // applyLanguage also runs during startup before the chat module initializes.
+ if(window.myPlannerChatReady)updateChatLanguage();
  window.chatRefreshLocalizedViews?.();
 }
 const STORAGE_KEY = "myPlannerTasks";
@@ -1893,6 +1894,8 @@ $("chatToggleAdd").addEventListener("click",()=>{
 });
 
 // v66: initialize navigation only after chatPeer and all chat handlers exist.
+window.myPlannerChatReady=true;
+updateChatLanguage();
 initPlannerPages();
 showWelcomeAuth();
 
