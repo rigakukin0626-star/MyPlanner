@@ -1149,6 +1149,10 @@ function chatOpenMessageMenu(item,bubble){
  setTimeout(()=>document.addEventListener("pointerdown",chatDismissMessageMenu,{once:true}),0);
 }
 function chatDismissMessageMenu(e){if(chatMenuNode&&!chatMenuNode.contains(e.target))chatCloseMessageMenu()}
+// If the conversation scrolls, dismiss a detached contextual menu.
+for(const id of ["chatMessages","chatGroupMessages"]){
+ $(id)?.addEventListener("scroll",()=>{if(chatMenuNode)chatCloseMessageMenu()},{passive:true});
+}
 function chatMessageActions(bubble,item){
  let timer=null,startX=0,startY=0,longPressed=false;
  const cancel=()=>{if(timer!==null){clearTimeout(timer);timer=null}};
