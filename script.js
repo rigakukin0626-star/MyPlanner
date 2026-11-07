@@ -585,7 +585,22 @@ function updateChatLanguage(){
 function chatStatus(message){$("chatStatus").textContent=message;if(!/^(好友列表已同步|友達一覧を同期しました|Friends synced)/.test(message))delete $("chatStatus").dataset.friendsSyncedCount}
 function chatError(error){chatStatus(error?.message||String(error))}
 function chatShowList(){if(chatActiveGroup)groupClose();document.body.classList.remove("chat-open");chatConfirmedCache=[];chatCachePeer=null;chatReadLastId=null;chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
-function chatStopRealtime(){if(chatSubscription){supabaseClient.removeChannel(chatSubscription);chatSubscription=null}}
+let chatRecallChannel=null;
+function chatRecallTopic(a,b){return "chat-recall-"+[a,b].sort().join("-")}
+function chatStopRealtime(){
+ if(chatSubscription){supabaseClient.removeChannel(chatSubscription);chatSubscription=null}
+ if(chatRecallChannel){supabaseClient.removeChannel(chatRecallChannel);chatRecallChannel=null}
+}
+async function chatBroadcastRecall(peer,id){
+ if(!currentUser)return;
+ const topic=chatRecallTopic(currentUser.id,peer);
+ const channel=chatRecallChannel?.topic===topic?chatRecallChannel:supabaseClient.channel(topic);
+ try{
+  if(channel!==chatRecallChannel)await new Promise(resolve=>{channel.subscribe(status=>{if(status==="SUBSCRIBED"||status==="CHANNEL_ERROR"||status==="TIMED_OUT")resolve()})});
+  await channel.send({type:"broadcast",event:"message-recalled",payload:{id:String(id),sender:currentUser.id,recipient:peer}});
+ }catch(error){console.warn("Recall broadcast unavailable; fallback sync remains active",error)}
+ finally{if(channel!==chatRecallChannel)supabaseClient.removeChannel(channel)}
+}
 let chatFriendsRequestId=0;
 let chatFriendsLoading=false;
 let chatFriendsLastLoaded=0;
@@ -718,6 +733,16 @@ async function openChat(id,name){
  $("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
  chatRenderMessages();chatScrollToLatest();
  const userId=currentUser.id;
+ chatRecallChannel=supabaseClient.channel(chatRecallTopic(userId,id))
+ .on("broadcast",{event:"message-recalled"},({payload})=>{
+  if(chatPeer!==id||currentUser?.id!==userId||!payload)return;
+  if(!((payload.sender===id&&payload.recipient===userId)||(payload.sender===userId&&payload.recipient===id)))return;
+  const recalledId=String(payload.id||"");
+  if(!recalledId)return;
+  chatConfirmedCache=chatConfirmedCache.filter(m=>String(m.id)!==recalledId);
+  chatSaveSnapshot(id,chatConfirmedCache);
+  chatLastSignature="";chatRenderMessages();loadChatMessages();
+ }).subscribe();
  chatSubscription=supabaseClient.channel("private-chat-"+userId+"-"+id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"recipient_id=eq."+userId},payload=>{if(chatPeer===payload.new.sender_id){chatAppendRealtime(payload.new);loadChatMessages()}})
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"sender_id=eq."+userId},payload=>{if(chatPeer===payload.new.recipient_id){chatAppendRealtime(payload.new);loadChatMessages()}})
@@ -813,6 +838,7 @@ async function chatRemoveMessage(item,recall){
   chatConfirmedCache=chatConfirmedCache.filter(m=>String(m.id)!==id);
   chatSaveSnapshot(peer,chatConfirmedCache);
   chatLastSignature="";chatRenderMessages();
+  chatBroadcastRecall(peer,id).catch(console.warn);
   chatStatus(chatText("消息已撤回","メッセージを取り消しました","Message recalled"));
   await loadChatMessages();
  }catch(error){
