@@ -590,6 +590,19 @@ async function openChat(id,name){
 }
 const CHAT_IMAGE_PREFIX="[myplanner-image]:";
 const chatImageUrlCache=new Map();
+function chatOpenPhotoPreview(url){
+ if(!url)return;
+ let overlay=document.getElementById("chatPhotoPreview");
+ if(!overlay){
+  overlay=document.createElement("div");overlay.id="chatPhotoPreview";overlay.className="chat-photo-preview";overlay.hidden=true;
+  overlay.innerHTML='<button type="button" class="chat-photo-preview-close" aria-label="Close photo">×</button><img class="chat-photo-preview-image" alt="Chat photo">';
+  document.body.append(overlay);
+  overlay.addEventListener("click",event=>{if(event.target!==overlay&&event.target.closest(".chat-photo-preview-close")===null)return;overlay.hidden=true;overlay.querySelector("img").removeAttribute("src")});
+  document.addEventListener("keydown",event=>{if(event.key==="Escape"&&!overlay.hidden){overlay.hidden=true;overlay.querySelector("img").removeAttribute("src")}});
+ }
+ overlay.querySelector("img").src=url;overlay.hidden=false;
+}
+
 function chatMessageContent(node,body){
  if(typeof body==="string"&&body.startsWith(CHAT_IMAGE_PREFIX)){
   const path=body.slice(CHAT_IMAGE_PREFIX.length);
@@ -604,7 +617,7 @@ function chatMessageContent(node,body){
   });
   img.addEventListener("load",()=>{img.alt=chatText("聊天照片","チャット写真","Chat photo");if(Date.now()<chatAutoScrollUntil)chatScrollToLatest()});
   img.addEventListener("error",()=>{img.alt=chatText("照片加载失败","写真を読み込めません","Photo failed to load")});
-  img.addEventListener("click",()=>{if(img.src)window.open(img.src,"_blank","noopener")});
+  img.addEventListener("click",()=>chatOpenPhotoPreview(img.src));
  }else node.textContent=body;
 }
 function chatRenderMessages(){
