@@ -120,7 +120,7 @@ async function refreshAuthUI(){
   $("authPanel").classList.toggle("is-signed-in",!!currentUser);
   $("enableNotificationsBtn").hidden = !currentUser;
   $("resetNotificationsBtn").hidden = !currentUser;
-  if(currentUser){try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}}
+  if(currentUser){if(document.body.dataset.activePage==="chat")chatShowList();try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}}
   else{cloudReady=false;setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."))}
 }
 $("authForm").addEventListener("submit",async e=>{
@@ -340,13 +340,17 @@ function chatShowList(){chatPeer=null;$("chatConversation").hidden=true;$("chatF
 function chatStopRealtime(){if(chatSubscription){supabaseClient.removeChannel(chatSubscription);chatSubscription=null}}
 async function loadChatFriends(){
  if(chatPeer)return;
+ const {data:{user:verifiedUser},error:authError}=await supabaseClient.auth.getUser();
+ if(authError){chatError(authError);return}
+ currentUser=verifiedUser||null;
  updateChatLanguage();
  if(!currentUser){$("chatIdentity").textContent=chatText("请先到设置登录账号。","設定からログインしてください。","Sign in from Settings first.");$("chatFriends").replaceChildren();$("chatAddFriend").disabled=true;return}
  $("chatAddFriend").disabled=false;
  $("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;
  const {data,error}=await supabaseClient.from("chat_friends").select("user_a,user_b,created_at").or("user_a.eq."+currentUser.id+",user_b.eq."+currentUser.id).order("created_at",{ascending:false});
- if(error){chatError(chatText("聊天数据库尚未配置：","チャットDBが未設定です：","Chat database is not configured: ")+error.message);return}
- const ids=(data||[]).map(f=>f.user_a===currentUser.id?f.user_b:f.user_a);
+ if(error){chatError(chatText("好友列表读取失败：","友達一覧の読み込みに失敗：","Failed to load friends: ")+error.message);return}
+ const ids=[...new Set((data||[]).map(f=>f.user_a===currentUser.id?f.user_b:f.user_a))];
+ chatStatus(chatText("好友列表已同步（"+ids.length+"）","友達一覧を同期しました（"+ids.length+"）","Friends synced ("+ids.length+")"));
  const root=$("chatFriends");root.replaceChildren();
  if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");root.append(empty);return}
  const {data:profiles}=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);
