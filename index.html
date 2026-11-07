@@ -148,6 +148,38 @@
     </div>
   </dialog>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=134"></script>
+  <script>
+/* v135: independent navigation recovery, even when a page module fails. */
+(function(){
+  function navigate(event){
+    const button=event.target.closest?.(".bottom-tabs .tab[data-target]");
+    if(!button)return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const page=button.dataset.target;
+    try{
+      if(typeof switchPlannerPage==="function"){
+        switchPlannerPage(page);
+        return;
+      }
+    }catch(error){console.error("Navigation module error:",error)}
+    document.querySelectorAll(".app-page").forEach(el=>el.classList.toggle("active",el.dataset.page===page));
+    document.querySelectorAll(".bottom-tabs .tab").forEach(el=>el.classList.toggle("active",el===button));
+    document.body.dataset.activePage=page;
+    document.body.classList.toggle("chat-open",false);
+    const panel=document.querySelector(".tasks-panel");
+    const target=document.getElementById(page==="longterm"?"pageLongTerm":"pageTasks");
+    if(panel&&target&&(page==="tasks"||page==="longterm")){
+      if(page==="longterm"){
+        const countdown=target.querySelector(".countdown-panel");
+        if(countdown)target.insertBefore(panel,countdown);else target.append(panel);
+      }else target.append(panel);
+    }
+    window.scrollTo(0,0);
+  }
+  document.addEventListener("click",navigate,true);
+})();
+</script>
+  <script src="script.js?v=135"></script>
 </body>
 </html>
