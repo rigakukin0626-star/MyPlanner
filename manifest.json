@@ -1,14 +1,14 @@
 {
   "name": "My Planner",
   "short_name": "My Planner",
-  "description": "Tasks, Calendar & Messages",
+  "description": "Tasks, calendar and messages · Sky Blue Edition",
   "start_url": "/MyPlanner/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "icon.svg?v=168",
+      "src": "icon.svg?v=169",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

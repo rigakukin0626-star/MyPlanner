@@ -582,7 +582,7 @@ function updateChatLanguage(){
    if(empty)empty.textContent=chatText("还没有群聊，创建或加入一个吧","グループはまだありません。作成または参加してください","No groups yet. Create or join one.");
   }
  }
- const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"],chatBack:["戻る","返回","Back"]};
+ const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"]};
  for(const [id,values] of Object.entries(labels)){const el=$(id);if(el)el.textContent=values[uiLanguage==="ja"?0:uiLanguage==="zh"?1:2]}
  $("chatFriendCode").placeholder=chatText("粘贴好友的邀请码","友達のコードを貼り付け","Paste friend code");
  $("accountUsernameHeading").textContent=chatText("账号","アカウント","Account");
@@ -600,9 +600,11 @@ function updateChatLanguage(){
  const searchLabel=invite.querySelector('label[for="chatSearchUsername"]');
  if(searchLabel)searchLabel.textContent=chatText("搜索好友用户名","友達のユーザー名を検索","Search friend username");
  $("chatAddFriend").textContent=chatText("添加好友","友達を追加","Add friend");
- $("chatToggleAdd").setAttribute("aria-label",chatText("添加好友","友達を追加","Add friend"));
+ $("chatToggleAdd").setAttribute("aria-label",chatMode==="group"?chatText("创建或加入群聊","グループを作成・参加","Create or join a group"):chatText("添加好友","友達を追加","Add friend"));
+ $("chatGroupBack").setAttribute("aria-label",chatText("返回","戻る","Back"));
  $("chatBack").setAttribute("aria-label",chatText("返回","戻る","Back"));
- $("chatBack").style.setProperty("--chat-back-label",JSON.stringify(chatText("返回","戻る","Back")));
+ const groupToolsTitle=$("chatGroupToolsTitle");
+ if(groupToolsTitle)groupToolsTitle.textContent=chatText("新建或加入群聊","グループの作成・参加","Create or join a group");
 
  const listSearch=$("chatListSearchInput");
  if(listSearch){listSearch.placeholder=chatText("搜索好友或群聊","友達やグループを検索","Search friends or groups");listSearch.setAttribute("aria-label",listSearch.placeholder)}
@@ -634,6 +636,7 @@ function updateChatLanguage(){
  $("chatTitle").textContent=chatMode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
  $("chatMessageInput").placeholder=chatText("输入消息…","メッセージを入力…","Type a message...");
  $("chatSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
+ window.chatRefreshListHeader?.();
 }
 function chatStatus(message){$("chatStatus").textContent=message;if(!/^(好友列表已同步|友達一覧を同期しました|Friends synced)/.test(message))delete $("chatStatus").dataset.friendsSyncedCount}
 function chatError(error){chatStatus(error?.message||String(error))}
@@ -734,7 +737,7 @@ async function loadChatFriends(){
  $("chatStatus").dataset.friendsSyncedCount=String(ids.length);
  chatStatus(chatText("好友列表已同步（"+ids.length+"）","友達一覧を同期しました（"+ids.length+"）","Friends synced ("+ids.length+")"));
  const root=$("chatFriends");const fragment=document.createDocumentFragment();
- if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");fragment.append(empty);if(requestId===chatFriendsRequestId&&!chatPeer)root.replaceChildren(fragment);try{localStorage.setItem(CHAT_FRIEND_CACHE_KEY,JSON.stringify({userId:currentUser.id,friends:[]}))}catch(error){}return}
+ if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");fragment.append(empty);if(requestId===chatFriendsRequestId&&!chatPeer){root.replaceChildren(fragment);root.dataset.renderSignature="empty-"+currentUser.id+"-"+uiLanguage;}try{localStorage.setItem(CHAT_FRIEND_CACHE_KEY,JSON.stringify({userId:currentUser.id,friends:[]}))}catch(error){}return}
  const {data:profiles}=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name]));
  const {data:recent}=await supabaseClient.from("chat_messages").select("sender_id,recipient_id,body,created_at,read_at").or("sender_id.eq."+currentUser.id+",recipient_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(200);
@@ -764,7 +767,14 @@ async function loadChatFriends(){
   btn.append(avatar,content,meta);chatAddPinControl(btn,id,order);btn.addEventListener("click",()=>openChat(id,name));fragment.append(btn);
   cachedFriends.push({id,name,preview:subtitle.textContent,time:m?new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""});
  }
- if(requestId===chatFriendsRequestId&&!chatPeer)root.replaceChildren(fragment);
+ // Keep existing DOM nodes and click handlers when the refreshed list is identical.
+ const signature=uiLanguage+"|"+currentUser.id+"|"+JSON.stringify(sorted.map(id=>[
+  id,names.get(id)||"",chatRemarkFor(id)||"",last.get(id)?.body||"",
+  last.get(id)?.created_at||"",unread.get(id)||0,pinnedIds.has(id)
+ ]));
+ if(requestId===chatFriendsRequestId&&!chatPeer&&root.dataset.renderSignature!==signature){
+  root.replaceChildren(fragment);root.dataset.renderSignature=signature;
+ }
  try{localStorage.setItem(CHAT_FRIEND_CACHE_KEY,JSON.stringify({userId:currentUser.id,friends:cachedFriends}))}catch(error){console.warn("Friend cache write failed",error)}
  }finally{chatFriendsLoading=false;chatFriendsLastLoaded=Date.now()}
 }
@@ -775,15 +785,26 @@ function chatAppendRealtime(item){
  const bubble=document.createElement("div");bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
  bubble.dataset.messageId=String(item.id);
  const body=document.createElement("span");chatDisplayBody(body,item.body);
- const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString()+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
+ const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
  bubble.append(body,time);root.append(bubble);root.scrollTop=root.scrollHeight;
  chatLastSignature="";
+}
+function chatUpdatePeerHeader(id,name){
+ const title=$("chatPeerName"),subtitle=$("chatPeerSub");
+ const original=String(name||title?.dataset.originalName||"").trim();
+ const remark=chatRemarkFor(id);
+ const display=remark||original||id.slice(0,8);
+ title.dataset.originalName=original;
+ title.textContent=display;
+ if(subtitle){subtitle.textContent=remark&&original&&remark!==original?original:"";subtitle.hidden=!subtitle.textContent;}
+ const avatar=$("chatConversation")?.querySelector(".chat-peer-avatar");
+ if(avatar)avatar.textContent=display.trim().slice(0,1)||"?";
 }
 async function openChat(id,name){
  chatStopRealtime();
  chatReplyTarget=null;chatUpdateReplyPreview();chatShowBuildVersion();chatLastSignature="";chatConfirmedCache=chatRestoreSnapshot(id);chatCachePeer=id;chatReadLastId=null;chatPeer=id;chatAutoScrollUntil=Date.now()+8000;document.body.classList.add("chat-open");
  $("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");
- $("chatPeerName").dataset.originalName=name;$("chatPeerName").textContent=chatRemarkFor(id)||name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
+ chatUpdatePeerHeader(id,name);$("chatFriends").hidden=true;$("chatConversation").hidden=false;
  chatRenderMessages();chatScrollToLatest();
  const userId=currentUser.id;
  chatRecallChannel=supabaseClient.channel(chatRecallTopic(userId,id))
@@ -1060,7 +1081,7 @@ function chatSetRemarkFor(userId){
   all[currentUser.id]=own;localStorage.setItem(CHAT_REMARKS_KEY,JSON.stringify(all));
  }catch(error){alert(chatText("备注保存失败","保存できませんでした","Could not save nickname"));return}
  chatLastSignature="";groupLastSignature="";
- if(chatPeer===userId&&$("chatPeerName"))$("chatPeerName").textContent=remark||$("chatPeerName").dataset.originalName||userId.slice(0,8);
+ if(chatPeer===userId&&$("chatPeerName"))chatUpdatePeerHeader(userId,$("chatPeerName").dataset.originalName);
  if(chatPeer)chatRenderMessages();
  if(chatActiveGroup){groupLastSignature="";try{const cache=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+chatActiveGroup.id)||"null");if(Array.isArray(cache?.items))groupRenderMessages(cache.items)}catch{}}
 }
@@ -1097,7 +1118,7 @@ function chatRenderMessages(){
  for(const item of confirmed){
   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);chatBubbleAvatar(div,item.sender_id);
   const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else chatDisplayBody(body,item.body);
-  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString()+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
+  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
   div.append(body,time);chatMessageActions(div,item);fragment.append(div);
  }
  for(const [key,item] of pending){
@@ -1433,9 +1454,12 @@ function groupMode(mode){
  $("chatGroupMode").classList.toggle("active",mode==="group");
  $("chatFriends").hidden=mode!=="private";
  $("chatGroups").hidden=mode!=="group";
- $("chatGroupTools").hidden=mode!=="group";
- $("chatToggleAdd").hidden=mode==="group";
+ $("chatGroupTools").hidden=true;
+ $("chatToggleAdd").hidden=false;
  $("chatInviteSection").hidden=true;
+ $("chatToggleAdd").setAttribute("aria-expanded","false");
+ $("chatToggleAdd").setAttribute("aria-controls",mode==="group"?"chatGroupTools":"chatInviteSection");
+ $("chatToggleAdd").setAttribute("aria-label",mode==="group"?chatText("创建或加入群聊","グループを作成・参加","Create or join a group"):chatText("添加好友","友達を追加","Add friend"));
  $("chatStatus").hidden=mode==="group";
  if(mode==="private"&&$("chatStatus").dataset.friendsSyncedCount!==undefined)updateChatLanguage();
  $("chatTitle").textContent=mode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
@@ -1580,7 +1604,7 @@ function groupClose(){
  chatActiveGroup=null;groupLastSignature="";
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
  $("chatGroupConversation").hidden=true;$("chatModeSwitch").hidden=false;
- $("chatGroups").hidden=chatMode!=="group";$("chatGroupTools").hidden=chatMode!=="group";
+ $("chatGroups").hidden=chatMode!=="group";$("chatGroupTools").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");
  document.body.classList.remove("chat-open");
  if(chatMode==="group")groupLoadList(true);
 }
@@ -1651,7 +1675,7 @@ function groupRenderMessages(items){
    if(reply){const quote=document.createElement("div");quote.className="chat-quoted-message";const label=document.createElement("strong");label.textContent=chatText("回复消息","返信","Reply");const content=document.createElement("span");content.textContent=reply.quote;quote.append(label,content);body.append(quote);const text=document.createElement("div");text.className="chat-reply-text";text.textContent=reply.text;body.append(text)}
    else body.textContent=item.body;
   }
-  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
+  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
   bubble.append(sender,body,time);groupMessageActions(bubble,item);fragment.append(bubble);
  }
  const oldNodes=[...root.children],newNodes=[...fragment.children];
@@ -1941,9 +1965,16 @@ $("chatGroupSendForm").addEventListener("submit",async event=>{
 setInterval(()=>{if(!document.hidden&&document.body.dataset.activePage==="chat"&&chatActiveGroup)groupLoadMessages()},5000);
 /* Chat V43: LINE-style friend management drawer. */
 $("chatToggleAdd").addEventListener("click",()=>{
- const panel=$("chatInviteSection"),open=panel.hidden;
- panel.hidden=!open;$("chatToggleAdd").setAttribute("aria-expanded",String(open));
- if(open&&currentUser){$("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;}
+ const isGroup=chatMode==="group";
+ const panel=$(isGroup?"chatGroupTools":"chatInviteSection");
+ const other=$(isGroup?"chatInviteSection":"chatGroupTools");
+ const open=panel.hidden;
+ other.hidden=true;panel.hidden=!open;
+ $("chatToggleAdd").setAttribute("aria-expanded",String(open));
+ $("chatToggleAdd").setAttribute("aria-controls",isGroup?"chatGroupTools":"chatInviteSection");
+ if(open&&!isGroup&&currentUser){
+  $("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;
+ }
 });
 
 // v66: initialize navigation only after chatPeer and all chat handlers exist.
@@ -1965,7 +1996,7 @@ showWelcomeAuth();
     document.documentElement.dataset.theme=mode;
     document.documentElement.style.colorScheme=mode;
     const meta=document.querySelector('meta[name="theme-color"]');
-    if(meta)meta.setAttribute("content",mode==="dark"?"#111214":"#ffffff");
+    if(meta)meta.setAttribute("content",mode==="dark"?"#000000":"#ffffff");
     document.querySelectorAll("[data-appearance]").forEach(button=>{
       const active=button.dataset.appearance===selected;
       button.setAttribute("aria-pressed",String(active));
@@ -1990,6 +2021,8 @@ showWelcomeAuth();
   const wrap=document.getElementById("chatListSearch");
   const friends=document.getElementById("chatFriends");
   const groups=document.getElementById("chatGroups");
+  const sectionTitle=document.getElementById("chatListSectionTitle");
+  const sectionCount=document.getElementById("chatListSectionCount");
   if(!input||!clear||!empty||!wrap||!friends||!groups)return;
   const filter=()=>{
     const isGroup=document.getElementById("chatGroupMode")?.classList.contains("active");
@@ -2009,6 +2042,8 @@ showWelcomeAuth();
       }
     }
     empty.hidden=!term||total===0||visible!==0;
+    if(sectionTitle)sectionTitle.textContent=isGroup?chatText("我的群聊","グループチャット","My groups"):chatText("最近聊天","最近のチャット","Recent chats");
+    if(sectionCount)sectionCount.textContent=uiLanguage==="zh"?total+(isGroup?" 个群聊":" 个会话"):uiLanguage==="ja"?total+" 件":total+(isGroup?" groups":" chats");
     wrap.hidden=Boolean(document.body.classList.contains("chat-open"));
   };
   input.addEventListener("input",filter);
@@ -2018,35 +2053,60 @@ showWelcomeAuth();
   for(const id of ["chatPrivateMode","chatGroupMode","chatGroupBack","chatBack"]){
     document.getElementById(id)?.addEventListener("click",()=>queueMicrotask(filter));
   }
+  window.chatRefreshListHeader=filter;
   filter();
 })();
 
 
-/* v166: keyboard-aware, native-feeling chat composer without changing send semantics. */
+/* v169: iOS Safari/PWA keyboard-safe composer.
+   The visual viewport (not 100dvh) defines the usable screen while typing.
+   Never add the keyboard height to composer padding; that double-offsets input.
+*/
 (function initChatKeyboardAndComposer(){
  const fields=[document.getElementById("chatMessageInput"),document.getElementById("chatGroupMessageInput")].filter(Boolean);
  if(!fields.length)return;
- const updateKeyboard=()=>{
-  const focused=fields.includes(document.activeElement)&&document.body.classList.contains("chat-open");
-  const vv=window.visualViewport;
-  const obscured=vv?Math.max(0,window.innerHeight-vv.height-vv.offsetTop):0;
-  const open=focused&&obscured>110;
-  document.body.classList.toggle("chat-input-focused",focused);
-  document.body.classList.toggle("chat-keyboard-open",open);
-  document.documentElement.style.setProperty("--chat-keyboard-height",open?Math.round(obscured)+"px":"0px");
+ const root=document.documentElement;
+ let raf=0, lastHeight=0, lastTop=-1, wasOpen=false;
+ let knownWidth=window.innerWidth, baseline=window.visualViewport?.height||window.innerHeight;
+ const activeField=()=>fields.includes(document.activeElement)?document.activeElement:null;
+ const scrollMessages=(field)=>{
+  const id=field?.id==="chatGroupMessageInput"?"chatGroupMessages":"chatMessages";
+  const list=document.getElementById(id);
+  if(list)list.scrollTop=list.scrollHeight;
  };
- const grow=(input)=>{
-  input.style.height="auto";
-  input.style.height=Math.min(116,Math.max(42,input.scrollHeight))+"px";
+ const applyViewport=()=>{
+  raf=0;
+  const vv=window.visualViewport;
+  const height=Math.max(1,Math.round(vv?.height||window.innerHeight));
+  const top=Math.max(0,Math.round(vv?.offsetTop||0));
+  const field=activeField();
+  const focused=Boolean(field&&document.body.classList.contains("chat-open"));
+  if(knownWidth!==window.innerWidth){knownWidth=window.innerWidth;baseline=height}
+  if(!focused&&height>baseline)baseline=height;
+  const hiddenPixels=Math.max(0,window.innerHeight-height-top,baseline-height-top);
+  const keyboardOpen=focused&&hiddenPixels>100;
+  if(height!==lastHeight){root.style.setProperty("--chat-visible-height",height+"px");lastHeight=height}
+  if(top!==lastTop){root.style.setProperty("--chat-visible-top",top+"px");lastTop=top}
+  document.body.classList.toggle("chat-input-focused",focused);
+  document.body.classList.toggle("chat-keyboard-open",keyboardOpen);
+  if(keyboardOpen&&!wasOpen)requestAnimationFrame(()=>scrollMessages(field));
+  wasOpen=keyboardOpen;
+ };
+ const updateViewport=()=>{
+  if(!raf)raf=requestAnimationFrame(applyViewport);
+ };
+ const grow=input=>{
+  input.style.height="0px";
+  input.style.height=Math.min(116,Math.max(40,input.scrollHeight))+"px";
  };
  for(const input of fields){
   grow(input);
-  input.addEventListener("input",()=>grow(input));
-  input.addEventListener("focus",()=>{updateKeyboard();requestAnimationFrame(()=>{
-   const scroll=input.id==="chatMessageInput"?document.getElementById("chatMessages"):document.getElementById("chatGroupMessages");
-   if(scroll)scroll.scrollTop=scroll.scrollHeight;
-  })});
-  input.addEventListener("blur",()=>requestAnimationFrame(updateKeyboard));
+  input.addEventListener("input",()=>{grow(input);},{passive:true});
+  input.addEventListener("focus",()=>{
+   updateViewport();
+   requestAnimationFrame(()=>scrollMessages(input));
+  });
+  input.addEventListener("blur",updateViewport);
   input.addEventListener("keydown",event=>{
    if(event.key==="Enter"&&(event.ctrlKey||event.metaKey)&&!event.isComposing){
     event.preventDefault();input.form?.requestSubmit();
@@ -2054,8 +2114,10 @@ showWelcomeAuth();
   });
   input.form?.addEventListener("submit",()=>requestAnimationFrame(()=>grow(input)));
  }
- window.visualViewport?.addEventListener("resize",updateKeyboard,{passive:true});
- window.visualViewport?.addEventListener("scroll",updateKeyboard,{passive:true});
- window.addEventListener("resize",updateKeyboard,{passive:true});
- updateKeyboard();
+ window.visualViewport?.addEventListener("resize",updateViewport,{passive:true});
+ window.visualViewport?.addEventListener("scroll",updateViewport,{passive:true});
+ window.addEventListener("resize",updateViewport,{passive:true});
+ window.addEventListener("orientationchange",updateViewport,{passive:true});
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)updateViewport()});
+ applyViewport();
 })();
