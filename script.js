@@ -393,8 +393,7 @@ function initPlannerPages(){
  updatePlannerTabLanguage();
  switchPlannerPage("tasks");
 }
-initPlannerPages();
-showWelcomeAuth();
+// Initialize the page shell after chat state and event handlers have been declared.
 
 /* v23: keep native iOS date picker functional, render centered text ourselves */
 function refreshReminderDisplay(){
@@ -740,3 +739,7 @@ $("chatToggleAdd").addEventListener("click",()=>{
  panel.hidden=!open;$("chatToggleAdd").setAttribute("aria-expanded",String(open));
  if(open&&currentUser){$("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;chatLoadMyUsername()}
 });
+
+// v66: initialize navigation only after chatPeer and all chat handlers exist.
+initPlannerPages();
+showWelcomeAuth();
