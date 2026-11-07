@@ -494,3 +494,7 @@ body.chat-open #pageChat #chatConversation[hidden],body.chat-open #pageChat #cha
 .chat-group-members button{border:1px solid #d8e2f2;background:#f4f7ff;color:#265de3;border-radius:9px;padding:8px 12px}
 .chat-group-members .chat-group-leave{width:100%;margin-top:12px;background:#fff0f0;color:#c52b39;border-color:#ffd3d6}
 #chatGroupConversation .chat-photo{max-width:min(260px,65vw);border-radius:10px;cursor:zoom-in}
+
+/* v83 username invite to group */
+#chatGroupAddMember[hidden]{display:none!important}
+#chatGroupAddStatus{margin:4px 0 10px}
