@@ -201,7 +201,17 @@ function confirmDeleteDialog(){
  });
 }
 async function deleteTask(id){if(!await confirmDeleteDialog())return;tasks=tasks.filter(t=>t.id!==id);saveTasks();if(currentUser&&cloudReady){const {error}=await supabaseClient.from("tasks").delete().eq("id",String(id));if(error)setAuthStatus("云端删除失败："+error.message)}render()}
-function openEdit(id){const task=tasks.find(t=>t.id===id);if(!task)return;editingId=id;$("editText").value=task.text;$("editDate").value=task.date||"";$("editPriority").value=task.priority;$("editReminder").value=task.reminderAt?toLocalDateTimeInput(task.reminderAt):"";$("editRepeat").value=task.repeat||"none";editDialog.showModal()}
+function refreshEditDateDisplays(){
+  const date=$("editDate").value;
+  const reminder=$("editReminder").value;
+  $("editDateDisplay").textContent=date?date.replace(/-/g,"/"):"—";
+  $("editReminderDisplay").textContent=reminder?reminder.slice(0,16).replace(/-/g,"/").replace("T"," "):"—";
+}
+$("editDate").addEventListener("input",refreshEditDateDisplays);
+$("editDate").addEventListener("change",refreshEditDateDisplays);
+$("editReminder").addEventListener("input",refreshEditDateDisplays);
+$("editReminder").addEventListener("change",refreshEditDateDisplays);
+function openEdit(id){const task=tasks.find(t=>t.id===id);if(!task)return;editingId=id;$("editText").value=task.text;$("editDate").value=task.date||"";$("editPriority").value=task.priority;$("editReminder").value=task.reminderAt?toLocalDateTimeInput(task.reminderAt):"";$("editRepeat").value=task.repeat||"none";refreshEditDateDisplays();editDialog.showModal()}
 $("editForm").addEventListener("submit",e=>{e.preventDefault();const task=tasks.find(t=>t.id===editingId);if(!task)return;if($("editRepeat").value!=="none"&&!$("editReminder").value){alert(tr("繰り返し通知には日時が必要です。","重复提醒必须设置提醒时间","Choose a reminder time for recurring tasks."));return;}task.text=$("editText").value.trim();task.date=$("editDate").value||null;task.priority=$("editPriority").value;task.reminderAt=$("editReminder").value?new Date($("editReminder").value).toISOString():null;task.repeat=$("editRepeat").value;saveTasks();editDialog.close();showLongTerm=task.date===null;if(task.date)selectedDate=task.date;render()});
 function closeEdit(){editDialog.close();editingId=null}$("closeDialog").addEventListener("click",closeEdit);$("cancelEdit").addEventListener("click",closeEdit);
 $("prevMonth").addEventListener("click",()=>{viewMonth.setMonth(viewMonth.getMonth()-1);renderCalendar()});$("nextMonth").addEventListener("click",()=>{viewMonth.setMonth(viewMonth.getMonth()+1);renderCalendar()});$("todayBtn").addEventListener("click",()=>{selectedDate=todayKey;showLongTerm=false;viewMonth=new Date(today.getFullYear(),today.getMonth(),1);render()});$("longTermBtn").addEventListener("click",()=>{showLongTerm=true;filter="all";updateTabs();renderTasks()});$("taskTabs").addEventListener("click",e=>{const btn=e.target.closest("[data-filter]");if(!btn)return;filter=btn.dataset.filter;updateTabs();renderTasks()});function updateTabs(){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.filter===filter))}
