@@ -657,3 +657,6 @@ html[data-theme="dark"] #pageChat .line-group-menu{
 @media(prefers-reduced-motion:reduce){
   #pageChat .line-popup-menu,#pageChat .line-action-screen{animation:none!important}
 }
+
+#pageChat .line-action-error{color:var(--danger);font-size:12px;margin:10px 0;line-height:1.6}
+#pageChat .line-action-error:empty{display:none}
