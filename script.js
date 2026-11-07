@@ -900,6 +900,12 @@ function chatAttachStoredPhoto(node,path,isGroup=false){
   if(!wrap.isConnected)return;
   img.hidden=true;retry.hidden=false;
   img.removeAttribute("src");
+  const details=String(error?.cause?.signed||"")+" "+String(error?.cause?.download||"")+" "+String(error?.message||"");
+  const denied=/401|403|unauthori[sz]ed|permission|row.level|rls|not allowed|access denied/i.test(details);
+  retry.textContent=denied?
+    chatText("没有照片读取权限 · 点击重试","写真の閲覧権限がありません · 再試行","Photo permission denied · Retry"):
+    chatText("照片无法读取 · 点击重试","写真を読み込めません · 再試行","Photo unavailable · Retry");
+  retry.setAttribute("aria-label",retry.textContent);
   if(error)console.warn("Chat photo could not be loaded",path,error?.message||error,error?.cause||"");
  };
  const setPhoto=(url,requestId,allowDownload)=>{
