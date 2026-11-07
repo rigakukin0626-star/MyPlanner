@@ -194,3 +194,11 @@
 .countdown-row:focus-visible{outline:2px solid #4d7cf1;border-radius:8px;}
 .countdown-panel .longterm-hint{margin:14px 0 0;padding:0;font-size:12px;}
 @media(max-width:420px){.countdown-panel{padding:20px 16px;}.countdown-remaining{max-width:48%;font-size:11px;}}
+
+/* Long-term plans live in the countdown board, not a duplicate list. */
+#pageLongTerm .tasks-panel .task-list,#pageLongTerm .tasks-panel .task-tabs,#pageLongTerm .tasks-panel #taskTabs,#pageLongTerm .tasks-panel #taskCountLabel,#pageLongTerm .tasks-panel #emptyState{display:none!important;}
+#pageLongTerm .tasks-panel .task-form .task-field-repeat{display:none!important;}
+#pageLongTerm .tasks-panel{margin-top:16px;}
+#pageLongTerm .tasks-panel .task-heading h2{font-size:19px;}
+#editDialog.longterm-edit label:has(#editDate),#editDialog.longterm-edit label:has(#editRepeat){display:none!important;}
+#editDialog.longterm-edit #editReminderDisplay{font-weight:500;}
