@@ -386,7 +386,7 @@ function chatAppendRealtime(item){
  if(root.querySelector('[data-message-id="'+item.id+'"]'))return;
  const bubble=document.createElement("div");bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
  bubble.dataset.messageId=String(item.id);
- const body=document.createElement("span");body.textContent=item.body;
+ const body=document.createElement("span");chatMessageContent(body,item.body);
  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
  bubble.append(body,time);root.append(bubble);root.scrollTop=root.scrollHeight;
  chatLastSignature="";
@@ -405,6 +405,23 @@ async function openChat(id,name){
   if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")chatStatus(chatText("实时连接中断，正在使用备用同步","リアルタイム接続が中断しました","Realtime unavailable; using backup sync"));
  });
  await loadChatMessages();
+}
+const CHAT_IMAGE_PREFIX="[myplanner-image]:";
+const chatImageUrlCache=new Map();
+function chatMessageContent(node,body){
+ if(typeof body==="string"&&body.startsWith(CHAT_IMAGE_PREFIX)){
+  const path=body.slice(CHAT_IMAGE_PREFIX.length);
+  if(!/^([0-9a-f-]{36})\/([0-9a-f-]{36})\/([0-9a-f-]{36})\.(jpg|png|webp|gif)$/.test(path)){node.textContent="图片格式无效";return}
+  const img=document.createElement("img");img.className="chat-photo";img.alt=chatText("聊天照片","チャット写真","Chat photo");
+  node.append(img);
+  const cached=chatImageUrlCache.get(path);
+  if(cached&&cached.expires>Date.now()){img.src=cached.url;return}
+  supabaseClient.storage.from("chat-photos").createSignedUrl(path,3600).then(({data,error})=>{
+   if(!error&&data?.signedUrl&&img.isConnected){img.src=data.signedUrl;chatImageUrlCache.set(path,{url:data.signedUrl,expires:Date.now()+3300000})}
+   else if(error&&img.isConnected)node.append(document.createTextNode(chatText("照片加载失败","写真を読み込めません","Photo unavailable")));
+  });
+  img.addEventListener("click",()=>{if(img.src)window.open(img.src,"_blank","noopener")});
+ }else node.textContent=body;
 }
 function chatRenderMessages(){
  if(!currentUser||!chatPeer)return;
@@ -458,6 +475,30 @@ $("chatAddFriend").addEventListener("click",async()=>{
  $("chatFriendCode").value="";chatStatus(chatText("好友添加成功！","友達を追加しました。","Friend added."));await loadChatFriends();
 });
 $("chatBack").addEventListener("click",chatShowList);
+$("chatPhotoInput").addEventListener("change",async e=>{
+ const file=e.target.files?.[0];e.target.value="";
+ if(!file||!currentUser||!chatPeer)return;
+ if(!file.type.startsWith("image/")){chatStatus(chatText("请选择图片","画像を選択してください","Select an image"));return}
+ if(file.size>8*1024*1024){chatStatus(chatText("图片不能超过8MB","画像は8MB以下にしてください","Image must be under 8MB"));return}
+ const peer=chatPeer,key="photo-"+crypto.randomUUID();
+ const localUrl=URL.createObjectURL(file);
+ chatPending.set(key,{peer,body:"",photoUrl:localUrl,status:"sending",serverId:null,createdAt:Date.now()});
+ chatRenderMessages();
+ try{
+  const type=file.type==="image/png"?"png":file.type==="image/webp"?"webp":file.type==="image/gif"?"gif":"jpg";
+  const path=currentUser.id+"/"+peer+"/"+crypto.randomUUID()+"."+type;
+  const {error:uploadError}=await supabaseClient.storage.from("chat-photos").upload(path,file,{contentType:file.type,upsert:false});
+  if(uploadError)throw uploadError;
+  const body=CHAT_IMAGE_PREFIX+path;
+  const {data,error}=await supabaseClient.from("chat_messages").insert({sender_id:currentUser.id,recipient_id:peer,body}).select("id").single();
+  if(error)throw error;
+  const pending=chatPending.get(key);if(pending){pending.serverId=data.id;pending.status="sent";pending.body=body}
+  if(chatPeer===peer){chatRenderMessages();loadChatMessages()}
+ }catch(error){
+  const pending=chatPending.get(key);if(pending)pending.status="failed";
+  if(chatPeer===peer){chatRenderMessages();chatError(error)}
+ }
+});
 $("chatSendForm").addEventListener("submit",async e=>{
  e.preventDefault();if(!currentUser||!chatPeer)return;
  const input=$("chatMessageInput"),body=input.value.trim();if(!body)return;
