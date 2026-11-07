@@ -657,9 +657,9 @@ function chatShowCachedFriends(){
   for(const [order,friend] of orderedFriends.entries()){
    if(typeof friend.id!=="string"||typeof friend.name!=="string")continue;
    const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
-   const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=(friend.name.trim()[0]||"?").toUpperCase();
+   const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=((chatRemarkFor(friend.id)||friend.name).trim()[0]||"?").toUpperCase();
    const content=document.createElement("span");content.className="chat-friend-info";
-   const title=document.createElement("strong");title.textContent=friend.name;
+   const title=document.createElement("strong");title.textContent=chatRemarkFor(friend.id)||friend.name;
    const subtitle=document.createElement("small");subtitle.textContent=friend.preview||chatText("开始聊天","チャットを始める","Start chatting");
    content.append(title,subtitle);
    const meta=document.createElement("span");meta.className="chat-friend-meta";
@@ -705,9 +705,9 @@ async function loadChatFriends(){
  for(const [order,id] of sorted.entries()){
   const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
   const name=names.get(id)||id.slice(0,8);
-  const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=(name.trim()[0]||"?").toUpperCase();
+  const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=((chatRemarkFor(id)||name).trim()[0]||"?").toUpperCase();
   const content=document.createElement("span");content.className="chat-friend-info";
-  const title=document.createElement("strong");title.textContent=name;
+  const title=document.createElement("strong");title.textContent=chatRemarkFor(id)||name;
   const subtitle=document.createElement("small");const m=last.get(id);
   subtitle.textContent=m?(m.sender_id===currentUser.id?chatText("我：","私：","Me: "):"")+(m.body.startsWith(CHAT_IMAGE_PREFIX)?chatText("📷 照片","📷 写真","📷 Photo"):chatPlainBody(m.body)):chatText("开始聊天","チャットを始める","Start chatting");
   content.append(title,subtitle);
@@ -801,7 +801,7 @@ function chatShowBuildVersion(){
  if(!header)return;
  let version=document.getElementById("chatBuildVersion");
  if(!version){version=document.createElement("small");version.id="chatBuildVersion";version.className="chat-build-version";header.append(version)}
- version.textContent="v144";
+ version.textContent="v152";
 }
 function chatParseReply(body){
  if(typeof body!=="string")return null;
@@ -974,7 +974,7 @@ function chatSetRemarkFor(userId){
  chatLastSignature="";groupLastSignature="";
  if(chatPeer===userId&&$("chatPeerName"))$("chatPeerName").textContent=remark||$("chatPeerName").dataset.originalName||userId.slice(0,8);
  if(chatPeer)chatRenderMessages();
- if(chatActiveGroup)groupLoadMessages();
+ if(chatActiveGroup){groupLastSignature="";try{const cache=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+chatActiveGroup.id)||"null");if(Array.isArray(cache?.items))groupRenderMessages(cache.items)}catch{}}
 }
 function chatBubbleAvatar(bubble, senderId, isGroup=false){
  const mine=senderId===currentUser?.id;
@@ -1487,7 +1487,7 @@ function groupScheduleRefresh(){
 }
 function groupShowCachedMessages(groupId){
  if(!currentUser)return;
- try{const cache=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+groupId)||"null");if(Array.isArray(cache?.items)&&chatActiveGroup?.id===groupId){groupRenderMessages(cache.items);groupLastSignature=uiLanguage+"|"+cache.items.map(m=>m.id).join(",")}}catch{}
+ try{const cache=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+groupId)||"null");if(Array.isArray(cache?.items)&&chatActiveGroup?.id===groupId){groupRenderMessages(cache.items);groupLastSignature=uiLanguage+"|"+cache.items.map(m=>m.id+":"+chatRemarkFor(m.sender_id)).join(",")}}catch{}
 }
 function groupRenderMessages(items){
  const root=$("chatGroupMessages"),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<140;
