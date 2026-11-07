@@ -244,3 +244,18 @@ function initPlannerPages(){
  switchPlannerPage("tasks");
 }
 initPlannerPages();
+
+/* v23: keep native iOS date picker functional, render centered text ourselves */
+function refreshReminderDisplay(){
+ const input=$("reminderInput"),label=$("reminderDisplay");if(!input||!label)return;
+ if(!input.value){label.textContent=tr("日時を選択","选择提醒时间","Select date & time");return}
+ const d=new Date(input.value);
+ if(Number.isNaN(d.getTime())){label.textContent=input.value;return}
+ const locale=uiLanguage==="ja"?"ja-JP":uiLanguage==="zh"?"zh-CN":"en-US";
+ label.textContent=new Intl.DateTimeFormat(locale,{year:"numeric",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(d);
+}
+$("reminderInput")?.addEventListener("input",refreshReminderDisplay);
+$("reminderInput")?.addEventListener("change",refreshReminderDisplay);
+$("languageSelect")?.addEventListener("change",()=>queueMicrotask(refreshReminderDisplay));
+document.querySelector("#taskForm")?.addEventListener("submit",()=>queueMicrotask(refreshReminderDisplay));
+refreshReminderDisplay();
