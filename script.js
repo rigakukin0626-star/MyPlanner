@@ -795,10 +795,10 @@ $("chatSendForm").addEventListener("submit",async e=>{
   try{({data,error}=await supabaseClient.from("chat_messages").insert({sender_id:currentUser.id,recipient_id:peer,body}).select("id").single().abortSignal(controller.signal))}finally{clearTimeout(timeout)}
   if(error)throw error;
   const pending=chatPending.get(key);if(pending){pending.serverId=data.id;pending.status="sent"}
-  if(chatPeer===peer){chatRenderMessages();await loadChatMessages()}
+  if(chatPeer===peer){chatRenderMessages();scheduleChatReconcile()}
  }catch(error){
   const pending=chatPending.get(key);if(pending)pending.status=error?.name==="AbortError"?"uncertain":"failed";
-  if(chatPeer===peer){chatRenderMessages();chatError(error?.name==="AbortError"?chatText("网络超时，正在核实消息是否送达，请勿重复发送。","通信がタイムアウトしました。送信状況を確認中です。","Network timeout. Checking delivery; do not resend yet."):error);loadChatMessages()}
+  if(chatPeer===peer){chatRenderMessages();chatError(error?.name==="AbortError"?chatText("网络超时，正在核实消息是否送达，请勿重复发送。","通信がタイムアウトしました。送信状況を確認中です。","Network timeout. Checking delivery; do not resend yet."):error);scheduleChatReconcile()}
  }
 
 });
