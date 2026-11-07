@@ -1,5 +1,5 @@
-const CACHE_NAME = "my-planner-v103";
-const FILES = ["./","./index.html","./style.css?v=103","./script.js?v=103","./manifest.json?v=103","./icon.svg"];
+const CACHE_NAME = "my-planner-v116";
+const FILES = ["./","./index.html","./style.css?v=115","./script.js?v=116","./manifest.json?v=59","./icon.svg"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)));
   self.skipWaiting();
@@ -63,9 +63,10 @@ self.addEventListener("notificationclick",event=>{
   const target=new URL(url,self.registration.scope);
   const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
   for(const client of windows){
-   if(new URL(client.url).origin!==self.location.origin)continue;
+   const existing=new URL(client.url);
+   if(existing.origin!==self.location.origin||!existing.pathname.startsWith(new URL(self.registration.scope).pathname))continue;
    if("navigate" in client){try{await client.navigate(target.href)}catch{}}
-   if("focus" in client)return client.focus();
+   if("focus" in client){await client.focus();return;}
   }
   return self.clients.openWindow(target.href);
  })());
