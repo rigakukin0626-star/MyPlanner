@@ -1096,6 +1096,36 @@ let chatMenuNode=null;
 function chatCloseMessageMenu(){
  if(chatMenuNode){chatMenuNode.remove();chatMenuNode=null}
 }
+function chatPlaceMessageMenu(menu,bubble){
+ // Place the compact action menu near the selected message, not at the bottom
+ // of the document. Fixed positioning is essential on iPhone Safari.
+ menu.classList.add("chat-message-popover");
+ menu.style.setProperty("position","fixed","important");
+ menu.style.setProperty("z-index","100100","important");
+ menu.style.setProperty("left","0px","important");
+ menu.style.setProperty("top","0px","important");
+ const vv=window.visualViewport;
+ const topOffset=Math.max(0,vv?.offsetTop||0);
+ const viewportHeight=Math.max(240,vv?.height||window.innerHeight);
+ const viewportBottom=topOffset+viewportHeight;
+ const viewportWidth=vv?.width||window.innerWidth;
+ const header=document.querySelector(".chat-conversation:not([hidden]) .chat-conversation-header");
+ const composer=document.querySelector(".chat-conversation:not([hidden]) .chat-send");
+ const ceiling=Math.max(topOffset+12,(header?.getBoundingClientRect().bottom||topOffset)+8);
+ const floor=Math.max(ceiling+100,Math.min(viewportBottom-12,(composer?.getBoundingClientRect().top||viewportBottom)-8));
+ const height=menu.getBoundingClientRect().height;
+ const width=menu.getBoundingClientRect().width;
+ const rect=bubble.getBoundingClientRect();
+ let top;
+ if(rect.top-height-9>=ceiling)top=rect.top-height-9;
+ else if(rect.bottom+9+height<=floor)top=rect.bottom+9;
+ else top=ceiling+(Math.max(0,floor-ceiling-height)/2);
+ top=Math.max(ceiling,Math.min(top,Math.max(ceiling,floor-height)));
+ const ideal=bubble.classList.contains("mine")?rect.right-width:rect.left;
+ const left=Math.max(12,Math.min(viewportWidth-width-12,ideal));
+ menu.style.setProperty("top",Math.round(top)+"px","important");
+ menu.style.setProperty("left",Math.round(left)+"px","important");
+}
 function chatOpenMessageMenu(item,bubble){
  chatCloseMessageMenu();
  const menu=document.createElement("div");menu.className="chat-context-menu";menu.setAttribute("role","menu");
@@ -1115,9 +1145,7 @@ function chatOpenMessageMenu(item,bubble){
  if(item.sender_id===currentUser.id)add(chatText("撤回","送信取消","Recall"),()=>chatRemoveMessage(item,true),"danger");
  add(chatText("仅为我删除","自分のみ削除","Delete for me"),()=>chatRemoveMessage(item,false),"danger");
  document.body.append(menu);chatMenuNode=menu;
- const rect=bubble.getBoundingClientRect();const width=menu.offsetWidth,height=menu.offsetHeight;
- menu.style.left=Math.max(8,Math.min(window.innerWidth-width-8,rect.left))+"px";
- menu.style.top=Math.max(8,Math.min(window.innerHeight-height-8,rect.top-height-8))+"px";
+ chatPlaceMessageMenu(menu,bubble);
  setTimeout(()=>document.addEventListener("pointerdown",chatDismissMessageMenu,{once:true}),0);
 }
 function chatDismissMessageMenu(e){if(chatMenuNode&&!chatMenuNode.contains(e.target))chatCloseMessageMenu()}
@@ -1792,9 +1820,7 @@ function groupMessageActions(bubble,item){
   if(item.sender_id===currentUser?.id)add(chatText("撤回","送信取消","Recall"),()=>groupRecallMessage(item),"danger");
   add(chatText("仅为我删除","自分のみ削除","Delete for me"),()=>groupHideForMe(item),"danger");
   document.body.append(menu);chatMenuNode=menu;
-  const rect=bubble.getBoundingClientRect(),width=menu.offsetWidth,height=menu.offsetHeight;
-  menu.style.left=Math.max(8,Math.min(innerWidth-width-8,rect.left))+"px";
-  menu.style.top=Math.max(8,Math.min(innerHeight-height-8,rect.top-height-8))+"px";
+  chatPlaceMessageMenu(menu,bubble);
   setTimeout(()=>document.addEventListener("pointerdown",chatDismissMessageMenu,{once:true}),0);
  };
  bubble.addEventListener("pointerdown",e=>{if(e.button!==0||e.target.closest("button,a,img"))return;x=e.clientX;y=e.clientY;opened=false;cancel();timer=setTimeout(open,480)});
