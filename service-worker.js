@@ -1,5 +1,5 @@
-const CACHE_NAME = "my-planner-v169";
-const FILES = ["./","./index.html","./minimal.css?v=169","./script.js?v=169","./manifest.json?v=61","./icon.svg?v=169"];
+const CACHE_NAME = "my-planner-v170";
+const FILES = ["./","./index.html","./minimal.css?v=170","./script.js?v=170","./line-ui.js?v=170","./manifest.json?v=62","./icon.svg?v=170"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)));
   self.skipWaiting();
@@ -22,7 +22,7 @@ self.addEventListener("fetch", event => {
   }
   // Versioned app assets are immutable within a release: serve locally first.
   // New versions have new query strings and are precached during installation.
-  if (/\/(script\.js|minimal\.css)$/.test(url.pathname)) {
+  if (/\/(script\.js|line-ui\.js|minimal\.css)$/.test(url.pathname)) {
     event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
       if(response.ok && response.type === "basic"){
         const copy=response.clone();
