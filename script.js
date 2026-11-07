@@ -389,7 +389,7 @@ function switchPlannerPage(page){
  }
  if(page==="calendar")renderCalendar();
  if(page==="settings"&&currentUser)chatLoadMyUsername();
- if(page==="chat"){if(chatActiveGroup)groupLoadMessages();else if(chatPeer){loadChatMessages();chatMarkRead()}else if(chatMode==="group")groupLoadList(true);else loadChatFriends();}
+ if(page==="chat"){if(chatActiveGroup){if(Date.now()-groupMessageLastFetched>2500)groupLoadMessages()}else if(chatPeer){loadChatMessages();chatMarkRead()}else if(chatMode==="group")groupLoadList(true);else loadChatFriends();}
  window.scrollTo({top:0,behavior:"instant"});
 }
 function updatePlannerTabLanguage(){
@@ -850,7 +850,7 @@ function scheduleChatReconcile(){
 /* v39: mobile Safari may suspend Realtime sockets; periodically reconcile from DB while chat is visible. */
 setInterval(()=>{
  if(document.hidden||document.body.dataset.activePage!=="chat"||!currentUser)return;
- if(chatActiveGroup)return;
+ if(chatActiveGroup){if(Date.now()-groupMessageLastFetched>12000)groupLoadMessages();return}
  if(chatPeer){if(Date.now()-chatLastFetchAt>6500)loadChatMessages()}else if(chatMode==="private"&&Date.now()-chatFriendsLastLoaded>20000)loadChatFriends();
 },3000);
 document.addEventListener("visibilitychange",()=>{
@@ -860,9 +860,12 @@ document.addEventListener("visibilitychange",()=>{
 
 /* v80: group chats are separate from private chats and require the group SQL setup. */
 let chatMode="private",chatActiveGroup=null,groupPolling=false,groupLastSignature="",groupChannel=null;
-let groupListLoading=false,groupListLastLoaded=0;
+let groupListLoading=false,groupListLastLoaded=0,groupListSignature="",groupMessageRefreshTimer=null,groupMessageLastFetched=0;
 const groupListCacheKey="myplanner-groups-v1";
 function groupRenderList(groups){
+ const signature=JSON.stringify(groups.map(g=>[g.id,g.name,g.created_by]));
+ if(signature===groupListSignature&&$("chatGroups").children.length)return;
+ groupListSignature=signature;
  const root=$("chatGroups"),fragment=document.createDocumentFragment();
  if(!groups.length){const empty=document.createElement("p");empty.className="chat-group-empty";empty.textContent=chatText("还没有群聊，创建或加入一个吧","グループはまだありません。作成または参加してください","No groups yet. Create or join one.");fragment.append(empty)}
  for(const group of groups){
@@ -915,6 +918,7 @@ async function groupLoadList(force=false){
  finally{groupListLoading=false}
 }
 function groupClose(){
+ if(groupMessageRefreshTimer){clearTimeout(groupMessageRefreshTimer);groupMessageRefreshTimer=null}
  $("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
  chatActiveGroup=null;groupLastSignature="";
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
@@ -924,20 +928,26 @@ function groupClose(){
  if(chatMode==="group")groupLoadList();
 }
 async function groupOpen(group){
- chatActiveGroup=group;groupLastSignature="";
+ if(groupMessageRefreshTimer){clearTimeout(groupMessageRefreshTimer);groupMessageRefreshTimer=null}
+ if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
+ chatActiveGroup=group;groupLastSignature="";groupMessageLastFetched=0;
  $("chatGroupTitle").textContent=group.name;
  $("chatGroups").hidden=true;$("chatGroupTools").hidden=true;$("chatModeSwitch").hidden=true;
  $("chatGroupConversation").hidden=false;document.body.classList.add("chat-open");
  $("chatGroupMessages").replaceChildren();$("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
  groupShowCachedMessages(group.id);
  groupChannel=supabaseClient.channel("group-"+group.id)
- .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+group.id},()=>groupLoadMessages())
+ .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+group.id},()=>groupScheduleRefresh())
  .subscribe();
  await groupLoadMessages();
 }
+function groupScheduleRefresh(){
+ if(groupMessageRefreshTimer||!chatActiveGroup)return;
+ groupMessageRefreshTimer=setTimeout(()=>{groupMessageRefreshTimer=null;if(chatActiveGroup&&!document.hidden)groupLoadMessages()},250);
+}
 function groupShowCachedMessages(groupId){
  if(!currentUser)return;
- try{const cache=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+groupId)||"null");if(Array.isArray(cache?.items)&&chatActiveGroup?.id===groupId)groupRenderMessages(cache.items)}catch{}
+ try{const cache=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+groupId)||"null");if(Array.isArray(cache?.items)&&chatActiveGroup?.id===groupId){groupRenderMessages(cache.items);groupLastSignature=cache.items.map(m=>m.id).join(",")}}catch{}
 }
 function groupRenderMessages(items){
  const root=$("chatGroupMessages"),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<140;
@@ -948,7 +958,7 @@ function groupRenderMessages(items){
   const body=document.createElement("span");
   if(item.body.startsWith("[myplanner-group-image]:")){
    const path=item.body.slice("[myplanner-group-image]:".length);
-   if(new RegExp("^[0-9a-f-]{36}/[0-9a-f-]{36}/[0-9a-f-]{36}\\\\.(jpg|png|webp|gif)$").test(path)){
+   if(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp|gif)$/i.test(path)){
     const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.alt=chatText("群照片","グループ写真","Group photo");body.append(img);
     const cached=chatImageUrlCache.get(path);
     if(cached&&cached.expires>Date.now())img.src=cached.url;
@@ -963,7 +973,7 @@ function groupRenderMessages(items){
 }
 async function groupLoadMessages(){
  if(groupPolling||!chatActiveGroup||!currentUser)return;
- groupPolling=true;const groupId=chatActiveGroup.id;
+ groupPolling=true;const groupId=chatActiveGroup.id;groupMessageLastFetched=Date.now();
  try{
   const {data,error}=await supabaseClient.from("chat_group_messages").select("id,sender_id,body,created_at").eq("group_id",groupId).order("created_at",{ascending:false}).limit(150);
   if(error)throw error;
