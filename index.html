@@ -79,6 +79,7 @@
             <label class="sr-only" for="taskInput">任务内容</label>
             <input id="taskInput" maxlength="160" placeholder="添加一件要做的事…" autocomplete="off" required>
             <input id="reminderInput" type="datetime-local" aria-label="提醒时间" title="提醒时间（可选）">
+            <select id="repeatInput" aria-label="重复提醒" title="重复提醒"><option value="none">不重复</option><option value="daily">每天</option><option value="weekly">每周</option><option value="monthly">每月</option></select>
             <select id="priorityInput" aria-label="优先级">
               <option value="medium">中优先级</option>
               <option value="high">高优先级</option>
@@ -115,6 +116,7 @@
       <div class="dialog-fields">
         <label>日期<input id="editDate" type="date"></label>
         <label>提醒时间<input id="editReminder" type="datetime-local"></label>
+        <label>重复提醒<select id="editRepeat"><option value="none">不重复</option><option value="daily">每天</option><option value="weekly">每周</option><option value="monthly">每月</option></select></label>
         <label>优先级<select id="editPriority"><option value="high">高</option><option value="medium">中</option><option value="low">低</option></select></label>
       </div>
       <div class="dialog-actions"><button id="cancelEdit" class="button button-ghost" type="button">取消</button><button class="button button-primary" type="submit">保存修改</button></div>
