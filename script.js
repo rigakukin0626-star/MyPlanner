@@ -1967,3 +1967,42 @@ showWelcomeAuth();
   }
   filter();
 })();
+
+
+/* v166: keyboard-aware, native-feeling chat composer without changing send semantics. */
+(function initChatKeyboardAndComposer(){
+ const fields=[document.getElementById("chatMessageInput"),document.getElementById("chatGroupMessageInput")].filter(Boolean);
+ if(!fields.length)return;
+ const updateKeyboard=()=>{
+  const focused=fields.includes(document.activeElement)&&document.body.classList.contains("chat-open");
+  const vv=window.visualViewport;
+  const obscured=vv?Math.max(0,window.innerHeight-vv.height-vv.offsetTop):0;
+  const open=focused&&obscured>110;
+  document.body.classList.toggle("chat-input-focused",focused);
+  document.body.classList.toggle("chat-keyboard-open",open);
+  document.documentElement.style.setProperty("--chat-keyboard-height",open?Math.round(obscured)+"px":"0px");
+ };
+ const grow=(input)=>{
+  input.style.height="auto";
+  input.style.height=Math.min(116,Math.max(42,input.scrollHeight))+"px";
+ };
+ for(const input of fields){
+  grow(input);
+  input.addEventListener("input",()=>grow(input));
+  input.addEventListener("focus",()=>{updateKeyboard();requestAnimationFrame(()=>{
+   const scroll=input.id==="chatMessageInput"?document.getElementById("chatMessages"):document.getElementById("chatGroupMessages");
+   if(scroll)scroll.scrollTop=scroll.scrollHeight;
+  })});
+  input.addEventListener("blur",()=>requestAnimationFrame(updateKeyboard));
+  input.addEventListener("keydown",event=>{
+   if(event.key==="Enter"&&(event.ctrlKey||event.metaKey)&&!event.isComposing){
+    event.preventDefault();input.form?.requestSubmit();
+   }
+  });
+  input.form?.addEventListener("submit",()=>requestAnimationFrame(()=>grow(input)));
+ }
+ window.visualViewport?.addEventListener("resize",updateKeyboard,{passive:true});
+ window.visualViewport?.addEventListener("scroll",updateKeyboard,{passive:true});
+ window.addEventListener("resize",updateKeyboard,{passive:true});
+ updateKeyboard();
+})();
