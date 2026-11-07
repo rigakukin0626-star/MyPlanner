@@ -480,6 +480,11 @@ function updateChatLanguage(){
  $("chatGroupJoinCode").placeholder=chatText("群邀请码","招待コード","Group invite code");
  $("chatJoinGroup").textContent=chatText("加入群聊","参加","Join");
  $("chatGroupInvite").textContent=chatText("邀请","招待","Invite");
+ $("chatGroupInviteHeading").textContent=chatText("邀请成员","メンバーを招待","Invite members");
+ $("chatGroupInviteHint").textContent=chatText("复制邀请码发送给好友，好友可用邀请码加入群聊。","招待コードを共有してください","Share the code so friends can join.");
+ $("chatGroupCopyInvite").textContent=chatText("复制","コピー","Copy");
+ $("chatGroupShareInvite").textContent=chatText("分享邀请码","招待コードを共有","Share invite code");
+ $("chatGroupInviteClose").textContent=chatText("关闭","閉じる","Close");
  $("chatGroupManage").textContent=chatText("成员","メンバー","Members");
  $("chatGroupMembersTitle").textContent=chatText("群成员","グループメンバー","Group members");
  $("chatGroupAddUsername").placeholder=chatText("输入用户名","ユーザー名を入力","Enter username");
@@ -888,7 +893,7 @@ async function groupLoadList(){
  }
 }
 function groupClose(){
- $("chatGroupMembersPanel").hidden=true;
+ $("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
  chatActiveGroup=null;groupLastSignature="";
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
  $("chatGroupConversation").hidden=true;$("chatModeSwitch").hidden=false;
@@ -901,7 +906,7 @@ async function groupOpen(group){
  $("chatGroupTitle").textContent=group.name;
  $("chatGroups").hidden=true;$("chatGroupTools").hidden=true;$("chatModeSwitch").hidden=true;
  $("chatGroupConversation").hidden=false;document.body.classList.add("chat-open");
- $("chatGroupMessages").replaceChildren();$("chatGroupMembersPanel").hidden=true;
+ $("chatGroupMessages").replaceChildren();$("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
  groupChannel=supabaseClient.channel("group-"+group.id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+group.id},()=>groupLoadMessages())
  .subscribe();
@@ -972,11 +977,24 @@ $("chatJoinGroup").addEventListener("click",async()=>{
  const btn=$("chatJoinGroup");btn.disabled=true;
  try{const {error}=await supabaseClient.rpc("chat_join_group",{invite_code:code});if(error)throw error;$("chatGroupJoinCode").value="";groupStatus(chatText("已加入群聊","グループに参加しました","Joined group"));await groupLoadList()}catch(error){groupError(error)}finally{btn.disabled=false}
 });
-$("chatGroupInvite").addEventListener("click",async()=>{
+$("chatGroupInvite").addEventListener("click",()=>{
  if(!chatActiveGroup)return;
- const code=chatActiveGroup.id;
- try{await navigator.clipboard.writeText(code);groupStatus(chatText("群邀请码已复制","招待コードをコピーしました","Group invite code copied"))}
- catch{window.prompt(chatText("复制群邀请码","招待コードをコピー","Copy group invite code"),code)}
+ $("chatGroupInviteCode").value=chatActiveGroup.id;
+ $("chatGroupInviteFeedback").textContent="";
+ $("chatGroupMembersPanel").hidden=true;
+ $("chatGroupInvitePanel").hidden=false;
+});
+$("chatGroupInviteClose").addEventListener("click",()=>{$("chatGroupInvitePanel").hidden=true});
+$("chatGroupCopyInvite").addEventListener("click",async()=>{
+ const code=$("chatGroupInviteCode").value;
+ try{await navigator.clipboard.writeText(code);$("chatGroupInviteFeedback").textContent=chatText("邀请码已复制","招待コードをコピーしました","Invite code copied")}
+ catch{$("chatGroupInviteCode").focus();$("chatGroupInviteCode").select();$("chatGroupInviteFeedback").textContent=chatText("请长按邀请码复制","コードを長押ししてコピー","Long-press the code to copy")}
+});
+$("chatGroupShareInvite").addEventListener("click",async()=>{
+ const code=$("chatGroupInviteCode").value;
+ if(navigator.share){try{await navigator.share({title:"My Planner",text:chatText("加入我的 My Planner 群聊：","My Planner のグループに参加：","Join my My Planner group: ")+code});return}catch(e){if(e?.name==="AbortError")return}}
+ $("chatGroupInviteCode").focus();$("chatGroupInviteCode").select();
+ $("chatGroupInviteFeedback").textContent=chatText("请复制上方邀请码分享给好友","上のコードをコピーして共有","Copy the code above to share");
 });
 async function groupShowMembers(){
  if(!chatActiveGroup)return;
@@ -984,15 +1002,17 @@ async function groupShowMembers(){
  const {data,error}=await supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId).order("joined_at");
  if(error){groupError(error);return}
  if(!chatActiveGroup||chatActiveGroup.id!==groupId)return;
- const panel=$("chatGroupMembersPanel"),root=$("chatGroupMembersList");root.replaceChildren();
+ const panel=$("chatGroupMembersPanel"),root=$("chatGroupMembersList");root.replaceChildren();$("chatGroupInvitePanel").hidden=true;
  $("chatGroupAddMember").hidden=chatActiveGroup.created_by!==currentUser.id;
- const ids=(data||[]).map(x=>x.user_id);
+ const members=[...new Map((data||[]).map(m=>[m.user_id,m])).values()];
+ const ids=members.map(x=>x.user_id);
  let profiles=[];
  if(ids.length){const res=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);if(!res.error)profiles=res.data||[]}
  const names=new Map(profiles.map(p=>[p.id,p.display_name]));
- for(const member of data||[]){
+ const nameCounts=new Map();for(const id of ids){const name=names.get(id);if(name)nameCounts.set(name,(nameCounts.get(name)||0)+1)}
+ for(const member of members){
   const row=document.createElement("div");row.className="chat-group-member";
-  const label=document.createElement("span");label.textContent=(names.get(member.user_id)||member.user_id.slice(0,8))+(member.user_id===chatActiveGroup.created_by?" ★":"");
+  const label=document.createElement("span");label.textContent=(names.get(member.user_id)||member.user_id.slice(0,8))+(nameCounts.get(names.get(member.user_id))>1?" ("+member.user_id.slice(0,6)+")":"")+(member.user_id===chatActiveGroup.created_by?" ★":"");
   row.append(label);
   if(chatActiveGroup.created_by===currentUser.id&&member.user_id!==currentUser.id){
    const kick=document.createElement("button");kick.type="button";kick.textContent=chatText("移除","削除","Remove");
