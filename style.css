@@ -498,3 +498,13 @@ body.chat-open #pageChat #chatConversation[hidden],body.chat-open #pageChat #cha
 /* v83 username invite to group */
 #chatGroupAddMember[hidden]{display:none!important}
 #chatGroupAddStatus{margin:4px 0 10px}
+
+/* v84: polished group list and empty state */
+#pageChat #chatGroups{margin:0!important;padding:0!important;min-height:0!important;display:flex;flex-direction:column;gap:0;background:#fff}
+#pageChat #chatGroups[hidden]{display:none!important}
+#pageChat .chat-group-empty{margin:0;padding:24px 18px 28px;text-align:center;font-size:14px;font-weight:500;line-height:1.6;color:#8391ab;overflow-wrap:anywhere;border-top:1px solid #edf1f8}
+#pageChat .chat-group-tools{padding:16px 14px 12px;box-sizing:border-box}
+#pageChat .chat-group-form{align-items:stretch;gap:8px;margin-bottom:10px}
+#pageChat .chat-group-form input{width:0;min-width:0;flex:1 1 0;box-sizing:border-box}
+#pageChat .chat-group-form button{flex:0 0 auto;white-space:nowrap;padding:10px 13px;font-size:14px}
+#pageChat .chat-mode-switch{padding:9px 12px}
