@@ -722,3 +722,311 @@ body.nova-ui.chat-open:not(.chat-input-focused) #pageChat .chat-panel{
   bottom:calc(98px + env(safe-area-inset-bottom,0px))!important;
 }
 body.nova-ui.chat-open .topbar{display:none!important}
+
+
+/* Display-state guards: preserve the chat JS view controller exactly. */
+body.nova-ui #pageChat #chatFriends[hidden],
+body.nova-ui #pageChat #chatGroups[hidden],
+body.nova-ui #pageChat #chatConversation[hidden],
+body.nova-ui #pageChat #chatGroupConversation[hidden],
+body.nova-ui #pageChat #chatGroupInvitePanel[hidden],
+body.nova-ui #pageChat #chatGroupMembersPanel[hidden],
+body.nova-ui #pageChat #chatInviteSection[hidden],
+body.nova-ui #pageChat #chatGroupTools[hidden],
+body.nova-ui #pageChat #chatListSearch[hidden],
+body.nova-ui #pageChat [hidden]{display:none!important}
+body.nova-ui.chat-open #pageChat .chat-app-header,
+body.nova-ui.chat-open #pageChat .chat-mode-switch,
+body.nova-ui.chat-open #pageChat .chat-list-search,
+body.nova-ui.chat-open #pageChat .chat-list-search-empty,
+body.nova-ui.chat-open #pageChat #chatFriends,
+body.nova-ui.chat-open #pageChat #chatGroups,
+body.nova-ui.chat-open #pageChat #chatGroupTools,
+body.nova-ui.chat-open #pageChat #chatInviteSection,
+body.nova-ui.chat-open #pageChat #chatStatus{display:none!important}
+/* Auth, dialogs and forms: unified surfaces instead of legacy panels. */
+body.nova-ui .welcome-auth{background:rgba(15,29,20,.78)!important;backdrop-filter:blur(12px)}
+body.nova-ui .welcome-auth-card{
+  border:1px solid #dbeddb!important;
+  border-radius:30px!important;
+  background:#fff!important;
+  box-shadow:0 24px 75px rgba(12,33,19,.22)!important;
+}
+body.nova-ui .welcome-logo{
+  background:var(--nova-forest)!important;
+  color:var(--nova-lime)!important;
+  border-radius:20px!important;
+}
+body.nova-ui .welcome-auth-card h2{color:var(--nova-forest)!important;font-weight:820!important}
+body.nova-ui .welcome-modes{
+  background:#eef5ea!important;border-radius:15px!important;
+}
+body.nova-ui .welcome-modes button.active{
+  background:var(--nova-forest)!important;
+  color:var(--nova-lime)!important;
+  border-radius:12px!important;
+}
+body.nova-ui .welcome-auth-card button[type="submit"]{
+  background:var(--nova-forest)!important;color:var(--nova-lime)!important;
+  border-radius:14px!important;
+}
+body.nova-ui .edit-dialog,
+body.nova-ui .delete-dialog{
+  background:var(--nova-paper)!important;
+  border:1px solid var(--nova-line)!important;
+  border-radius:27px!important;
+  color:var(--nova-ink)!important;
+  box-shadow:0 26px 80px rgba(24,46,28,.2)!important;
+}
+body.nova-ui .edit-dialog::backdrop,body.nova-ui .delete-dialog::backdrop{
+  background:rgba(18,38,22,.55)!important;
+  backdrop-filter:blur(5px);
+}
+body.nova-ui .empty-state .empty-icon{
+  background:#eaf1e5!important;color:#376e49!important;
+  border-radius:20px!important;
+}
+body.nova-ui #pageChat .chat-context-menu{
+  background:#fff!important;
+  border:1px solid #dce6db!important;
+  box-shadow:0 14px 45px rgba(20,42,26,.18)!important;
+  border-radius:17px!important;
+}
+/* Responsive mobile arrangement (the new dashboard stacks vertically). */
+@media(max-width:800px){
+ body.nova-ui .main-grid{
+  grid-template-columns:1fr!important;
+  gap:16px!important;
+ }
+ body.nova-ui .main-grid .tasks-panel{order:1}
+ body.nova-ui .main-grid .calendar-panel{order:2}
+ body.nova-ui #pageTasks>.overview{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:16px 18px!important;
+  padding:24px 25px!important;
+ }
+ body.nova-ui .overview-date{grid-column:1/-1}
+ body.nova-ui .overview .stat{
+  grid-column:auto!important;border-left:0!important;
+  padding-left:0!important;
+ }
+ body.nova-ui .overview .stat strong{font-size:41px!important}
+ body.nova-ui .overview .progress-wrap{grid-column:1/-1!important}
+ body.nova-ui #pageTasks .tasks-panel,
+ body.nova-ui #pageLongTerm .tasks-panel,
+ body.nova-ui #pageCalendar .calendar-panel{
+  padding:19px!important;
+ }
+}
+@media(max-width:520px){
+ body.nova-ui .app-shell{padding:12px 14px 130px!important}
+ body.nova-ui .topbar{
+  padding:8px 0 13px!important;
+  margin-bottom:13px!important;
+  gap:10px!important;
+ }
+ body.nova-ui .nova-identity{gap:11px!important}
+ body.nova-ui .nova-emblem{width:45px;height:45px;border-radius:15px;font-size:29px}
+ body.nova-ui .topbar .eyebrow{font-size:8px!important;letter-spacing:1.3px!important}
+ body.nova-ui .topbar h1{
+  font-size:27px!important;letter-spacing:-1.15px!important;
+ }
+ body.nova-ui .topbar .subtitle{font-size:10px!important;margin-top:4px!important}
+ body.nova-ui .language-picker{padding:5px 8px!important;min-height:36px!important}
+ body.nova-ui .language-picker>span{display:none!important}
+ body.nova-ui .language-picker select{font-size:12px!important;max-width:105px}
+ body.nova-ui .overview{border-radius:25px!important;min-height:0}
+ body.nova-ui #pageTasks>.overview{
+  padding:23px 23px 25px!important;
+  border-radius:25px!important;
+  margin-bottom:14px!important;
+ }
+ body.nova-ui .overview-date strong{font-size:26px!important}
+ body.nova-ui .overview .stat strong{font-size:38px!important}
+ body.nova-ui .nova-hero-label{letter-spacing:1.7px;font-size:9px}
+ body.nova-ui .main-grid{gap:14px!important}
+ body.nova-ui #pageChat .chat-panel{border-radius:24px!important}
+ body.nova-ui #pageChat .chat-app-header{padding:21px 20px 19px!important;min-height:103px!important}
+ body.nova-ui #pageChat .chat-brand-icon{width:46px!important;height:46px!important;border-radius:15px!important;font-size:29px!important}
+ body.nova-ui #pageChat .chat-app-brand h2{font-size:20px!important}
+ body.nova-ui #pageChat .chat-header-add{width:43px!important;height:43px!important;border-radius:14px!important}
+ body.nova-ui #pageChat .chat-friends{padding:2px 9px 12px!important}
+ body.nova-ui #pageChat .chat-friend{padding:12px!important;min-height:77px!important}
+ body.nova-ui #pageChat .chat-list-avatar{width:48px!important;height:48px!important;border-radius:15px!important}
+ body.nova-ui .bottom-tabs{
+  bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;
+  border-radius:22px!important;padding:6px!important;
+  width:calc(100vw - 16px)!important;
+ }
+ body.nova-ui .bottom-tabs .tab{
+  min-height:56px!important;
+  border-radius:16px!important;
+  padding:5px 0!important;
+ }
+ body.nova-ui .bottom-tabs .tab span:last-child{font-size:10px!important}
+ body.nova-ui.chat-open #pageChat .chat-panel{
+  bottom:calc(83px + env(safe-area-inset-bottom,0px))!important;
+  border-radius:0!important;
+ }
+ body.nova-ui.chat-open.chat-input-focused #pageChat .chat-panel{
+  bottom:var(--chat-keyboard-height,0px)!important;
+ }
+ body.nova-ui #pageChat .chat-conversation-header{padding:10px 12px!important;min-height:58px!important}
+ body.nova-ui #pageChat .chat-conversation-header button{padding:7px!important;font-size:11px!important}
+ body.nova-ui #pageChat .chat-messages{padding:16px 13px 19px!important}
+ body.nova-ui #pageChat .chat-send{padding:8px 10px!important;gap:7px!important}
+ body.nova-ui #pageChat .chat-photo-picker{width:40px!important;height:43px!important}
+ body.nova-ui #pageChat .chat-send button[type="submit"]{padding:0 13px!important}
+ body.nova-ui #pageSettings .appearance-panel,
+ body.nova-ui #pageSettings .auth-panel{padding:19px!important}
+ body.nova-ui .nova-settings-heading .settings-title{font-size:37px!important}
+ body.nova-ui #pageLongTerm .countdown-panel{padding:22px!important}
+}
+@media(max-width:360px){
+ body.nova-ui .topbar .subtitle{display:none!important}
+ body.nova-ui .nova-emblem{width:40px;height:40px;border-radius:13px}
+ body.nova-ui .topbar h1{font-size:24px!important}
+ body.nova-ui .bottom-tabs .tab span:last-child{font-size:9px!important}
+}
+/* Respect native accessibility settings. */
+@media(prefers-reduced-motion:reduce){
+ body.nova-ui .app-page{animation:none!important}
+ body.nova-ui *{scroll-behavior:auto!important}
+}
+/* DARK MODE: use neutral charcoal + pale green, not saturated legacy blue. */
+html[data-theme="dark"] body.nova-ui{
+ --nova-bg:#101510;--nova-paper:#1b241d;--nova-ink:#f3f8f0;
+ --nova-muted:#9caea0;--nova-line:#344238;
+ --nova-forest:#1f412e;--nova-forest-2:#294c36;
+ --nova-lime:#d4f899;--nova-pale:#243329;--nova-chat:#141e17;
+ --nova-glow:0 15px 40px rgba(0,0,0,.13);
+ background:#101510!important;color:#f0f7eb!important;
+}
+html[data-theme="dark"] body.nova-ui .topbar h1,
+html[data-theme="dark"] body.nova-ui .section-heading h2,
+html[data-theme="dark"] body.nova-ui .nova-settings-heading .settings-title{
+ color:#f2f6f0!important;
+}
+html[data-theme="dark"] body.nova-ui .topbar .eyebrow{color:#94b19b!important}
+html[data-theme="dark"] body.nova-ui .language-picker{
+ background:#232c24!important;border-color:#3d4d42!important;
+}
+html[data-theme="dark"] body.nova-ui .language-picker select{color:#eff5ee!important}
+html[data-theme="dark"] body.nova-ui .panel,
+html[data-theme="dark"] body.nova-ui .countdown-panel,
+html[data-theme="dark"] body.nova-ui #pageChat .chat-panel,
+html[data-theme="dark"] body.nova-ui #pageSettings .appearance-panel,
+html[data-theme="dark"] body.nova-ui #pageSettings .auth-panel{
+ background:#1b241d!important;border-color:#344238!important;
+}
+html[data-theme="dark"] body.nova-ui .overview{
+ background:linear-gradient(125deg,#183523,#295337)!important;
+}
+html[data-theme="dark"] body.nova-ui .tasks-panel .task-form,
+html[data-theme="dark"] body.nova-ui #taskTabs{
+ background:#222d23!important;border-color:#39483b!important;
+}
+html[data-theme="dark"] body.nova-ui .task-form input,
+html[data-theme="dark"] body.nova-ui .task-form select,
+html[data-theme="dark"] body.nova-ui .edit-dialog input{
+ background:#29372c!important;color:#f3f8f1!important;border-color:#475749!important;
+}
+html[data-theme="dark"] body.nova-ui .task-item{
+ border-bottom-color:#344439!important;
+}
+html[data-theme="dark"] body.nova-ui .task-text{color:#f0f6ed!important}
+html[data-theme="dark"] body.nova-ui #taskTabs .tab{color:#b8c9ba!important}
+html[data-theme="dark"] body.nova-ui #taskTabs .tab.active{
+ background:#3b5140!important;color:#e4f6e0!important;
+}
+html[data-theme="dark"] body.nova-ui #pageCalendar .calendar-day{color:#dce9dd!important}
+html[data-theme="dark"] body.nova-ui #pageCalendar .calendar-day.today:not(.selected){
+ background:#344a39!important;color:#d0f4b6!important;
+}
+html[data-theme="dark"] body.nova-ui #pageCalendar .calendar-day.selected{
+ background:#d6fa9e!important;color:#183523!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-mode-switch,
+html[data-theme="dark"] body.nova-ui #pageChat .chat-list-search,
+html[data-theme="dark"] body.nova-ui #pageChat .chat-friends{
+ background:#1b241d!important;border-color:#354439!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-mode-switch button:not(.active){
+ background:#29362b!important;color:#b7cbb9!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-mode-switch button.active{
+ background:#d6fa9a!important;color:#1d4028!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-list-search input{
+ background:#273329!important;border-color:#3b4a3e!important;color:#f3f7f1!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-friend{
+ background:#263127!important;color:#f2f8ef!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-friend-info strong{
+ color:#eff6ec!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-friend-info small,
+html[data-theme="dark"] body.nova-ui #pageChat .chat-friend-meta{
+ color:#9dad9f!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-list-avatar{
+ background:#405b45!important;color:#daf4cf!important;
+}
+html[data-theme="dark"] body.nova-ui.chat-open #pageChat .chat-panel,
+html[data-theme="dark"] body.nova-ui #pageChat .chat-conversation,
+html[data-theme="dark"] body.nova-ui #pageChat .chat-messages{
+ background:#121b15!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-conversation-header{
+ background:#1b3928!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-conversation-header strong{
+ color:#f3faef!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-bubble:not(.mine){
+ background:#303f33!important;color:#f1f7ef!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-bubble.mine{
+ background:#8cc26c!important;color:#152b18!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-bubble small{
+ color:#a1b5a3!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-send{
+ background:#1e2a21!important;border-color:#324336!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-send textarea{
+ background:#2b3a2f!important;color:#f5f9f1!important;border-color:#3c5140!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-send textarea:focus{
+ background:#314436!important;border-color:#719478!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-photo-picker{
+ background:#3a5141!important;color:#e2f9c5!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-send button[type="submit"]{
+ background:#d5fa9e!important;color:#1c3e29!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat #chatGroupInvitePanel,
+html[data-theme="dark"] body.nova-ui #pageChat #chatGroupMembersPanel{
+ background:#243126!important;border-color:#415647!important;color:#f3f8ef!important;
+}
+html[data-theme="dark"] body.nova-ui #pageSettings .appearance-options button:not([aria-pressed="true"]){
+ background:#2b382e!important;color:#bed0be!important;
+}
+html[data-theme="dark"] body.nova-ui #pageSettings .appearance-options button[aria-pressed="true"]{
+ background:#d5fa9e!important;color:#1a3823!important;
+}
+html[data-theme="dark"] body.nova-ui #pageSettings input{
+ background:#28372b!important;color:#f1f7ef!important;border-color:#3e5042!important;
+}
+html[data-theme="dark"] body.nova-ui .welcome-auth-card,
+html[data-theme="dark"] body.nova-ui .edit-dialog,
+html[data-theme="dark"] body.nova-ui .delete-dialog{
+ background:#202c22!important;color:#f3f7ee!important;border-color:#3e5041!important;
+}
+html[data-theme="dark"] body.nova-ui .welcome-auth-card h2{color:#edfae6!important}
+html[data-theme="dark"] body.nova-ui .bottom-tabs{
+ background:#25382b!important;border-color:#415b44!important;
+}
