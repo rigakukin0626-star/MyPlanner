@@ -585,3 +585,8 @@ button:disabled{cursor:not-allowed;opacity:.65}
 @media(prefers-reduced-motion:reduce){
  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+
+/* v99: touch and keyboard polish */
+#pageChat .chat-group-form input,#pageChat .chat-group-invite-row input{min-width:0}
+#pageChat button:disabled{opacity:.58;pointer-events:none}
+@media(max-width:700px){#pageChat input[type=text],#pageChat input:not([type]),#pageChat textarea{font-size:16px}}
