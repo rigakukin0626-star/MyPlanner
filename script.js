@@ -1988,7 +1988,7 @@ showWelcomeAuth();
     document.documentElement.dataset.theme=mode;
     document.documentElement.style.colorScheme=mode;
     const meta=document.querySelector('meta[name="theme-color"]');
-    if(meta)meta.setAttribute("content",mode==="dark"?"#111214":"#ffffff");
+    if(meta)meta.setAttribute("content",mode==="dark"?"#000000":"#ffffff");
     document.querySelectorAll("[data-appearance]").forEach(button=>{
       const active=button.dataset.appearance===selected;
       button.setAttribute("aria-pressed",String(active));
@@ -2013,6 +2013,8 @@ showWelcomeAuth();
   const wrap=document.getElementById("chatListSearch");
   const friends=document.getElementById("chatFriends");
   const groups=document.getElementById("chatGroups");
+  const sectionTitle=document.getElementById("chatListSectionTitle");
+  const sectionCount=document.getElementById("chatListSectionCount");
   if(!input||!clear||!empty||!wrap||!friends||!groups)return;
   const filter=()=>{
     const isGroup=document.getElementById("chatGroupMode")?.classList.contains("active");
@@ -2032,6 +2034,8 @@ showWelcomeAuth();
       }
     }
     empty.hidden=!term||total===0||visible!==0;
+    if(sectionTitle)sectionTitle.textContent=isGroup?chatText("我的群聊","グループチャット","My groups"):chatText("最近聊天","最近のチャット","Recent chats");
+    if(sectionCount)sectionCount.textContent=uiLanguage==="zh"?total+(isGroup?" 个群聊":" 个会话"):uiLanguage==="ja"?total+" 件":total+(isGroup?" groups":" chats");
     wrap.hidden=Boolean(document.body.classList.contains("chat-open"));
   };
   input.addEventListener("input",filter);
@@ -2045,31 +2049,55 @@ showWelcomeAuth();
 })();
 
 
-/* v166: keyboard-aware, native-feeling chat composer without changing send semantics. */
+/* v169: iOS Safari/PWA keyboard-safe composer.
+   The visual viewport (not 100dvh) defines the usable screen while typing.
+   Never add the keyboard height to composer padding; that double-offsets input.
+*/
 (function initChatKeyboardAndComposer(){
  const fields=[document.getElementById("chatMessageInput"),document.getElementById("chatGroupMessageInput")].filter(Boolean);
  if(!fields.length)return;
- const updateKeyboard=()=>{
-  const focused=fields.includes(document.activeElement)&&document.body.classList.contains("chat-open");
-  const vv=window.visualViewport;
-  const obscured=vv?Math.max(0,window.innerHeight-vv.height-vv.offsetTop):0;
-  const open=focused&&obscured>110;
-  document.body.classList.toggle("chat-input-focused",focused);
-  document.body.classList.toggle("chat-keyboard-open",open);
-  document.documentElement.style.setProperty("--chat-keyboard-height",open?Math.round(obscured)+"px":"0px");
+ const root=document.documentElement;
+ let raf=0, lastHeight=0, lastTop=-1, wasOpen=false;
+ let knownWidth=window.innerWidth, baseline=window.visualViewport?.height||window.innerHeight;
+ const activeField=()=>fields.includes(document.activeElement)?document.activeElement:null;
+ const scrollMessages=(field)=>{
+  const id=field?.id==="chatGroupMessageInput"?"chatGroupMessages":"chatMessages";
+  const list=document.getElementById(id);
+  if(list)list.scrollTop=list.scrollHeight;
  };
- const grow=(input)=>{
-  input.style.height="auto";
-  input.style.height=Math.min(116,Math.max(42,input.scrollHeight))+"px";
+ const applyViewport=()=>{
+  raf=0;
+  const vv=window.visualViewport;
+  const height=Math.max(1,Math.round(vv?.height||window.innerHeight));
+  const top=Math.max(0,Math.round(vv?.offsetTop||0));
+  const field=activeField();
+  const focused=Boolean(field&&document.body.classList.contains("chat-open"));
+  if(knownWidth!==window.innerWidth){knownWidth=window.innerWidth;baseline=height}
+  if(!focused&&height>baseline)baseline=height;
+  const hiddenPixels=Math.max(0,window.innerHeight-height-top,baseline-height-top);
+  const keyboardOpen=focused&&hiddenPixels>100;
+  if(height!==lastHeight){root.style.setProperty("--chat-visible-height",height+"px");lastHeight=height}
+  if(top!==lastTop){root.style.setProperty("--chat-visible-top",top+"px");lastTop=top}
+  document.body.classList.toggle("chat-input-focused",focused);
+  document.body.classList.toggle("chat-keyboard-open",keyboardOpen);
+  if(keyboardOpen&&!wasOpen)requestAnimationFrame(()=>scrollMessages(field));
+  wasOpen=keyboardOpen;
+ };
+ const updateViewport=()=>{
+  if(!raf)raf=requestAnimationFrame(applyViewport);
+ };
+ const grow=input=>{
+  input.style.height="0px";
+  input.style.height=Math.min(116,Math.max(40,input.scrollHeight))+"px";
  };
  for(const input of fields){
   grow(input);
-  input.addEventListener("input",()=>grow(input));
-  input.addEventListener("focus",()=>{updateKeyboard();requestAnimationFrame(()=>{
-   const scroll=input.id==="chatMessageInput"?document.getElementById("chatMessages"):document.getElementById("chatGroupMessages");
-   if(scroll)scroll.scrollTop=scroll.scrollHeight;
-  })});
-  input.addEventListener("blur",()=>requestAnimationFrame(updateKeyboard));
+  input.addEventListener("input",()=>{grow(input);},{passive:true});
+  input.addEventListener("focus",()=>{
+   updateViewport();
+   requestAnimationFrame(()=>scrollMessages(input));
+  });
+  input.addEventListener("blur",updateViewport);
   input.addEventListener("keydown",event=>{
    if(event.key==="Enter"&&(event.ctrlKey||event.metaKey)&&!event.isComposing){
     event.preventDefault();input.form?.requestSubmit();
@@ -2077,8 +2105,10 @@ showWelcomeAuth();
   });
   input.form?.addEventListener("submit",()=>requestAnimationFrame(()=>grow(input)));
  }
- window.visualViewport?.addEventListener("resize",updateKeyboard,{passive:true});
- window.visualViewport?.addEventListener("scroll",updateKeyboard,{passive:true});
- window.addEventListener("resize",updateKeyboard,{passive:true});
- updateKeyboard();
+ window.visualViewport?.addEventListener("resize",updateViewport,{passive:true});
+ window.visualViewport?.addEventListener("scroll",updateViewport,{passive:true});
+ window.addEventListener("resize",updateViewport,{passive:true});
+ window.addEventListener("orientationchange",updateViewport,{passive:true});
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)updateViewport()});
+ applyViewport();
 })();
