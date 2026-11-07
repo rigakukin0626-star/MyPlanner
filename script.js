@@ -1319,6 +1319,25 @@ async function groupLoadList(force=false){
 const GROUP_REPLY_PREFIX="[myplanner-group-reply]:";
 let groupReplyTarget=null;
 const groupRecallBusy=new Set();
+const GROUP_HIDDEN_KEY="myplanner-group-hidden-v1";
+function groupHiddenIds(groupId){
+ if(!currentUser)return new Set();
+ try{const all=JSON.parse(localStorage.getItem(GROUP_HIDDEN_KEY)||"{}");return new Set(all[currentUser.id+"|"+groupId]||[])}catch{return new Set()}
+}
+function groupHideForMe(item){
+ if(!currentUser||!chatActiveGroup)return;
+ const groupId=chatActiveGroup.id,userId=currentUser.id,key=userId+"|"+groupId;
+ if(!confirm(chatText("仅在此设备隐藏这条群消息？其他成员仍然可以看到。","この端末でのみ非表示にしますか？","Hide this group message on this device only?")))return;
+ try{
+  const all=JSON.parse(localStorage.getItem(GROUP_HIDDEN_KEY)||"{}");
+  all[key]=[...new Set([...(all[key]||[]),String(item.id)])].slice(-3000);
+  localStorage.setItem(GROUP_HIDDEN_KEY,JSON.stringify(all));
+ }catch(error){groupError(error);return}
+ groupLastSignature="";
+ document.querySelectorAll("#chatGroupMessages [data-group-message-id]").forEach(el=>{if(el.dataset.groupMessageId===String(item.id))el.remove()});
+ groupLoadMessages();
+}
+
 function groupParseReply(body){
  if(typeof body!=="string"||!body.startsWith(GROUP_REPLY_PREFIX))return null;
  try{const data=JSON.parse(body.slice(GROUP_REPLY_PREFIX.length));return typeof data.text==="string"&&typeof data.quote==="string"?data:null}catch{return null}
@@ -1378,11 +1397,19 @@ function groupMessageActions(bubble,item){
    const btn=document.createElement("button");btn.type="button";btn.className="chat-context-option "+extra;btn.textContent=label;
    btn.addEventListener("click",e=>{e.stopPropagation();chatCloseMessageMenu();action()});menu.append(btn);
   };
+  if(!String(groupPlainBody(item.body)||"").startsWith("[myplanner-group-image]:")){
+   add(chatText("复制","コピー","Copy"),async()=>{
+    const value=String(groupPlainBody(item.body)||"");
+    try{await navigator.clipboard.writeText(value);groupStatus(chatText("已复制","コピーしました","Copied"))}
+    catch{window.prompt(chatText("复制消息","メッセージをコピー","Copy message"),value)}
+   });
+  }
   add(chatText("回复","返信","Reply"),()=>{
    groupReplyTarget={id:String(item.id),body:item.body,groupId:chatActiveGroup?.id};
    groupUpdateReplyPreview();$("chatGroupMessageInput").focus();
   });
   if(item.sender_id===currentUser?.id)add(chatText("撤回","送信取消","Recall"),()=>groupRecallMessage(item),"danger");
+  add(chatText("仅为我删除","自分のみ削除","Delete for me"),()=>groupHideForMe(item),"danger");
   document.body.append(menu);chatMenuNode=menu;
   const rect=bubble.getBoundingClientRect(),width=menu.offsetWidth,height=menu.offsetHeight;
   menu.style.left=Math.max(8,Math.min(innerWidth-width-8,rect.left))+"px";
@@ -1432,8 +1459,10 @@ function groupShowCachedMessages(groupId){
 }
 function groupRenderMessages(items){
  const root=$("chatGroupMessages"),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<140;
+ const hidden=groupHiddenIds(chatActiveGroup?.id);
  const fragment=document.createDocumentFragment();
  for(const item of items){
+  if(hidden.has(String(item.id)))continue;
   const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");chatBubbleAvatar(bubble,item.sender_id,true);
   const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):item.sender_id.slice(0,8);
   const body=document.createElement("span");
