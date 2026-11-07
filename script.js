@@ -80,6 +80,15 @@ function applyLanguage(){
   const labels={auto:["システムに合わせる","跟随系统","System"],light:["ライト","浅色","Light"],dark:["ダーク","深色","Dark"]};
   const key=btn.dataset.appearance;if(labels[key])btn.textContent=labels[key][idx];
  });
+ const novaCopy={
+  novaHeaderCaption:["MY DAILY SPACE","我的私人空间","YOUR PERSONAL SPACE"],
+  novaHeroCaption:["今日のダッシュボード","今天的计划","YOUR DAY, YOUR WAY"],
+  novaChatCaption:["メッセージ · つながる","消息 · 随时联系","MESSAGES · CONNECT"],
+  novaSettingsCaption:["自分らしくカスタマイズ","打造你的专属空间","MAKE IT YOURS"]
+ };
+ for(const [id,values] of Object.entries(novaCopy)){
+  const el=$(id);if(el)el.textContent=values[idx];
+ }
  updateWelcomeLanguage();
  // applyLanguage also runs during startup before the chat module initializes.
  if(window.myPlannerChatReady)updateChatLanguage();
