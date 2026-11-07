@@ -8,7 +8,7 @@
   <title>My Planner</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=18">
+  <link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
   <div class="app-shell">
@@ -22,16 +22,16 @@
     </header>
 
     <main>
-      <section class="panel auth-panel" aria-label="クラウド同期">
+      <section id="authPanel" class="panel auth-panel" aria-label="クラウド同期">
         <div class="auth-copy"><p class="eyebrow">CLOUD SYNC</p><h2><span class="bilingual">クラウド同期<small>跨设备同步</small></span></h2><p id="authStatus" class="auth-status"><span class="bilingual">ログインすると、PCとiPhoneでタスクを同期できます。<small>登录后即可在电脑和 iPhone 之间同步任务。</small></span></p></div>
         <form id="authForm" class="auth-form">
           <input id="authEmail" type="email" placeholder="メールアドレス / 邮箱地址" autocomplete="email" required>
           <input id="authPassword" type="password" placeholder="パスワード（6文字以上）/ 密码" autocomplete="current-password" minlength="6" required>
           <div class="auth-buttons"><button id="signInBtn" class="button button-primary" type="submit"><span class="bilingual">ログイン・同期<small>登录并同步</small></span></button><button id="signUpBtn" class="button button-ghost" type="button"><span class="bilingual">新規登録<small>注册账号</small></span></button><button id="signOutBtn" class="button button-ghost" type="button" hidden><span class="bilingual">ログアウト<small>退出登录</small></span></button></div>
         </form>
-        <button id="enableNotificationsBtn" class="button button-ghost" type="button" hidden><span class="bilingual">通知を有効にする<small>开启设备通知</small></span></button>
+        <details id="notificationSettings" class="notification-settings"><summary id="notificationSettingsLabel"><span class="bilingual">通知設定<small>通知设置</small></span></summary><div class="notification-settings-content"><button id="enableNotificationsBtn" class="button button-ghost" type="button" hidden><span class="bilingual">通知を有効にする<small>开启设备通知</small></span></button>
         <button id="resetNotificationsBtn" class="button button-ghost" type="button" hidden><span class="bilingual">通知を再登録<small>重新订阅设备通知</small></span></button>
-        <p id="notificationStatus" class="auth-status" aria-live="polite"></p>
+        <p id="notificationStatus" class="auth-status" aria-live="polite"></p></div></details>
       </section>
       <section class="overview">
         <div class="overview-date">
@@ -133,6 +133,6 @@
     </div>
   </dialog>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=18"></script>
+  <script src="script.js?v=19"></script>
 </body>
 </html>
