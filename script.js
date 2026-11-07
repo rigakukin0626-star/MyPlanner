@@ -284,14 +284,19 @@ function urlBase64ToUint8Array(base64String){
   for(let i=0;i<raw.length;i++)output[i]=raw.charCodeAt(i);
   return output;
 }
+let pushRegistrationBusy=false;
 async function registerDeviceNotifications(forceReset = false){
   const status=$("notificationStatus");
-  if(!currentUser){status.textContent="请先登录账号。";return}
-  if(!("serviceWorker" in navigator)||!("PushManager" in window)){status.textContent="此浏览器不支持推送通知。";return}
+  if(pushRegistrationBusy)return;
+  if(!currentUser){status.textContent=tr("先にログインしてください。","请先登录账号。","Please sign in first.");return}
+  if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window)){updatePushSupportHint();return}
+  pushRegistrationBusy=true;
+  const buttons=[$("enableNotificationsBtn"),$("resetNotificationsBtn")];
+  buttons.forEach(button=>button.disabled=true);
   try{
-    status.textContent="正在申请通知权限…";
+    status.textContent=tr("通知の許可を確認しています…","正在检查通知权限…","Checking notification permission…");
     const permission=await Notification.requestPermission();
-    if(permission!=="granted"){status.textContent="通知权限未开启，请在浏览器设置中允许通知。";return}
+    if(permission!=="granted"){status.textContent=tr("通知が許可されていません。端末の設定をご確認ください。","通知未获授权，请检查设备通知设置。","Notifications are not allowed. Check device settings.");return}
     const registration=await navigator.serviceWorker.ready;
     let subscription=await registration.pushManager.getSubscription();
     const targetKey=urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
@@ -318,8 +323,9 @@ async function registerDeviceNotifications(forceReset = false){
       auth:data.keys.auth
     },{onConflict:"endpoint"});
     if(error)throw error;
-    status.textContent=forceReset?chatText("已重新订阅设备通知（服务器推送仍需配置）","端末通知を再登録しました（サーバー設定が必要）","Device push subscription renewed (server setup required)"):chatText("设备推送订阅成功（服务器推送仍需配置）","端末のプッシュ通知を登録しました（サーバー設定が必要）","Device push subscribed (server delivery setup required)");
-  }catch(error){console.error(error);status.textContent="开启失败："+error.message}
+    status.textContent=forceReset?tr("通知を再登録しました。","通知已重新订阅。","Notifications re-registered."):tr("この端末の通知を有効にしました。","本设备通知已启用。","Notifications enabled on this device.");
+  }catch(error){console.error(error);status.textContent=tr("通知の設定に失敗：","通知设置失败：","Notification setup failed: ")+error.message}
+  finally{pushRegistrationBusy=false;buttons.forEach(button=>button.disabled=false)}
 }
 $("enableNotificationsBtn").addEventListener("click",()=>registerDeviceNotifications(false));
 $("resetNotificationsBtn").addEventListener("click",()=>registerDeviceNotifications(true));
@@ -330,7 +336,8 @@ function updatePushSupportHint(){
  }else if(Notification.permission==="denied"){
   status.textContent=chatText("通知已被系统拒绝，请在设备设置中允许通知。","通知が拒否されています。端末の設定で許可してください。","Notifications are blocked. Enable them in device settings.");
  }else if(Notification.permission==="granted"){
-  status.textContent=chatText("通知权限已开启。请确认服务器已配置聊天消息推送。","通知が許可されています。サーバー側のチャット通知設定も必要です。","Permission granted. Server-side chat push delivery must also be configured.");
+  status.textContent=tr("通知は許可されています。端末の登録状況を確認できます。","通知权限已开启，可检查设备订阅状态。","Notification permission granted. You can check this device subscription.");
+  navigator.serviceWorker.ready.then(reg=>reg.pushManager.getSubscription()).then(sub=>{if(sub&&Notification.permission==="granted"&&status.textContent.includes(tr("通知は許可されています。","通知权限已开启","Notification permission granted").slice(0,6)))status.textContent=tr("この端末はプッシュ通知を登録済みです。","本设备已订阅推送通知。","Push notifications subscribed on this device.");}).catch(()=>{});
  }
 }
 navigator.serviceWorker?.addEventListener("message",event=>{
