@@ -442,3 +442,15 @@ button,a,input,textarea,select,[role="button"],.bottom-tabs{touch-action:manipul
 .account-username-row input{min-width:0;flex:1;width:0;padding:12px;border:1px solid #dce5f5;border-radius:12px;background:white;font-size:16px}
 .account-username-row button{flex:0 0 auto;border-radius:12px;padding:10px 16px}
 #accountUsernameStatus:empty{display:none}
+
+/* v72: keep cloud sync automatic and discreet in Settings */
+#pageSettings #authPanel .cloud-sync-details{order:3;width:100%;min-width:0;border-top:1px solid #e6edf7;padding-top:12px}
+#pageSettings #authPanel .cloud-sync-details summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;list-style:none;font-size:13px;color:#7b8ba5;font-weight:650;padding:6px 0}
+#pageSettings #authPanel .cloud-sync-details summary::-webkit-details-marker{display:none}
+#pageSettings #authPanel .cloud-sync-details summary::after{content:"⌄";font-size:16px;color:#8b9ab2}
+#pageSettings #authPanel .cloud-sync-details[open] summary::after{content:"⌃"}
+#pageSettings #authPanel .cloud-sync-indicator{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
+#pageSettings #authPanel .cloud-sync-dot{width:7px;height:7px;border-radius:50%;background:#34a884}
+#pageSettings #authPanel .cloud-sync-details.sync-error .cloud-sync-dot{background:#d97706}
+#pageSettings #authPanel .cloud-sync-detail{padding:8px 0 4px}
+#pageSettings #authPanel .cloud-sync-detail .auth-status{font-size:12px!important;line-height:1.5!important;overflow-wrap:anywhere}
