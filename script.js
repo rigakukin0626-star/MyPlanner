@@ -1601,7 +1601,7 @@ async function groupLoadInviteFriends(){
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name]));
  for(const id of ids){
   const row=document.createElement("div");row.className="chat-group-invite-friend";
-  const name=document.createElement("span");name.textContent=names.get(id)||id.slice(0,8);
+  const name=document.createElement("span");name.textContent=chatRemarkFor(id)||names.get(id)||id.slice(0,8);
   const btn=document.createElement("button");btn.type="button";
   const joined=members.has(id);btn.textContent=joined?chatText("已在群里","参加済み","Joined"):chatText("添加","追加","Add");btn.disabled=joined;
   btn.addEventListener("click",async()=>{
@@ -1656,7 +1656,7 @@ async function groupShowMembers(){
  const nameCounts=new Map();for(const id of ids){const name=names.get(id);if(name)nameCounts.set(name,(nameCounts.get(name)||0)+1)}
  for(const member of members){
   const row=document.createElement("div");row.className="chat-group-member";
-  const label=document.createElement("span");label.textContent=(names.get(member.user_id)||"ID: "+member.user_id.slice(0,8))+(nameCounts.get(names.get(member.user_id))>1?" · "+member.user_id.slice(0,8):"")+(member.user_id===chatActiveGroup.created_by?" ★":"")+(member.user_id===currentUser.id?chatText("（我）","（自分）"," (Me)"):"");
+  const label=document.createElement("span");label.textContent=(chatRemarkFor(member.user_id)||names.get(member.user_id)||"ID: "+member.user_id.slice(0,8))+(nameCounts.get(names.get(member.user_id))>1?" · "+member.user_id.slice(0,8):"")+(member.user_id===chatActiveGroup.created_by?" ★":"")+(member.user_id===currentUser.id?chatText("（我）","（自分）"," (Me)"):"");
   row.append(label);
   if(chatActiveGroup.created_by===currentUser.id&&member.user_id!==currentUser.id){
    const kick=document.createElement("button");kick.type="button";kick.textContent=chatText("移除","削除","Remove");
