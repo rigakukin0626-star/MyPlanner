@@ -776,10 +776,53 @@ function chatMessageContent(node,body){
   img.addEventListener("click",()=>chatOpenPhotoPreview(img.src));
  }else node.textContent=body;
 }
+const CHAT_HIDDEN_KEY="myplanner-hidden-messages-v1";
+function chatHiddenIds(){
+ if(!currentUser)return new Set();
+ try{const all=JSON.parse(localStorage.getItem(CHAT_HIDDEN_KEY)||"{}");return new Set(Array.isArray(all[currentUser.id])?all[currentUser.id]:[])}catch{return new Set()}
+}
+function chatHideForMe(id){
+ if(!currentUser)return;
+ let all={};try{all=JSON.parse(localStorage.getItem(CHAT_HIDDEN_KEY)||"{}")||{}}catch{}
+ const ids=new Set(Array.isArray(all[currentUser.id])?all[currentUser.id]:[]);
+ ids.add(String(id));all[currentUser.id]=[...ids].slice(-3000);
+ try{localStorage.setItem(CHAT_HIDDEN_KEY,JSON.stringify(all))}catch(error){console.warn("Could not save hidden messages",error)}
+ chatLastSignature="";chatRenderMessages();
+}
+async function chatRemoveMessage(item,recall){
+ if(!currentUser||!chatPeer||!item?.id)return;
+ const owner=item.sender_id===currentUser.id;
+ if(recall&&!owner)return;
+ const question=recall?chatText("撤回这条消息？对方的聊天记录也将删除。","このメッセージを取り消しますか？相手側からも削除されます。","Recall this message for everyone?"):chatText("仅在此设备隐藏这条消息？","この端末でのみ非表示にしますか？","Hide this message on this device only?");
+ if(!window.confirm(question))return;
+ if(!recall){chatHideForMe(item.id);return}
+ const peer=chatPeer,userId=currentUser.id;
+ try{
+  const {data,error}=await supabaseClient.from("chat_messages").delete().eq("id",item.id).eq("sender_id",userId).eq("recipient_id",peer).select("id");
+  if(error)throw error;
+  if(!data?.length)throw new Error(chatText("服务器未允许删除，请检查消息删除权限。","サーバーが削除を許可しませんでした。","Server did not authorize deletion."));
+  if(currentUser?.id!==userId||chatPeer!==peer)return;
+  chatConfirmedCache=chatConfirmedCache.filter(m=>String(m.id)!==String(item.id));
+  chatSaveSnapshot(peer,chatConfirmedCache);
+  chatLastSignature="";chatRenderMessages();
+  loadChatMessages();
+ }catch(error){chatError(chatText("撤回失败：","取り消しに失敗：","Recall failed: ")+(error.message||String(error)))}
+}
+function chatMessageActions(bubble,item){
+ const actions=document.createElement("span");actions.className="chat-message-actions";
+ const hide=document.createElement("button");hide.type="button";hide.className="chat-message-action";hide.textContent=chatText("仅为我删除","自分のみ削除","Delete for me");
+ hide.addEventListener("click",()=>chatRemoveMessage(item,false));actions.append(hide);
+ if(item.sender_id===currentUser.id){
+  const recall=document.createElement("button");recall.type="button";recall.className="chat-message-action recall";recall.textContent=chatText("撤回","送信取消","Recall");
+  recall.addEventListener("click",()=>chatRemoveMessage(item,true));actions.append(recall);
+ }
+ bubble.append(actions);
+}
 function chatRenderMessages(){
  if(!currentUser||!chatPeer)return;
  const root=$("chatMessages");
- const confirmed=chatCachePeer===chatPeer?chatConfirmedCache:[];
+ const hidden=chatHiddenIds();
+ const confirmed=(chatCachePeer===chatPeer?chatConfirmedCache:[]).filter(m=>!hidden.has(String(m.id)));
  for(const [key,item] of chatPending){
   if(item.peer===chatPeer&&((item.serverId&&confirmed.some(m=>String(m.id)===String(item.serverId)))||(item.status==="uncertain"&&confirmed.some(m=>m.sender_id===currentUser.id&&m.recipient_id===item.peer&&m.body===item.body&&Math.abs(new Date(m.created_at).getTime()-item.createdAt)<120000))))chatPending.delete(key);
  }
