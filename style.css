@@ -543,3 +543,45 @@ body.chat-open #pageChat #chatGroupConversation .chat-group-members[hidden]{disp
 body.chat-open #pageChat #chatGroupConversation .chat-group-leave,body.chat-open #pageChat #chatGroupConversation .chat-group-disband{display:block;position:static;box-sizing:border-box;width:100%;min-height:46px;flex:none;clear:both;margin:14px 0 0;padding:12px;text-align:center;line-height:1.4}
 body.chat-open #pageChat #chatGroupConversation .chat-group-disband[hidden]{display:none!important}
 body.chat-open #pageChat #chatGroupConversation .chat-group-disband{margin-top:14px;margin-bottom:8px}
+
+/* v98: cohesive mobile-first visual polish */
+:root{--ui-blue:#315fe8;--ui-ink:#1d2940;--ui-muted:#77849b;--ui-border:#e3e9f3;--ui-surface:#fff}
+body{background:#f4f6fb;color:var(--ui-ink);-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit}
+button{touch-action:manipulation}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #7ea8ff;outline-offset:2px}
+button:disabled{cursor:not-allowed;opacity:.65}
+.panel{border-color:var(--ui-border);box-shadow:0 8px 26px rgba(25,45,85,.055)}
+.chat-panel{overflow:hidden}
+#pageChat .chat-app-header{background:linear-gradient(120deg,#2c5de5,#3b6df0);color:white}
+#pageChat .chat-mode-switch{gap:8px;background:white}
+#pageChat .chat-mode-switch button{transition:background-color .16s,color .16s,box-shadow .16s}
+#pageChat .chat-mode-switch button.active{box-shadow:0 2px 8px rgba(45,95,230,.13)}
+#pageChat .chat-friend{transition:background-color .15s;min-width:0}
+#pageChat .chat-friend:active{background:#edf3ff}
+#pageChat .chat-friend-info{min-width:0}
+#pageChat .chat-friend-info strong,#pageChat .chat-friend-info small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;display:block}
+#pageChat input{min-width:0}
+#pageChat .chat-group-form button,#pageChat .chat-group-invite-panel button{min-height:42px}
+#pageChat .chat-group-empty{padding:28px 18px}
+#pageChat .chat-group-members{background:white}
+#pageChat .chat-group-member{border-bottom:1px solid #eef2f8}
+#pageChat .chat-group-member:last-of-type{border-bottom:0}
+#pageChat .chat-photo{object-fit:contain}
+#pageChat .chat-bubble{overflow-wrap:anywhere}
+@media(max-width:700px){
+ .app-shell{padding-left:16px;padding-right:16px}
+ .topbar{gap:12px;align-items:flex-start}
+ .topbar h1{letter-spacing:-.8px}
+ .panel{border-radius:20px}
+ #pageChat .chat-panel{border-radius:20px}
+ #pageChat .chat-group-tools{padding:16px 14px 18px}
+ #pageChat .chat-group-form{gap:8px}
+ #pageChat .chat-group-form button{padding-inline:12px;white-space:nowrap}
+ #pageChat .chat-group-form input{font-size:16px}
+ #pageChat .chat-friend{min-height:66px}
+ #pageChat .chat-group-invite-panel{padding:16px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
