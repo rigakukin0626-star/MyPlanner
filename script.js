@@ -801,7 +801,7 @@ function chatShowBuildVersion(){
  if(!header)return;
  let version=document.getElementById("chatBuildVersion");
  if(!version){version=document.createElement("small");version.id="chatBuildVersion";version.className="chat-build-version";header.append(version)}
- version.textContent="v128";
+ version.textContent="v144";
 }
 function chatParseReply(body){
  if(typeof body!=="string")return null;
@@ -1142,7 +1142,7 @@ $("chatSendForm").addEventListener("submit",async e=>{
  const input=$("chatMessageInput"),textBody=input.value.trim();if(!textBody)return;
  const peer=chatPeer;
  const reply=chatReplyTarget?.peer===peer?chatReplyTarget:null;
- const body=reply?"↪「"+chatQuoteText(reply.body).replace(/[「」]/g,"")+ "」\n"+textBody:textBody;
+ const body=reply?CHAT_REPLY_PREFIX+JSON.stringify({id:reply.id,quote:chatQuoteText(reply.body),text:textBody}):textBody;
  const key="pending-"+Date.now()+"-"+Math.random().toString(36).slice(2);
  chatPending.set(key,{peer,body,status:"sending",serverId:null,createdAt:Date.now()});
  input.value="";chatReplyTarget=null;chatUpdateReplyPreview();
