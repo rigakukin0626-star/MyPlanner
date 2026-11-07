@@ -87,6 +87,16 @@ function applyLanguage(){
   const labels={auto:["システムに合わせる","跟随系统","System"],light:["ライト","浅色","Light"],dark:["ダーク","深色","Dark"]};
   const key=btn.dataset.appearance;if(labels[key])btn.textContent=labels[key][idx];
  });
+ if(uiLanguage==="ko"){
+  document.querySelectorAll(".bilingual[data-ja]").forEach(el=>{el.textContent=koTranslate(el.dataset.ja,el.dataset.en)});
+  for(const [selector,values] of Object.entries(fieldLabels)){const el=document.querySelector(selector);if(el)el.textContent=koTranslate(values[0],values[2])}
+  const koPlaceholders={authEmail:"이메일 주소",authPassword:"비밀번호 (6자 이상)",taskInput:"할 일 입력…"};
+  for(const [id,value] of Object.entries(koPlaceholders)){const el=$(id);if(el)el.placeholder=value}
+  for(const id of ["repeatInput","editRepeat"]){const el=$(id);if(el)for(const option of el.options)option.textContent=koTranslate(option.textContent,option.textContent)}
+  const koStatic={appearanceTitle:"화면 모드",appearanceDescription:"화면 모드를 선택하세요. 설정은 이 기기에 저장됩니다.",notificationSettingsLabel:"알림 설정"};
+  for(const [id,value] of Object.entries(koStatic)){const el=$(id);if(el){if(id==="notificationSettingsLabel"){const label=el.querySelector(".bilingual");if(label)label.textContent=value}else el.textContent=value}}
+  document.querySelectorAll("[data-appearance]").forEach(btn=>{const labels={auto:"시스템 설정",light:"라이트",dark:"다크"};if(labels[btn.dataset.appearance])btn.textContent=labels[btn.dataset.appearance]});
+ }
  updateWelcomeLanguage();
  window.chatRefreshLocalizedViews?.();
 }
@@ -601,6 +611,11 @@ function updateChatLanguage(){
  $("chatTitle").textContent=chatMode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
  $("chatMessageInput").placeholder=chatText("输入消息…","メッセージを入力…","Type a message...");
  $("chatSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
+ if(uiLanguage==="ko"){
+  const labels={chatTitle:"채팅",chatAddFriend:"친구 추가",chatBack:"뒤로",chatPrivateMode:"개인 채팅",chatGroupMode:"그룹",chatCreateGroup:"그룹 만들기",chatJoinGroup:"그룹 참여",chatGroupInvite:"초대",chatGroupManage:"멤버",chatGroupMembersTitle:"그룹 멤버",chatGroupLeave:"그룹 나가기",chatGroupDisband:"그룹 삭제",chatGroupCopyInvite:"복사",chatGroupShareInvite:"초대 코드 공유",chatGroupInviteClose:"닫기",chatGroupAddByUsername:"멤버 추가",chatSearchUser:"검색",chatCopyCode:"초대 코드 복사",chatShareCode:"공유",chatPasteCode:"붙여넣기",chatMessageInput:"메시지 입력…",chatGroupMessageInput:"그룹 메시지…",chatGroupName:"그룹 이름",chatGroupJoinCode:"그룹 초대 코드",chatListSearchInput:"친구 또는 그룹 검색",chatSearchUsername:"친구 사용자 이름",accountUsernameHeading:"계정",accountUsernameHint:"사용자 이름 설정 또는 변경",accountUsernameLabel:"사용자 이름",accountSaveUsername:"저장"};
+  const placeholders=new Set(["chatMessageInput","chatGroupMessageInput","chatGroupName","chatGroupJoinCode","chatListSearchInput","chatSearchUsername"]);
+  for(const [id,value] of Object.entries(labels)){const el=$(id);if(el){if(placeholders.has(id))el.placeholder=value;else el.textContent=value}}
+ }
 }
 function chatStatus(message){$("chatStatus").textContent=message;if(!/^(好友列表已同步|友達一覧を同期しました|Friends synced)/.test(message))delete $("chatStatus").dataset.friendsSyncedCount}
 function chatError(error){chatStatus(error?.message||String(error))}
