@@ -725,3 +725,50 @@ button,input,textarea,select{
 #pageChat .chat-bubble:not(:has(.chat-media-frame)){min-width:clamp(96px,25vw,130px);max-width:min(83%,500px);padding-inline:15px}
 #pageChat .chat-bubble:has(.chat-media-frame){min-width:0}
 @media(max-width:719px){#pageChat .chat-bubble:not(:has(.chat-media-frame)){min-width:clamp(92px,26vw,118px);max-width:84%;padding-inline:14px}}
+
+/* v173: WeChat-inspired two-sided message avatar alignment, in both themes. */
+#pageChat .chat-messages .chat-bubble.chat-with-avatar{
+  position:relative;
+  margin-left:42px;
+  margin-right:0;
+  max-width:min(76%,460px);
+  overflow:visible;
+}
+#pageChat .chat-messages .chat-bubble.mine.chat-with-avatar{
+  margin-left:auto;
+  margin-right:42px;
+}
+#pageChat .chat-messages .chat-bubble .chat-avatar-action{
+  position:absolute;left:-43px;top:0;bottom:auto;
+  width:33px;height:33px;border-radius:11px;
+  border:1px solid var(--line);
+  background:var(--field);color:var(--accent-ink);
+  font-size:14px;font-weight:650;
+}
+#pageChat .chat-messages .chat-bubble.mine.chat-with-avatar::after{
+  content:attr(data-avatar);
+  position:absolute;right:-43px;top:0;
+  display:grid;place-items:center;
+  width:33px;height:33px;
+  border:1px solid var(--line);border-radius:11px;
+  background:var(--field);color:var(--accent-ink);
+  font-size:14px;font-weight:650;
+}
+#pageChat .chat-messages .chat-bubble.mine.chat-with-avatar .chat-avatar-action{display:none}
+#pageChat .chat-messages .chat-bubble.chat-with-avatar:not(.mine)::before{
+  content:"";position:absolute;left:-5px;top:12px;
+  width:9px;height:9px;background:var(--surface);
+  border-left:1px solid var(--line);border-bottom:1px solid var(--line);
+  transform:rotate(45deg);
+}
+#pageChat .chat-messages .chat-bubble.mine.chat-with-avatar::before{
+  content:"";position:absolute;right:-4px;top:12px;
+  width:9px;height:9px;background:var(--mine);transform:rotate(45deg);
+}
+#pageChat .chat-messages .chat-bubble.mine small{font-variant-numeric:tabular-nums}
+@media(max-width:719px){
+ #pageChat .chat-messages .chat-bubble.chat-with-avatar{margin-left:40px;max-width:calc(100% - 48px)}
+ #pageChat .chat-messages .chat-bubble.mine.chat-with-avatar{margin-left:auto;margin-right:40px}
+ #pageChat .chat-messages .chat-bubble .chat-avatar-action{left:-40px}
+ #pageChat .chat-messages .chat-bubble.mine.chat-with-avatar::after{right:-40px}
+}
