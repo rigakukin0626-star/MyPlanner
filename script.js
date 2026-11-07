@@ -109,6 +109,7 @@ async function refreshAuthUI(){
   $("authEmail").hidden=!!currentUser; $("authPassword").hidden=!!currentUser;
   $("signInBtn").hidden=!!currentUser; $("signUpBtn").hidden=!!currentUser; $("signOutBtn").hidden=!currentUser;
   $("authForm").classList.toggle("signed-in",!!currentUser);
+  $("authPanel").classList.toggle("is-signed-in",!!currentUser);
   $("enableNotificationsBtn").hidden = !currentUser;
   $("resetNotificationsBtn").hidden = !currentUser;
   if(currentUser){try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}}
