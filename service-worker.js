@@ -1,5 +1,5 @@
-const CACHE_NAME = "my-planner-v99";
-const FILES = ["./","./index.html","./style.css?v=99","./script.js?v=99","./manifest.json?v=99","./icon.svg"];
+const CACHE_NAME = "my-planner-v100";
+const FILES = ["./","./index.html","./style.css?v=100","./script.js?v=100","./manifest.json?v=100","./icon.svg"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)));
   self.skipWaiting();
@@ -31,25 +31,42 @@ self.addEventListener("fetch", event => {
     return response;
   })));
 });
+/* v100: privacy-aware background push and notification deep links */
 self.addEventListener("push", event => {
-  let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data ? event.data.text() : "有一项任务需要处理。" }; }
-  const title = data.title || "My Planner 提醒";
-  const options = {
-    body: data.body || "你设置的任务提醒时间到了。",
-    icon: "./icon.svg",
-    badge: "./icon.svg",
-    data: { url: data.url || "./" }
-  };
-  event.waitUntil(self.registration.showNotification(title, options));
+ let data={};
+ try{data=event.data?event.data.json():{}}catch{data={body:event.data?.text()||""}}
+ if(!data||typeof data!=="object")data={};
+ const kind=data.type==="chat"?"chat":data.type==="group"?"group":"task";
+ const title=String(data.title|| (kind==="chat"?"My Planner · 新消息":kind==="group"?"My Planner · 群消息":"My Planner 提醒")).slice(0,90);
+ const body=String(data.body|| (kind==="task"?"你设置的任务提醒时间到了。":"收到一条新消息")).slice(0,220);
+ const requested=typeof data.url==="string"?data.url:"./";
+ const target=new URL(requested,self.registration.scope);
+ const safeUrl=target.origin===self.location.origin&&target.pathname.startsWith(new URL(self.registration.scope).pathname)?target.href:self.registration.scope;
+ const tag=typeof data.tag==="string"?data.tag.slice(0,100):kind+"-"+(data.group_id||data.sender_id||"general");
+ event.waitUntil((async()=>{
+  const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
+  const visible=windows.some(client=>client.visibilityState==="visible"&&client.focused);
+  if(visible&&data.silent_when_active!==false){
+   for(const client of windows){if(client.visibilityState==="visible")client.postMessage({type:"MYPLANNER_PUSH_RECEIVED",kind})}
+   return;
+  }
+  await self.registration.showNotification(title,{
+   body,icon:"./icon.svg",badge:"./icon.svg",tag,
+   data:{url:safeUrl,kind},renotify:false
+  });
+ })());
 });
-self.addEventListener("notificationclick", event => {
-  event.notification.close();
-  const target = new URL(event.notification.data?.url || "./", self.location.origin).href;
-  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(clients => {
-    for (const client of clients) {
-      if (client.url.startsWith(self.location.origin) && "focus" in client) return client.focus();
-    }
-    return self.clients.openWindow(target);
-  }));
+self.addEventListener("notificationclick",event=>{
+ event.notification.close();
+ const url=event.notification.data?.url||self.registration.scope;
+ event.waitUntil((async()=>{
+  const target=new URL(url,self.registration.scope);
+  const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
+  for(const client of windows){
+   if(new URL(client.url).origin!==self.location.origin)continue;
+   if("navigate" in client){try{await client.navigate(target.href)}catch{}}
+   if("focus" in client)return client.focus();
+  }
+  return self.clients.openWindow(target.href);
+ })());
 });
