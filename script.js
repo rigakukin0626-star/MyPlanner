@@ -54,6 +54,7 @@ async function refreshAuthUI(){
   $("signInBtn").hidden=!!currentUser; $("signUpBtn").hidden=!!currentUser; $("signOutBtn").hidden=!currentUser;
   $("authForm").classList.toggle("signed-in",!!currentUser);
   $("enableNotificationsBtn").hidden = !currentUser;
+  $("resetNotificationsBtn").hidden = !currentUser;
   if(currentUser){try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus("云端读取失败："+e.message);}}
   else{cloudReady=false;setAuthStatus("尚未登录。当前任务保存在本设备；登录后可同步。")}
 }
@@ -81,7 +82,7 @@ function urlBase64ToUint8Array(base64String){
   for(let i=0;i<raw.length;i++)output[i]=raw.charCodeAt(i);
   return output;
 }
-$("enableNotificationsBtn").addEventListener("click",async()=>{
+async function registerDeviceNotifications(forceReset = false){
   const status=$("notificationStatus");
   if(!currentUser){status.textContent="请先登录账号。";return}
   if(!("serviceWorker" in navigator)||!("PushManager" in window)){status.textContent="此浏览器不支持推送通知。";return}
@@ -96,7 +97,7 @@ $("enableNotificationsBtn").addEventListener("click",async()=>{
       const currentKey=subscription.options?.applicationServerKey;
       const existing=currentKey?new Uint8Array(currentKey):null;
       const matches=existing&&existing.length===targetKey.length&&existing.every((byte,i)=>byte===targetKey[i]);
-      if(!matches){
+      if(forceReset || !matches){
         const oldEndpoint=subscription.endpoint;
         await subscription.unsubscribe();
         subscription=null;
@@ -115,9 +116,11 @@ $("enableNotificationsBtn").addEventListener("click",async()=>{
       auth:data.keys.auth
     },{onConflict:"endpoint"});
     if(error)throw error;
-    status.textContent="设备通知已开启！";
+    status.textContent=forceReset?"已重新订阅设备通知！请继续测试推送。":"设备通知已开启！";
   }catch(error){console.error(error);status.textContent="开启失败："+error.message}
-});
+}
+$("enableNotificationsBtn").addEventListener("click",()=>registerDeviceNotifications(false));
+$("resetNotificationsBtn").addEventListener("click",()=>registerDeviceNotifications(true));
 
 function toLocalDateTimeInput(value){const d=new Date(value);if(Number.isNaN(d.getTime()))return "";const local=new Date(d.getTime()-d.getTimezoneOffset()*60000);return local.toISOString().slice(0,16)}
 function priorityName(p){return({high:"高",medium:"中",low:"低"})[p]||"中"}
