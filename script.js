@@ -1,3 +1,51 @@
+const UI_LANG_KEY="myPlannerLanguage";
+let uiLanguage=localStorage.getItem(UI_LANG_KEY)||"ja";
+if(!["zh","ja","en"].includes(uiLanguage))uiLanguage="ja";
+const uiEnglish={
+"やりたいことを、一つずつ。":"Plan one thing at a time.",
+"今日に戻る":"Today","クラウド同期":"Cloud Sync","ログインすると、PCとiPhoneでタスクを同期できます。":"Sign in to sync tasks across devices.",
+"ログイン・同期":"Sign in & Sync","新規登録":"Sign Up","ログアウト":"Sign Out",
+"通知を有効にする":"Enable Notifications","通知を再登録":"Reset Notifications",
+"今日":"Today","今日のタスク":"Today's Tasks","完了":"Completed","今日の進捗":"Today's Progress",
+"カレンダー":"Calendar","長期タスク":"Long-term Tasks","＋ 追加":"+ Add",
+"すべて":"All","未完了":"Active","タスクはまだありません":"No tasks yet",
+"タスクを追加して、今日の予定を立てましょう。":"Add a task to plan your day.",
+"タスクを編集":"Edit Task","日付":"Date","通知日時":"Reminder Time",
+"繰り返し通知":"Repeat Reminder","優先度":"Priority","キャンセル":"Cancel","変更を保存":"Save Changes",
+"編集":"Edit","削除":"Delete","毎日":"Daily","毎週":"Weekly","毎月":"Monthly",
+"タスクを追加してみましょう":"Add a task to get started",
+"該当するタスクはありません":"No matching tasks","フィルターを変更してください":"Try another filter",
+"同期済み":"Synced","タスクを同期中…":"Syncing tasks…","クラウドから読み込み中…":"Loading cloud tasks…",
+"通知を再登録しました。":"Notifications re-registered.","通知が有効になりました。":"Notifications enabled.",
+"長期タスク":"Long-term Tasks"
+};
+function tr(ja,zh,en){return uiLanguage==="zh"?zh:uiLanguage==="en"?(en||uiEnglish[ja]||ja):ja;}
+function applyLanguage(){
+ document.documentElement.lang=uiLanguage==="zh"?"zh-CN":uiLanguage;
+ const picker=$("languageSelect");if(picker)picker.value=uiLanguage;
+ document.querySelectorAll(".bilingual").forEach(el=>{
+  const small=el.querySelector("small");if(!small)return;
+  if(!el.dataset.ja){el.dataset.ja=el.firstChild?.textContent||"";el.dataset.zh=small.textContent;}
+  el.textContent=tr(el.dataset.ja,el.dataset.zh);
+ });
+ const placeholders={
+ authEmail:["メールアドレス","邮箱地址","Email address"],
+ authPassword:["パスワード（6文字以上）","密码（至少6位）","Password (6+ characters)"],
+ taskInput:["タスクを入力…","添加一件要做的事…","Add a task…"]
+ };
+ for(const [id,values] of Object.entries(placeholders))$(id).placeholder=values[uiLanguage==="ja"?0:uiLanguage==="zh"?1:2];
+ const repeat={none:["繰り返さない","不重复","Never"],daily:["毎日","每天","Daily"],weekly:["毎週","每周","Weekly"],monthly:["毎月","每月","Monthly"]};
+ for(const id of ["repeatInput","editRepeat"])for(const option of $(id).options)option.textContent=repeat[option.value][uiLanguage==="ja"?0:uiLanguage==="zh"?1:2];
+ const priorities={high:["優先度：高","高优先级","High priority"],medium:["優先度：中","中优先级","Medium priority"],low:["優先度：低","低优先级","Low priority"]};
+ for(const option of $("priorityInput").options)option.textContent=priorities[option.value][uiLanguage==="ja"?0:uiLanguage==="zh"?1:2];
+ for(const option of $("editPriority").options)option.textContent=({high:["高","高","High"],medium:["中","中","Medium"],low:["低","低","Low"]})[option.value][uiLanguage==="ja"?0:uiLanguage==="zh"?1:2];
+ $("calendarWeekdaysFix")?.remove();
+ const days=uiLanguage==="zh"?["日","一","二","三","四","五","六"]:uiLanguage==="en"?["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]:["日","月","火","水","木","金","土"];
+ document.querySelectorAll(".calendar-weekdays span").forEach((el,i)=>el.textContent=days[i]);
+ const hint=document.querySelector(".calendar-hint");if(hint)hint.lastChild.textContent=" "+tr("タスクがある日","有任务的日期","Days with tasks");
+ const note=document.querySelector(".storage-note");if(note)note.textContent=tr("データはこの端末にも保存されます。端末を変更する前に同期を確認してください。","数据也保存在本设备。更换设备前请确认已同步。","Data is also stored on this device. Check sync before switching devices.");
+ render();
+}
 const STORAGE_KEY = "myPlannerTasks";
 const $ = (id) => document.getElementById(id);
 const taskForm = $("taskForm"), taskInput = $("taskInput"), priorityInput = $("priorityInput");
@@ -47,7 +95,7 @@ async function loadCloudTasks() {
   tasks=Array.from(merged.values()); localStorage.setItem(STORAGE_KEY,JSON.stringify(tasks)); cloudReady=true; render();
   await queueCloudUpsert();
 }
-function bilingual(ja,zh){return ja+"\n"+zh;}
+function bilingual(ja,zh){return tr(ja,zh);}
 function setAuthStatus(message){const el=$("authStatus");if(el)el.textContent=message;}
 async function refreshAuthUI(){
   const {data:{session}}=await supabaseClient.auth.getSession(); currentUser=session?.user||null;
@@ -124,17 +172,18 @@ $("enableNotificationsBtn").addEventListener("click",()=>registerDeviceNotificat
 $("resetNotificationsBtn").addEventListener("click",()=>registerDeviceNotifications(true));
 
 function toLocalDateTimeInput(value){const d=new Date(value);if(Number.isNaN(d.getTime()))return "";const local=new Date(d.getTime()-d.getTimezoneOffset()*60000);return local.toISOString().slice(0,16)}
-function repeatName(rule){return ({daily:"毎日 / 每天",weekly:"毎週 / 每周",monthly:"毎月 / 每月"})[rule]||""}
-function priorityName(p){return({high:"高 / 高",medium:"中 / 中",low:"低 / 低"})[p]||"中 / 中"}
+function repeatName(rule){return ({daily:tr("毎日","每天","Daily"),weekly:tr("毎週","每周","Weekly"),monthly:tr("毎月","每月","Monthly")})[rule]||""}
+function priorityName(p){return ({high:tr("高","高","High"),medium:tr("中","中","Medium"),low:tr("低","低","Low")})[p]||"Medium"}
 function render(){renderOverview();renderCalendar();renderTasks()}
-function renderOverview(){const todays=tasks.filter(t=>t.date===todayKey),done=todays.filter(t=>t.completed).length,percent=todays.length?Math.round(done/todays.length*100):0;$ ("todayDate").textContent=new Intl.DateTimeFormat("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"long"}).format(today);$("totalCount").textContent=todays.length;$("doneCount").textContent=done;$("progressText").textContent=percent+"%";$("progressBar").style.width=percent+"%"}
-function renderCalendar(){const y=viewMonth.getFullYear(),m=viewMonth.getMonth();monthLabel.textContent=`${y}年${m+1}月`;calendarGrid.innerHTML="";const first=new Date(y,m,1),start=new Date(y,m,1-first.getDay());for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const key=dateKey(d),btn=document.createElement("button");btn.type="button";btn.className="calendar-day";if(d.getMonth()!==m)btn.classList.add("muted-day");if(key===todayKey)btn.classList.add("today");if(key===selectedDate&&!showLongTerm)btn.classList.add("selected");if(tasks.some(t=>t.date===key))btn.classList.add("has-tasks");btn.textContent=d.getDate();btn.setAttribute("aria-label",key);btn.addEventListener("click",()=>{selectedDate=key;showLongTerm=false;render()});calendarGrid.appendChild(btn)}}
-function renderTasks(){const source=tasks.filter(t=>showLongTerm?t.date===null:t.date===selectedDate),visible=source.filter(t=>filter==="all"||(filter==="active"?!t.completed:t.completed));selectedDateTitle.textContent=showLongTerm?bilingual("長期タスク","长期任务"):(selectedDate===todayKey?bilingual("今日のタスク","今日任务"):bilingual(`${selectedDate} のタスク`,`${selectedDate} 任务`));$("taskCountLabel").textContent=`${visible.length} 件 / 项`;taskList.innerHTML="";emptyState.hidden=visible.length>0;if(!visible.length){emptyState.querySelector("strong").textContent=filter==="all"?bilingual("タスクはまだありません","这里还很空"):bilingual("該当するタスクはありません","没有符合条件的任务");emptyState.querySelector("p").textContent=filter==="all"?bilingual("タスクを追加してみましょう","添加一项任务，开始安排吧。"):bilingual("フィルターを変更してください","试试切换筛选条件。")}const rank={high:0,medium:1,low:2};visible.sort((a,b)=>Number(a.completed)-Number(b.completed)||rank[a.priority]-rank[b.priority]);visible.forEach(task=>{const li=document.createElement("li");li.className="task-item"+(task.completed?" completed":"");const check=document.createElement("input");check.type="checkbox";check.className="task-check";check.checked=task.completed;check.setAttribute("aria-label","标记完成");check.addEventListener("change",()=>{task.completed=check.checked;saveTasks();render()});const text=document.createElement("span");text.className="task-text";text.textContent=task.text;const badge=document.createElement("span");badge.className=`priority priority-${task.priority}`;badge.textContent=priorityName(task.priority);const reminder=document.createElement("span");reminder.className="task-reminder";reminder.textContent=task.reminderAt?"⏰ "+new Intl.DateTimeFormat("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(task.reminderAt))+(task.repeat&&task.repeat!=="none"?" · "+repeatName(task.repeat):""):"";const actions=document.createElement("div");actions.className="task-actions";const edit=document.createElement("button");edit.type="button";edit.className="task-action";edit.textContent=bilingual("編集","编辑");edit.addEventListener("click",()=>openEdit(task.id));const del=document.createElement("button");del.type="button";del.className="task-action";del.textContent=bilingual("削除","删除");del.addEventListener("click",()=>deleteTask(task.id));actions.append(edit,del);li.append(check,text,badge);if(task.reminderAt)li.append(reminder);li.append(actions);taskList.appendChild(li)})}
-taskForm.addEventListener("submit",e=>{e.preventDefault();const text=taskInput.value.trim();if(!text)return;if($("repeatInput").value!=="none"&&!$("reminderInput").value){alert("繰り返し通知には日時が必要です。\n重复提醒必须设置提醒时间");return;}tasks.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),text,date:showLongTerm?null:selectedDate,completed:false,priority:priorityInput.value,reminderAt:$("reminderInput").value?new Date($("reminderInput").value).toISOString():null,repeat:$("repeatInput").value});saveTasks();taskInput.value="";priorityInput.value="medium";$("reminderInput").value="";$("repeatInput").value="none";taskInput.focus();render()});
-async function deleteTask(id){if(!confirm("このタスクを削除しますか？\n确定删除这项任务吗？"))return;tasks=tasks.filter(t=>t.id!==id);saveTasks();if(currentUser&&cloudReady){const {error}=await supabaseClient.from("tasks").delete().eq("id",String(id));if(error)setAuthStatus("云端删除失败："+error.message)}render()}
+function renderOverview(){const todays=tasks.filter(t=>t.date===todayKey),done=todays.filter(t=>t.completed).length,percent=todays.length?Math.round(done/todays.length*100):0;$ ("todayDate").textContent=new Intl.DateTimeFormat(uiLanguage==="en"?"en-US":uiLanguage==="zh"?"zh-CN":"ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"long"}).format(today);$("totalCount").textContent=todays.length;$("doneCount").textContent=done;$("progressText").textContent=percent+"%";$("progressBar").style.width=percent+"%"}
+function renderCalendar(){const y=viewMonth.getFullYear(),m=viewMonth.getMonth();monthLabel.textContent=uiLanguage==="en"?new Intl.DateTimeFormat("en-US",{month:"long",year:"numeric"}).format(new Date(y,m,1)):`${y}年${m+1}月`;calendarGrid.innerHTML="";const first=new Date(y,m,1),start=new Date(y,m,1-first.getDay());for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const key=dateKey(d),btn=document.createElement("button");btn.type="button";btn.className="calendar-day";if(d.getMonth()!==m)btn.classList.add("muted-day");if(key===todayKey)btn.classList.add("today");if(key===selectedDate&&!showLongTerm)btn.classList.add("selected");if(tasks.some(t=>t.date===key))btn.classList.add("has-tasks");btn.textContent=d.getDate();btn.setAttribute("aria-label",key);btn.addEventListener("click",()=>{selectedDate=key;showLongTerm=false;render()});calendarGrid.appendChild(btn)}}
+function renderTasks(){const source=tasks.filter(t=>showLongTerm?t.date===null:t.date===selectedDate),visible=source.filter(t=>filter==="all"||(filter==="active"?!t.completed:t.completed));selectedDateTitle.textContent=showLongTerm?tr("長期タスク","长期任务","Long-term Tasks"):(selectedDate===todayKey?tr("今日のタスク","今日任务","Today\'s Tasks"):tr(`${selectedDate} のタスク`,`${selectedDate} 任务`,`${selectedDate} Tasks`));$("taskCountLabel").textContent=tr(`${visible.length} 件`,`${visible.length} 项`,`${visible.length} tasks`);taskList.innerHTML="";emptyState.hidden=visible.length>0;if(!visible.length){emptyState.querySelector("strong").textContent=filter==="all"?tr("タスクはまだありません","这里还很空","No tasks yet"):tr("該当するタスクはありません","没有符合条件的任务","No matching tasks");emptyState.querySelector("p").textContent=filter==="all"?tr("タスクを追加してみましょう","添加一项任务，开始安排吧。","Add a task to get started"):tr("フィルターを変更してください","试试切换筛选条件。","Try another filter")}const rank={high:0,medium:1,low:2};visible.sort((a,b)=>Number(a.completed)-Number(b.completed)||rank[a.priority]-rank[b.priority]);visible.forEach(task=>{const li=document.createElement("li");li.className="task-item"+(task.completed?" completed":"");const check=document.createElement("input");check.type="checkbox";check.className="task-check";check.checked=task.completed;check.setAttribute("aria-label","标记完成");check.addEventListener("change",()=>{task.completed=check.checked;saveTasks();render()});const text=document.createElement("span");text.className="task-text";text.textContent=task.text;const badge=document.createElement("span");badge.className=`priority priority-${task.priority}`;badge.textContent=priorityName(task.priority);const reminder=document.createElement("span");reminder.className="task-reminder";reminder.textContent=task.reminderAt?"⏰ "+new Intl.DateTimeFormat(uiLanguage==="en"?"en-US":uiLanguage==="ja"?"ja-JP":"zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(task.reminderAt))+(task.repeat&&task.repeat!=="none"?" · "+repeatName(task.repeat):""):"";const actions=document.createElement("div");actions.className="task-actions";const edit=document.createElement("button");edit.type="button";edit.className="task-action";edit.textContent=tr("編集","编辑","Edit");edit.addEventListener("click",()=>openEdit(task.id));const del=document.createElement("button");del.type="button";del.className="task-action";del.textContent=tr("削除","删除","Delete");del.addEventListener("click",()=>deleteTask(task.id));actions.append(edit,del);li.append(check,text,badge);if(task.reminderAt)li.append(reminder);li.append(actions);taskList.appendChild(li)})}
+taskForm.addEventListener("submit",e=>{e.preventDefault();const text=taskInput.value.trim();if(!text)return;if($("repeatInput").value!=="none"&&!$("reminderInput").value){alert(tr("繰り返し通知には日時が必要です。","重复提醒必须设置提醒时间","Choose a reminder time for recurring tasks."));return;}tasks.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),text,date:showLongTerm?null:selectedDate,completed:false,priority:priorityInput.value,reminderAt:$("reminderInput").value?new Date($("reminderInput").value).toISOString():null,repeat:$("repeatInput").value});saveTasks();taskInput.value="";priorityInput.value="medium";$("reminderInput").value="";$("repeatInput").value="none";taskInput.focus();render()});
+async function deleteTask(id){if(!confirm(tr("このタスクを削除しますか？","确定删除这项任务吗？","Delete this task?")))return;tasks=tasks.filter(t=>t.id!==id);saveTasks();if(currentUser&&cloudReady){const {error}=await supabaseClient.from("tasks").delete().eq("id",String(id));if(error)setAuthStatus("云端删除失败："+error.message)}render()}
 function openEdit(id){const task=tasks.find(t=>t.id===id);if(!task)return;editingId=id;$("editText").value=task.text;$("editDate").value=task.date||"";$("editPriority").value=task.priority;$("editReminder").value=task.reminderAt?toLocalDateTimeInput(task.reminderAt):"";$("editRepeat").value=task.repeat||"none";editDialog.showModal()}
-$("editForm").addEventListener("submit",e=>{e.preventDefault();const task=tasks.find(t=>t.id===editingId);if(!task)return;if($("editRepeat").value!=="none"&&!$("editReminder").value){alert("重复提醒必须设置提醒时间");return;}task.text=$("editText").value.trim();task.date=$("editDate").value||null;task.priority=$("editPriority").value;task.reminderAt=$("editReminder").value?new Date($("editReminder").value).toISOString():null;task.repeat=$("editRepeat").value;saveTasks();editDialog.close();showLongTerm=task.date===null;if(task.date)selectedDate=task.date;render()});
+$("editForm").addEventListener("submit",e=>{e.preventDefault();const task=tasks.find(t=>t.id===editingId);if(!task)return;if($("editRepeat").value!=="none"&&!$("editReminder").value){alert(tr("繰り返し通知には日時が必要です。","重复提醒必须设置提醒时间","Choose a reminder time for recurring tasks."));return;}task.text=$("editText").value.trim();task.date=$("editDate").value||null;task.priority=$("editPriority").value;task.reminderAt=$("editReminder").value?new Date($("editReminder").value).toISOString():null;task.repeat=$("editRepeat").value;saveTasks();editDialog.close();showLongTerm=task.date===null;if(task.date)selectedDate=task.date;render()});
 function closeEdit(){editDialog.close();editingId=null}$("closeDialog").addEventListener("click",closeEdit);$("cancelEdit").addEventListener("click",closeEdit);
 $("prevMonth").addEventListener("click",()=>{viewMonth.setMonth(viewMonth.getMonth()-1);renderCalendar()});$("nextMonth").addEventListener("click",()=>{viewMonth.setMonth(viewMonth.getMonth()+1);renderCalendar()});$("todayBtn").addEventListener("click",()=>{selectedDate=todayKey;showLongTerm=false;viewMonth=new Date(today.getFullYear(),today.getMonth(),1);render()});$("longTermBtn").addEventListener("click",()=>{showLongTerm=true;filter="all";updateTabs();renderTasks()});$("taskTabs").addEventListener("click",e=>{const btn=e.target.closest("[data-filter]");if(!btn)return;filter=btn.dataset.filter;updateTabs();renderTasks()});function updateTabs(){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.filter===filter))}
 if("serviceWorker"in navigator&&location.protocol!=="file:")window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(console.error));
-render();refreshAuthUI();
+$("languageSelect").addEventListener("change",e=>{uiLanguage=e.target.value;localStorage.setItem(UI_LANG_KEY,uiLanguage);applyLanguage();});
+applyLanguage();refreshAuthUI();
