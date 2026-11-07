@@ -1308,3 +1308,33 @@ html[data-theme="dark"] #pageChat #chatGroupMembersPanel{
 #pageChat #chatGroupMessages .chat-bubble .group-message-sender{
  left:-66px!important;
 }
+
+
+/* v151: tap actual contact avatars to edit a private nickname */
+#pageChat .chat-messages .chat-bubble.chat-with-avatar:not(.mine)::before{display:none!important}
+#pageChat .chat-messages .chat-bubble .chat-avatar-action{
+ position:absolute;
+ left:-66px;
+ bottom:0;
+ width:56px;
+ height:56px;
+ padding:0;
+ border-radius:50%;
+ border:1px solid #c5d7f5;
+ background:#dce8ff;
+ color:#2563eb;
+ font-size:19px;
+ font-weight:650;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ box-shadow:0 2px 7px rgba(30,52,90,.10);
+ cursor:pointer;
+ touch-action:manipulation;
+}
+#pageChat .chat-messages .chat-bubble .chat-avatar-action:active{transform:scale(.96)}
+html[data-theme="dark"] #pageChat .chat-messages .chat-bubble .chat-avatar-action{
+ background:#343943;
+ border-color:#525968;
+ color:#f4f6fb;
+}
