@@ -436,14 +436,16 @@ function chatMessageContent(node,body){
  if(typeof body==="string"&&body.startsWith(CHAT_IMAGE_PREFIX)){
   const path=body.slice(CHAT_IMAGE_PREFIX.length);
   if(!/^([0-9a-f-]{36})\/([0-9a-f-]{36})\/([0-9a-f-]{36})\.(jpg|png|webp|gif)$/.test(path)){node.textContent="图片格式无效";return}
-  const img=document.createElement("img");img.className="chat-photo";img.alt=chatText("聊天照片","チャット写真","Chat photo");
+  const img=document.createElement("img");img.className="chat-photo";img.alt=chatText("照片加载中…","写真を読み込み中…","Loading photo…");
   node.append(img);
   const cached=chatImageUrlCache.get(path);
   if(cached&&cached.expires>Date.now()){img.src=cached.url;return}
   supabaseClient.storage.from("chat-photos").createSignedUrl(path,3600).then(({data,error})=>{
-   if(!error&&data?.signedUrl&&img.isConnected){img.src=data.signedUrl;chatImageUrlCache.set(path,{url:data.signedUrl,expires:Date.now()+3300000})}
-   else if(error&&img.isConnected)node.append(document.createTextNode(chatText("照片加载失败","写真を読み込めません","Photo unavailable")));
+   if(!error&&data?.signedUrl){img.src=data.signedUrl;chatImageUrlCache.set(path,{url:data.signedUrl,expires:Date.now()+3300000})}
+   else if(error)node.append(document.createTextNode(chatText("照片加载失败","写真を読み込めません","Photo unavailable")));
   });
+  img.addEventListener("load",()=>{img.alt=chatText("聊天照片","チャット写真","Chat photo")});
+  img.addEventListener("error",()=>{img.alt=chatText("照片加载失败","写真を読み込めません","Photo failed to load")});
   img.addEventListener("click",()=>{if(img.src)window.open(img.src,"_blank","noopener")});
  }else node.textContent=body;
 }
