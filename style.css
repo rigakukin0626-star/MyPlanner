@@ -149,3 +149,13 @@
  .edit-dialog .dialog-fields label{grid-column:1/-1;}
  .edit-dialog .dialog-fields input[type="datetime-local"]{font-size:14px;}
 }
+
+/* v29: uniform full-width edit controls on iOS Safari */
+.edit-dialog .dialog-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:13px;width:100%;}
+.edit-dialog .dialog-fields>label{display:flex;flex-direction:column;gap:7px;grid-column:1/-1;width:100%;min-width:0;max-width:100%;}
+.edit-dialog .dialog-fields>label>input,.edit-dialog .dialog-fields>label>select{display:block;appearance:auto;-webkit-appearance:auto;box-sizing:border-box;width:100%;min-width:0;max-width:100%;height:48px;min-height:48px;max-height:48px;margin:0;padding:0 13px;border:1px solid #e4e9f1;border-radius:10px;background:#fff;color:#293750;font-size:14px;font-weight:400;line-height:normal;}
+.edit-dialog .dialog-fields input[type="date"],.edit-dialog .dialog-fields input[type="datetime-local"]{min-inline-size:0;inline-size:100%;overflow:hidden;text-align:left;}
+.edit-dialog .dialog-fields input::-webkit-date-and-time-value{text-align:left;min-height:1em;}
+.edit-dialog .dialog-fields input::-webkit-datetime-edit{padding:0;min-width:0;}
+.edit-dialog .dialog-fields input::-webkit-calendar-picker-indicator{margin-left:auto;flex-shrink:0;}
+.edit-dialog .dialog-fields select{padding-right:30px;}
