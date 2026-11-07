@@ -536,3 +536,10 @@ body.chat-open #pageChat #chatConversation[hidden],body.chat-open #pageChat #cha
 .chat-group-invite-friend span{min-width:0;overflow-wrap:anywhere}
 .chat-group-invite-friend button{flex-shrink:0}
 .chat-group-invite-friend button:disabled{opacity:.5}
+
+/* v90: prevent group actions from being clipped at the bottom of member panel */
+body.chat-open #pageChat #chatGroupConversation .chat-group-members{box-sizing:border-box;flex:0 1 auto;max-height:min(65dvh,620px);min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:16px 16px calc(22px + env(safe-area-inset-bottom,0px));display:block}
+body.chat-open #pageChat #chatGroupConversation .chat-group-members[hidden]{display:none!important}
+body.chat-open #pageChat #chatGroupConversation .chat-group-leave,body.chat-open #pageChat #chatGroupConversation .chat-group-disband{display:block;position:static;box-sizing:border-box;width:100%;min-height:46px;flex:none;clear:both;margin:14px 0 0;padding:12px;text-align:center;line-height:1.4}
+body.chat-open #pageChat #chatGroupConversation .chat-group-disband[hidden]{display:none!important}
+body.chat-open #pageChat #chatGroupConversation .chat-group-disband{margin-top:14px;margin-bottom:8px}
