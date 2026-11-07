@@ -1347,3 +1347,26 @@ html[data-theme="dark"] #pageChat .chat-messages .chat-bubble .chat-avatar-actio
 #pageChat #chatGroupMembersList .group-rename-row{padding:0 0 10px;margin-bottom:5px;border-bottom:1px solid #e6ebf4}
 #pageChat #chatGroupMembersList .group-rename-row button{width:100%;background:#eef3ff!important;color:#315de1!important;border:1px solid #dce6ff!important}
 html[data-theme="dark"] #pageChat #chatGroupMembersList .group-rename-row button{background:#30384a!important;color:#d4e0ff!important}
+
+
+/* v157: responsive, low-cost interactions; respect accessibility settings */
+#pageChat .chat-friend,
+#pageChat .chat-group-invite-friend button,
+#pageChat .chat-group-member button,
+#pageChat .chat-avatar-action,
+.bottom-tabs .tab{
+ -webkit-tap-highlight-color:transparent;
+ touch-action:manipulation;
+}
+#pageChat .chat-group-invite-friend button,
+#pageChat .chat-group-member button,
+#pageChat .chat-avatar-action,
+.bottom-tabs .tab{
+ transition:background-color .16s ease,color .16s ease,border-color .16s ease,opacity .16s ease,transform .16s ease;
+}
+@media (prefers-reduced-motion:reduce){
+ #pageChat .chat-group-invite-friend button,
+ #pageChat .chat-group-member button,
+ #pageChat .chat-avatar-action,
+ .bottom-tabs .tab{transition:none!important;animation:none!important}
+}
