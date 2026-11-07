@@ -584,7 +584,7 @@ function updateChatLanguage(){
 }
 function chatStatus(message){$("chatStatus").textContent=message;if(!/^(好友列表已同步|友達一覧を同期しました|Friends synced)/.test(message))delete $("chatStatus").dataset.friendsSyncedCount}
 function chatError(error){chatStatus(error?.message||String(error))}
-function chatShowList(){if(chatActiveGroup)groupClose();document.body.classList.remove("chat-open");chatConfirmedCache=[];chatCachePeer=null;chatReadLastId=null;chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
+function chatShowList(){chatReplyTarget=null;chatUpdateReplyPreview();if(chatActiveGroup)groupClose();document.body.classList.remove("chat-open");chatConfirmedCache=[];chatCachePeer=null;chatReadLastId=null;chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
 let chatRecallChannel=null;
 function chatRecallTopic(a,b){return "chat-recall-"+[a,b].sort().join("-")}
 function chatStopRealtime(){
@@ -721,14 +721,14 @@ function chatAppendRealtime(item){
  if(root.querySelector('[data-message-id="'+item.id+'"]'))return;
  const bubble=document.createElement("div");bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
  bubble.dataset.messageId=String(item.id);
- const body=document.createElement("span");chatMessageContent(body,item.body);
+ const body=document.createElement("span");chatDisplayBody(body,item.body);
  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString()+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
  bubble.append(body,time);root.append(bubble);root.scrollTop=root.scrollHeight;
  chatLastSignature="";
 }
 async function openChat(id,name){
  chatStopRealtime();
- chatLastSignature="";chatConfirmedCache=chatRestoreSnapshot(id);chatCachePeer=id;chatReadLastId=null;chatPeer=id;chatAutoScrollUntil=Date.now()+8000;document.body.classList.add("chat-open");
+ chatReplyTarget=null;chatUpdateReplyPreview();chatLastSignature="";chatConfirmedCache=chatRestoreSnapshot(id);chatCachePeer=id;chatReadLastId=null;chatPeer=id;chatAutoScrollUntil=Date.now()+8000;document.body.classList.add("chat-open");
  $("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");
  $("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
  chatRenderMessages();chatScrollToLatest();
@@ -788,6 +788,49 @@ function chatOpenPhotoPreview(url){
  overlay.querySelector("img").src=url;overlay.hidden=false;
 }
 
+const CHAT_REPLY_PREFIX="[myplanner-reply]:";
+let chatReplyTarget=null;
+function chatParseReply(body){
+ if(typeof body!=="string"||!body.startsWith(CHAT_REPLY_PREFIX))return null;
+ try{const value=JSON.parse(body.slice(CHAT_REPLY_PREFIX.length));if(value&&typeof value.text==="string"&&typeof value.quote==="string")return value}catch{}
+ return null;
+}
+function chatPlainBody(body){const reply=chatParseReply(body);return reply?reply.text:body}
+function chatQuoteText(body){
+ const value=String(chatPlainBody(body)||"");
+ return value.startsWith(CHAT_IMAGE_PREFIX)?chatText("图片","画像","Photo"):value.replace(/\\s+/g," ").slice(0,100);
+}
+function chatUpdateReplyPreview(){
+ let preview=document.getElementById("chatReplyPreview");
+ if(!preview){
+  preview=document.createElement("div");preview.id="chatReplyPreview";preview.className="chat-reply-preview";
+  const form=$("chatSendForm");form.parentNode.insertBefore(preview,form);
+ }
+ preview.replaceChildren();
+ preview.hidden=!chatReplyTarget;
+ if(!chatReplyTarget)return;
+ const info=document.createElement("span");info.className="chat-reply-preview-info";
+ const title=document.createElement("strong");title.textContent=chatText("正在回复","返信中","Replying to");
+ const quote=document.createElement("span");quote.textContent=chatQuoteText(chatReplyTarget.body);
+ info.append(title,quote);
+ const close=document.createElement("button");close.type="button";close.className="chat-reply-close";close.textContent="×";close.setAttribute("aria-label",chatText("取消回复","返信をキャンセル","Cancel reply"));close.addEventListener("click",()=>{chatReplyTarget=null;chatUpdateReplyPreview()});
+ preview.append(info,close);
+}
+function chatSetReply(item){
+ chatReplyTarget={id:String(item.id),body:item.body,peer:chatPeer};
+ chatUpdateReplyPreview();
+ $("chatMessageInput").focus();
+}
+function chatDisplayBody(node,body){
+ const reply=chatParseReply(body);
+ if(reply){
+  const quoted=document.createElement("div");quoted.className="chat-quoted-message";
+  const label=document.createElement("strong");label.textContent=chatText("回复消息","返信","Reply");
+  const content=document.createElement("span");content.textContent=reply.quote;
+  quoted.append(label,content);node.append(quoted);
+  const message=document.createElement("div");message.className="chat-reply-text";message.textContent=reply.text;node.append(message);
+ }else chatMessageContent(node,body);
+}
 function chatMessageContent(node,body){
  if(typeof body==="string"&&body.startsWith(CHAT_IMAGE_PREFIX)){
   const path=body.slice(CHAT_IMAGE_PREFIX.length);
@@ -863,15 +906,14 @@ function chatOpenMessageMenu(item,bubble){
   const btn=document.createElement("button");btn.type="button";btn.className="chat-context-option "+extra;btn.textContent=label;
   btn.addEventListener("click",e=>{e.stopPropagation();chatCloseMessageMenu();action()});menu.append(btn);
  };
- if(!String(item.body||"").startsWith(CHAT_IMAGE_PREFIX)){
+ if(!String(chatPlainBody(item.body)||"").startsWith(CHAT_IMAGE_PREFIX)){
   add(chatText("复制","コピー","Copy"),async()=>{
-   try{await navigator.clipboard.writeText(item.body);chatStatus(chatText("已复制","コピーしました","Copied"))}
-   catch{window.prompt(chatText("复制消息","メッセージをコピー","Copy message"),item.body)}
+   try{await navigator.clipboard.writeText(chatPlainBody(item.body));chatStatus(chatText("已复制","コピーしました","Copied"))}
+   catch{window.prompt(chatText("复制消息","メッセージをコピー","Copy message"),chatPlainBody(item.body))}
   });
  }
  add(chatText("回复","返信","Reply"),()=>{
-  const input=$("chatMessageInput");const quote=String(item.body||"").startsWith(CHAT_IMAGE_PREFIX)?chatText("图片","画像","Photo"):String(item.body||"").replace(/\s+/g," ").slice(0,80);
-  input.value="↪ "+quote+"\n";input.focus();input.setSelectionRange(input.value.length,input.value.length);
+  chatSetReply(item);
  });
  if(item.sender_id===currentUser.id)add(chatText("撤回","送信取消","Recall"),()=>chatRemoveMessage(item,true),"danger");
  add(chatText("仅为我删除","自分のみ削除","Delete for me"),()=>chatRemoveMessage(item,false),"danger");
@@ -910,7 +952,7 @@ function chatRenderMessages(){
  const fragment=document.createDocumentFragment();
  for(const item of confirmed){
   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);
-  const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else chatMessageContent(body,item.body);
+  const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else chatDisplayBody(body,item.body);
   const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString()+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
   div.append(body,time);chatMessageActions(div,item);fragment.append(div);
  }
@@ -1073,11 +1115,13 @@ $("chatPhotoInput").addEventListener("change",async e=>{
 });
 $("chatSendForm").addEventListener("submit",async e=>{
  e.preventDefault();if(!currentUser||!chatPeer)return;
- const input=$("chatMessageInput"),body=input.value.trim();if(!body)return;
+ const input=$("chatMessageInput"),textBody=input.value.trim();if(!textBody)return;
  const peer=chatPeer;
+ const reply=chatReplyTarget?.peer===peer?chatReplyTarget:null;
+ const body=reply?CHAT_REPLY_PREFIX+JSON.stringify({id:reply.id,quote:chatQuoteText(reply.body),text:textBody}):textBody;
  const key="pending-"+Date.now()+"-"+Math.random().toString(36).slice(2);
  chatPending.set(key,{peer,body,status:"sending",serverId:null,createdAt:Date.now()});
- input.value="";
+ input.value="";chatReplyTarget=null;chatUpdateReplyPreview();
  // Always render from the local pending queue first; network work starts afterward.
  chatRenderMessages();
  try{
