@@ -1,11 +1,11 @@
 function detectBrowserLanguage(){
  const languages=navigator.languages?.length?navigator.languages:[navigator.language||"en"];
- for(const language of languages){const code=language.toLowerCase().split("-")[0];if(["zh","ja","en"].includes(code))return code;}
+ for(const language of languages){const code=language.toLowerCase().split("-")[0];if(["zh","ja","en","ko"].includes(code))return code;}
  return "en";
 }
 const UI_LANG_KEY="myPlannerLanguage";
 let languagePreference=localStorage.getItem(UI_LANG_KEY)||"auto";
-if(!["auto","zh","ja","en"].includes(languagePreference))languagePreference="auto";
+if(!["auto","zh","ja","en","ko"].includes(languagePreference))languagePreference="auto";
 let uiLanguage=languagePreference==="auto"?detectBrowserLanguage():languagePreference;
 const uiEnglish={
 "やりたいことを、一つずつ。":"Plan one thing at a time.",
@@ -25,7 +25,14 @@ const uiEnglish={
 "通知を再登録しました。":"Notifications re-registered.","通知が有効になりました。":"Notifications enabled.",
 "長期タスク":"Long-term Tasks"
 };
-function tr(ja,zh,en){return uiLanguage==="zh"?zh:uiLanguage==="en"?(en||uiEnglish[ja]||ja):ja;}
+const uiKorean={
+"やりたいことを、一つずつ。":"하고 싶은 일을 하나씩.","今日に戻る":"오늘로 이동","クラウド同期":"클라우드 동기화","ログインすると、PCとiPhoneでタスクを同期できます。":"로그인하면 기기 간 일정을 동기화할 수 있습니다.","ログイン・同期":"로그인 및 동기화","新規登録":"회원가입","ログアウト":"로그아웃","通知を有効にする":"알림 켜기","通知を再登録":"알림 다시 등록","今日":"오늘","予定":"일정","今日のタスク":"오늘의 할 일","完了":"완료","今日の進捗":"오늘의 진행 상황","カレンダー":"캘린더","長期タスク":"장기 일정","＋ 追加":"+ 추가","すべて":"전체","未完了":"진행 중","タスクはまだありません":"아직 할 일이 없습니다","タスクを追加して、今日の予定を立てましょう。":"할 일을 추가해 오늘을 계획하세요.","タスクを編集":"할 일 수정","日付":"날짜","通知日時":"알림 시간","繰り返し通知":"반복 알림","優先度":"우선순위","キャンセル":"취소","変更を保存":"변경사항 저장","編集":"수정","削除":"삭제","毎日":"매일","毎週":"매주","毎月":"매월","タスクを追加してみましょう":"할 일을 추가해 보세요","該当するタスクはありません":"일치하는 할 일이 없습니다","フィルターを変更してください":"필터를 변경해 보세요","同期済み":"동기화됨","タスクを同期中…":"할 일 동기화 중…","クラウドから読み込み中…":"클라우드에서 불러오는 중…","通知を再登録しました。":"알림을 다시 등록했습니다.","通知が有効になりました。":"알림이 켜졌습니다.","チャット":"채팅","友達を追加":"친구 추가","戻る":"뒤로","グループ":"그룹","グループチャット":"그룹 채팅","個人チャット":"개인 채팅","送信":"보내기","返信":"답장","コピー":"복사","閉じる":"닫기","検索":"검색","設定":"설정","保存":"저장","招待":"초대","メンバー":"멤버","グループ名":"그룹 이름","グループを作成":"그룹 만들기","グループに参加":"그룹 참여","友達やグループを検索":"친구 또는 그룹 검색","メッセージを入力…":"메시지 입력…","予定日":"일정 날짜","予定日（当日0時に通知）":"일정 날짜 (자정 알림)","長期予定を入力…":"장기 일정 입력…","日時を選択":"날짜와 시간 선택","予定日を選択":"일정 날짜 선택","長期予定":"장기 일정","長期予定のカウントダウン":"장기 일정 카운트다운","優先度：高":"높은 우선순위","優先度：中":"보통 우선순위","優先度：低":"낮은 우선순위","ログイン":"로그인","アカウント":"계정","ユーザー名":"사용자 이름","メールアドレス":"이메일 주소","パスワード":"비밀번호","外観 / テーマ":"화면 모드","通知設定":"알림 설정","ライト":"라이트","ダーク":"다크","システムに合わせる":"시스템 설정","通知時刻":"알림 시간","繰り返し":"반복","繰り返さない":"반복 안 함"
+};
+const koByEnglish={
+"Private Chat":"개인 채팅","Private":"개인 채팅","Groups":"그룹","Group Chats":"그룹 채팅","Add Friend":"친구 추가","Add friend":"친구 추가","Back":"뒤로","Search friends or groups":"친구 또는 그룹 검색","Clear search":"검색 지우기","No matching chats":"일치하는 채팅이 없습니다","Friends synced (":"친구 동기화 완료 (","Copy":"복사","Reply":"답장","Recall":"전송 취소","Delete for me":"나에게서만 삭제","Send":"보내기","Type a message...":"메시지 입력…","Search":"검색","Save":"저장","Cancel":"취소","Close":"닫기","Invite":"초대","Members":"멤버","Create group":"그룹 만들기","Join group":"그룹 참여","Group name":"그룹 이름","Group invite code":"그룹 초대 코드","Account":"계정","Username":"사용자 이름","Friend username":"친구 사용자 이름","Add member":"멤버 추가","Leave group":"그룹 나가기","Disband group":"그룹 삭제","Share":"공유","Copied":"복사됨","Replying to":"답장 중","Photo":"사진","Group message...":"그룹 메시지…","No groups yet. Create or join one.":"아직 그룹이 없습니다. 만들거나 참여해 보세요.","Settings":"설정","Chat":"채팅","Plans":"일정","Long-term Plans":"장기 일정","Calendar":"캘린더","Appearance":"화면 모드","Notification settings":"알림 설정","Light":"라이트","Dark":"다크","System":"시스템 설정","Medium priority":"보통 우선순위","High priority":"높은 우선순위","Low priority":"낮은 우선순위","Select plan date":"일정 날짜 선택","Add a long-term plan":"장기 일정 추가","Tap a countdown to edit its plan.":"카운트다운을 눌러 일정을 수정하세요.","Plan date (notify at midnight)":"일정 날짜 (자정 알림)","Add a long-term plan...":"장기 일정 입력…","Priority":"우선순위","Task Manager":"할 일 관리","Countdown":"카운트다운"
+};
+function koTranslate(ja,en){const base=en||uiEnglish[ja]||ja;return uiKorean[ja]||koByEnglish[base]||base;}
+function tr(ja,zh,en){return uiLanguage==="zh"?zh:uiLanguage==="ko"?koTranslate(ja,en):uiLanguage==="en"?(en||uiEnglish[ja]||ja):ja;}
 function applyLanguage(){
  document.documentElement.lang=uiLanguage==="zh"?"zh-CN":uiLanguage;
  const picker=$("languageSelect");if(picker)picker.value=languagePreference;
@@ -55,7 +62,7 @@ function applyLanguage(){
  for(const option of $("priorityInput").options)option.textContent=priorities[option.value][uiLanguage==="ja"?0:uiLanguage==="zh"?1:2];
  for(const option of $("editPriority").options)option.textContent=({high:["高","高","High"],medium:["中","中","Medium"],low:["低","低","Low"]})[option.value][uiLanguage==="ja"?0:uiLanguage==="zh"?1:2];
  $("calendarWeekdaysFix")?.remove();
- const days=uiLanguage==="zh"?["日","一","二","三","四","五","六"]:uiLanguage==="en"?["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]:["日","月","火","水","木","金","土"];
+ const days=uiLanguage==="ko"?["일","월","화","수","목","금","토"]:uiLanguage==="zh"?["日","一","二","三","四","五","六"]:uiLanguage==="en"?["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]:["日","月","火","水","木","金","土"];
  document.querySelectorAll(".calendar-weekdays span").forEach((el,i)=>el.textContent=days[i]);
  const hint=document.querySelector(".calendar-hint");if(hint)hint.lastChild.textContent=" "+tr("タスクがある日","有任务的日期","Days with tasks");
  const note=document.querySelector(".storage-note");if(note)note.textContent=tr("データはこの端末にも保存されます。端末を変更する前に同期を確認してください。","数据也保存在本设备。更换设备前请确认已同步。","Data is also stored on this device. Check sync before switching devices.");
@@ -80,6 +87,28 @@ function applyLanguage(){
   const labels={auto:["システムに合わせる","跟随系统","System"],light:["ライト","浅色","Light"],dark:["ダーク","深色","Dark"]};
   const key=btn.dataset.appearance;if(labels[key])btn.textContent=labels[key][idx];
  });
+ if(uiLanguage==="ko"){
+  document.querySelectorAll(".bilingual[data-ja]").forEach(el=>{el.textContent=koTranslate(el.dataset.ja,el.dataset.en)});
+  for(const [selector,values] of Object.entries(fieldLabels)){const el=document.querySelector(selector);if(el)el.textContent=koTranslate(values[0],values[2])}
+  const koPlaceholders={authEmail:"이메일 주소",authPassword:"비밀번호 (6자 이상)",taskInput:"할 일 입력…"};
+  for(const [id,value] of Object.entries(koPlaceholders)){const el=$(id);if(el)el.placeholder=value}
+  for(const id of ["repeatInput","editRepeat"]){const el=$(id);if(el)for(const option of el.options)option.textContent=koTranslate(option.textContent,option.textContent)}
+  const koStatic={appearanceTitle:"화면 모드",appearanceDescription:"화면 모드를 선택하세요. 설정은 이 기기에 저장됩니다.",notificationSettingsLabel:"알림 설정"};
+  for(const [id,value] of Object.entries(koStatic)){const el=$(id);if(el){if(id==="notificationSettingsLabel"){const label=el.querySelector(".bilingual");if(label)label.textContent=value}else el.textContent=value}}
+  document.querySelectorAll("[data-appearance]").forEach(btn=>{const labels={auto:"시스템 설정",light:"라이트",dark:"다크"};if(labels[btn.dataset.appearance])btn.textContent=labels[btn.dataset.appearance]});
+ }
+ if(uiLanguage==="ko"){
+  const labels={accountUsernameHeading:"계정",accountUsernameHint:"사용자 이름 설정 또는 변경",accountUsernameLabel:"사용자 이름",accountSaveUsername:"저장",chatStatus:"친구 목록 동기화 완료",appearanceTitle:"화면 모드",appearanceDescription:"화면 모드를 선택하세요. 설정은 이 기기에 저장됩니다."};
+  for(const [id,value] of Object.entries(labels)){const el=$(id);if(el&&id!=="chatStatus")el.textContent=value}
+  const note=document.querySelector(".storage-note");if(note)note.textContent="데이터는 이 기기에도 저장됩니다. 기기를 바꾸기 전에 동기화 상태를 확인하세요.";
+  const koPriorities={high:"높은 우선순위",medium:"보통 우선순위",low:"낮은 우선순위"};
+  for(const id of ["priorityInput","editPriority"]){const el=$(id);if(el)for(const option of el.options)option.textContent=koPriorities[option.value]||option.textContent}
+  const koRepeat={none:"반복 안 함",daily:"매일",weekly:"매주",monthly:"매월"};
+  for(const id of ["repeatInput","editRepeat"]){const el=$(id);if(el)for(const option of el.options)option.textContent=koRepeat[option.value]||option.textContent}
+  document.querySelectorAll(".calendar-weekdays span").forEach((el,i)=>el.textContent=["일","월","화","수","목","금","토"][i]);
+ }
+ if(typeof updateLongTermFormMode==="function")updateLongTermFormMode();
+ if(typeof updatePlannerTabLanguage==="function")updatePlannerTabLanguage();
  updateWelcomeLanguage();
  window.chatRefreshLocalizedViews?.();
 }
@@ -198,6 +227,7 @@ async function refreshAuthUI(){
 const welcomeTranslations={
  zh:{subtitle:"登录后开始聊天和管理日程",login:"登录",register:"注册",username:"用户名",usernameHint:"3–20位英文字母、数字或下划线",email:"邮箱",emailHint:"邮箱地址",password:"密码",passwordHint:"至少6位密码",submitRegister:"注册账号",footnote:"注册后可能需要先通过邮箱验证账号",invalid:"用户名需要3–20位小写字母、数字或下划线",registering:"正在注册…",signingIn:"正在登录…",nameFailed:"账号已创建，但用户名保存失败，请在聊天页面设置：",checkEmail:"注册申请已提交，请检查邮箱中的验证邮件，然后返回登录。",registerFailed:"注册失败：",loginFailed:"登录失败："},
  ja:{subtitle:"ログインしてチャットと予定を管理",login:"ログイン",register:"新規登録",username:"ユーザー名",usernameHint:"英小文字・数字・_（3〜20文字）",email:"メールアドレス",emailHint:"メールアドレス",password:"パスワード",passwordHint:"6文字以上",submitRegister:"アカウント登録",footnote:"登録後、メール認証が必要な場合があります",invalid:"ユーザー名は英小文字・数字・_ の3〜20文字にしてください",registering:"登録中…",signingIn:"ログイン中…",nameFailed:"アカウントは作成されましたが、ユーザー名を保存できませんでした：",checkEmail:"登録を受け付けました。確認メールを開いてからログインしてください。",registerFailed:"登録失敗：",loginFailed:"ログイン失敗："},
+ ko:{subtitle:"로그인하여 채팅하고 일정을 관리하세요",login:"로그인",register:"회원가입",username:"사용자 이름",usernameHint:"영문 소문자, 숫자, 밑줄 3~20자",email:"이메일",emailHint:"이메일 주소",password:"비밀번호",passwordHint:"6자 이상",submitRegister:"계정 만들기",footnote:"가입 후 이메일 인증이 필요할 수 있습니다",invalid:"영문 소문자, 숫자, 밑줄을 3~20자로 입력하세요",registering:"가입 중…",signingIn:"로그인 중…",nameFailed:"계정이 생성되었지만 사용자 이름 저장에 실패했습니다: ",checkEmail:"인증 메일을 확인한 뒤 로그인하세요.",registerFailed:"회원가입 실패: ",loginFailed:"로그인 실패: "},
  en:{subtitle:"Sign in to chat and manage your plans",login:"Sign in",register:"Sign up",username:"Username",usernameHint:"3–20 lowercase letters, numbers or underscores",email:"Email",emailHint:"Email address",password:"Password",passwordHint:"At least 6 characters",submitRegister:"Create account",footnote:"You may need to verify your email after signing up",invalid:"Use 3–20 lowercase letters, numbers or underscores",registering:"Creating account…",signingIn:"Signing in…",nameFailed:"Account created, but username could not be saved: ",checkEmail:"Registration submitted. Check your email to verify your account, then sign in.",registerFailed:"Sign-up failed: ",loginFailed:"Sign-in failed: "}
 };
 function welcomeBrowserLanguage(){return uiLanguage;}
@@ -391,7 +421,7 @@ function renderLongTermCountdowns(){
  for(let i=0;i<5;i++){
   const task=displayed[i],row=document.createElement("div");row.className="countdown-row"+(task?"":" countdown-empty");
   const number=document.createElement("span");number.className="countdown-index";number.textContent=String(i+1).padStart(2,"0");row.append(number);
-  if(task){const details=document.createElement("div");details.className="countdown-details";const name=document.createElement("strong");name.textContent=task.text;details.append(name);const sub=document.createElement("small");sub.textContent=task.reminderAt?new Intl.DateTimeFormat(uiLanguage==="en"?"en-US":uiLanguage==="ja"?"ja-JP":"zh-CN",{year:"numeric",month:"short",day:"numeric"}).format(new Date(task.reminderAt)):tr("日時未設定","未设置日期","No date set");details.append(sub);row.append(details);const remaining=document.createElement("span");remaining.className="countdown-remaining";remaining.textContent=task.reminderAt?longTermCountdown(task.reminderAt,false):tr("未設定","未设日期","No date");row.append(remaining);row.addEventListener("click",()=>openEdit(task.id));row.setAttribute("role","button");row.tabIndex=0;row.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openEdit(task.id)}});}
+  if(task){const details=document.createElement("div");details.className="countdown-details";const name=document.createElement("strong");name.textContent=task.text;details.append(name);const sub=document.createElement("small");sub.textContent=task.reminderAt?new Intl.DateTimeFormat(uiLanguage==="en"?"en-US":uiLanguage==="ja"?"ja-JP":uiLanguage==="ko"?"ko-KR":"zh-CN",{year:"numeric",month:"short",day:"numeric"}).format(new Date(task.reminderAt)):tr("日時未設定","未设置日期","No date set");details.append(sub);row.append(details);const remaining=document.createElement("span");remaining.className="countdown-remaining";remaining.textContent=task.reminderAt?longTermCountdown(task.reminderAt,false):tr("未設定","未设日期","No date");row.append(remaining);row.addEventListener("click",()=>openEdit(task.id));row.setAttribute("role","button");row.tabIndex=0;row.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openEdit(task.id)}});}
   else{const empty=document.createElement("span");empty.className="countdown-placeholder";empty.textContent=tr("予定を追加","添加长期预定","Add a long-term plan");row.append(empty);const plus=document.createElement("span");plus.className="countdown-plus";plus.textContent="+";row.append(plus);row.setAttribute("role","button");row.tabIndex=0;const go=()=>{document.querySelector("#pageLongTerm .tasks-panel")?.scrollIntoView({behavior:"smooth",block:"start"});setTimeout(()=>taskInput.focus({preventScroll:true}),350)};row.addEventListener("click",go);row.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}});}
   root.append(row);
  }
@@ -459,10 +489,10 @@ function switchPlannerPage(page){
  window.scrollTo({top:0,behavior:"instant"});
 }
 function updatePlannerTabLanguage(){
- const labels={zh:["预定","长期预定","日历","聊天","设置"],ja:["予定","長期予定","カレンダー","チャット","設定"],en:["Plans","Long-term Plans","Calendar","Chat","Settings"]}[uiLanguage];
+ const labels={zh:["预定","长期预定","日历","聊天","设置"],ja:["予定","長期予定","カレンダー","チャット","設定"],en:["Plans","Long-term Plans","Calendar","Chat","Settings"],ko:["일정","장기 일정","캘린더","채팅","설정"]}[uiLanguage];
  ["tabTasksLabel","tabLongTermLabel","tabCalendarLabel","tabChatLabel","tabSettingsLabel"].forEach((id,i)=>{const el=$(id);if(el)el.textContent=labels[i]});
  const title=$("settingsTitle");if(title)title.textContent=labels[4];
- const titleCountdown=$("countdownTitle");if(titleCountdown)titleCountdown.textContent=tr("長期予定のカウントダウン","长期预定倒计时","Long-term Countdowns");
+ const titleCountdown=$("countdownTitle");if(titleCountdown)titleCountdown.textContent=uiLanguage==="ko"?"장기 일정 카운트다운":tr("長期予定のカウントダウン","长期预定倒计时","Long-term Countdowns");
  renderLongTermCountdowns();
  updateChatLanguage();
 }
@@ -487,7 +517,7 @@ function refreshReminderDisplay(){
  if(!input.value){label.textContent=showLongTerm?tr("予定日を選択","选择预定日期","Select plan date"):tr("日時を選択","选择提醒时间","Select date & time");return}
  const d=new Date(input.type==="date"?input.value+"T00:00:00":input.value);
  if(Number.isNaN(d.getTime())){label.textContent=input.value;return}
- const locale=uiLanguage==="ja"?"ja-JP":uiLanguage==="zh"?"zh-CN":"en-US";
+ const locale=uiLanguage==="ja"?"ja-JP":uiLanguage==="zh"?"zh-CN":uiLanguage==="ko"?"ko-KR":"en-US";
  label.textContent=new Intl.DateTimeFormat(locale,showLongTerm?{year:"numeric",month:"numeric",day:"numeric"}:{year:"numeric",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(d);
 }
 $("reminderInput")?.addEventListener("input",refreshReminderDisplay);
@@ -515,8 +545,14 @@ function chatSaveSnapshot(peer,items){
 function chatScrollToLatest(){const root=$("chatMessages");if(!root)return;root.scrollTop=root.scrollHeight;requestAnimationFrame(()=>{if(root.isConnected)root.scrollTop=root.scrollHeight})}
 let chatLastFetchAt=0;
 const chatPending=new Map();
-function chatText(zh,ja,en){return tr(ja,zh,en)}
+function chatText(zh,ja,en){return uiLanguage==="ko"?koChatText(zh,ja,en):tr(ja,zh,en)}
+function koChatText(zh,ja,en){return koTranslate(ja,en)}
 function updateChatLanguage(){
+ if(uiLanguage==="ko"){
+  const search=$("chatListSearchInput");if(search){search.placeholder="친구 또는 그룹 검색";search.setAttribute("aria-label",search.placeholder)}
+  const clear=$("chatListSearchClear");if(clear)clear.setAttribute("aria-label","검색 지우기");
+  const empty=$("chatListSearchEmpty");if(empty)empty.textContent="일치하는 채팅이 없습니다";
+ }
  const status=$("chatStatus");
  if(status?.dataset?.friendsSyncedCount!==undefined&&status.dataset.friendsSyncedCount!==""){
   const n=status.dataset.friendsSyncedCount;
@@ -587,6 +623,25 @@ function updateChatLanguage(){
  $("chatTitle").textContent=chatMode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
  $("chatMessageInput").placeholder=chatText("输入消息…","メッセージを入力…","Type a message...");
  $("chatSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
+ if(uiLanguage==="ko"){
+  const labels={chatTitle:"채팅",chatAddFriend:"친구 추가",chatBack:"뒤로",chatPrivateMode:"개인 채팅",chatGroupMode:"그룹",chatCreateGroup:"그룹 만들기",chatJoinGroup:"그룹 참여",chatGroupInvite:"초대",chatGroupManage:"멤버",chatGroupMembersTitle:"그룹 멤버",chatGroupLeave:"그룹 나가기",chatGroupDisband:"그룹 삭제",chatGroupCopyInvite:"복사",chatGroupShareInvite:"초대 코드 공유",chatGroupInviteClose:"닫기",chatGroupAddByUsername:"멤버 추가",chatSearchUser:"검색",chatCopyCode:"초대 코드 복사",chatShareCode:"공유",chatPasteCode:"붙여넣기",chatMessageInput:"메시지 입력…",chatGroupMessageInput:"그룹 메시지…",chatGroupName:"그룹 이름",chatGroupJoinCode:"그룹 초대 코드",chatListSearchInput:"친구 또는 그룹 검색",chatSearchUsername:"친구 사용자 이름",accountUsernameHeading:"계정",accountUsernameHint:"사용자 이름 설정 또는 변경",accountUsernameLabel:"사용자 이름",accountSaveUsername:"저장"};
+  const placeholders=new Set(["chatMessageInput","chatGroupMessageInput","chatGroupName","chatGroupJoinCode","chatListSearchInput","chatSearchUsername"]);
+  for(const [id,value] of Object.entries(labels)){const el=$(id);if(el){if(placeholders.has(id))el.placeholder=value;else el.textContent=value}}
+  const status=$("chatStatus");if(status?.dataset.friendsSyncedCount!==undefined)status.textContent="친구 목록 동기화 완료 ("+status.dataset.friendsSyncedCount+")";
+  $("chatTitle").textContent=chatMode==="group"?"그룹 채팅":"개인 채팅";
+  $("chatListSearchInput").placeholder="친구 또는 그룹 검색";
+  $("chatPrivateMode").textContent="개인 채팅";$("chatGroupMode").textContent="그룹";
+  $("chatSendForm").querySelector("button").textContent="보내기";
+  $("chatGroupSendForm").querySelector("button").textContent="보내기";
+  $("chatInviteSection").querySelector(".chat-invite-heading").textContent="친구 추가";
+  $("chatGroupInviteHeading").textContent="멤버 초대";
+  $("chatGroupInviteHint").textContent="초대 코드를 친구에게 공유하세요.";
+  $("chatGroupFriendInviteTitle").textContent="친구에서 추가";
+  $("chatGroupAddUsername").placeholder="사용자 이름 입력";
+  $("accountMyUsername").placeholder="예: planner123";
+  $("chatCopyCode").textContent="내 초대 코드 복사";
+  $("chatGroupMessageInput").placeholder="그룹 메시지 입력…";
+ }
 }
 function chatStatus(message){$("chatStatus").textContent=message;if(!/^(好友列表已同步|友達一覧を同期しました|Friends synced)/.test(message))delete $("chatStatus").dataset.friendsSyncedCount}
 function chatError(error){chatStatus(error?.message||String(error))}
