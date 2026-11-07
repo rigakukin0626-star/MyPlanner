@@ -640,3 +640,48 @@ body.chat-open #pageChat .chat-list-search,body.chat-open #pageChat .chat-list-s
 html[data-theme="dark"] #pageChat .chat-list-search{background:#1b283b;border-color:#30415b}
 html[data-theme="dark"] #pageChat .chat-list-search input{background:#24334a;color:#e7eefc}
 html[data-theme="dark"] #pageChat .chat-list-search-empty{color:#a3b1c9}
+
+/* V105: softer low-glare dark palette; scoped exclusively to dark mode. */
+html[data-theme="dark"]{
+ --ui-blue:#7799ce;--ui-ink:#dce4f0;--ui-muted:#a2aec1;
+ --ui-border:#344157;--ui-surface:#202b3d;
+ --dark-canvas:#151b27;--dark-card:#202b3d;--dark-input:#29364a;
+ --dark-border:#3a4961;--dark-accent:#4c709f;--dark-text:#dce4f0;
+ background:var(--dark-canvas);color-scheme:dark;
+}
+html[data-theme="dark"] body{background:var(--dark-canvas)!important;color:var(--dark-text)!important}
+html[data-theme="dark"] .panel,html[data-theme="dark"] .overview,html[data-theme="dark"] .welcome-auth-card,html[data-theme="dark"] .cloud-sync-details{background:var(--dark-card)!important;border-color:var(--dark-border)!important;color:var(--dark-text)!important}
+html[data-theme="dark"] .panel .panel,html[data-theme="dark"] .account-username-section,html[data-theme="dark"] .account-username-row,html[data-theme="dark"] .account-username-heading{background:transparent!important;color:var(--dark-text)!important}
+html[data-theme="dark"] #accountUsernameSection,html[data-theme="dark"] .account-username-section{background:#263347!important;border-color:var(--dark-border)!important}
+html[data-theme="dark"] .account-username-section label,html[data-theme="dark"] .account-username-section strong,html[data-theme="dark"] .account-username-section span{color:var(--dark-text)!important}
+html[data-theme="dark"] input,html[data-theme="dark"] textarea,html[data-theme="dark"] select,html[data-theme="dark"] .button-ghost{background:var(--dark-input)!important;color:var(--dark-text)!important;border-color:#485771!important}
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:#a5b2c5!important;opacity:1}
+html[data-theme="dark"] .button-primary,html[data-theme="dark"] .task-form>button,html[data-theme="dark"] #accountSaveUsername{background:var(--dark-accent)!important;border-color:var(--dark-accent)!important;color:#f5f7fb!important;box-shadow:none!important}
+html[data-theme="dark"] .button-primary:active,html[data-theme="dark"] .task-form>button:active{background:#3c5d86!important}
+html[data-theme="dark"] .task-form>.task-field-reminder .reminder-picker,html[data-theme="dark"] .task-form>.task-field-reminder .reminder-display,html[data-theme="dark"] .task-form select,html[data-theme="dark"] #priorityInput,html[data-theme="dark"] #repeatInput,html[data-theme="dark"] #editPriority,html[data-theme="dark"] #editRepeat{background:var(--dark-input)!important;color:var(--dark-text)!important;border-color:#485771!important}
+html[data-theme="dark"] .task-form>.task-field-reminder .reminder-display{background:transparent!important}
+html[data-theme="dark"] .task-field-label,html[data-theme="dark"] .task-form label,html[data-theme="dark"] .auth-panel label{color:#b8c5d8!important}
+html[data-theme="dark"] #pageChat .chat-panel{background:var(--dark-card)!important;border-color:var(--dark-border)!important}
+html[data-theme="dark"] #pageChat .chat-app-header{background:#38577e!important;color:#f0f4fb!important}
+html[data-theme="dark"] #pageChat .chat-brand-icon{color:#38577e!important;background:#dce5f3!important}
+html[data-theme="dark"] #pageChat .chat-header-add{background:#4c6b92!important;border-color:#90a7c7!important;color:#f3f6fa!important}
+html[data-theme="dark"] #pageChat .chat-mode-switch{background:var(--dark-card)!important;border-color:var(--dark-border)!important}
+html[data-theme="dark"] #pageChat .chat-mode-switch button{background:#2c394e!important;color:#b8c5d8!important;box-shadow:none!important}
+html[data-theme="dark"] #pageChat .chat-mode-switch button.active{background:#4b6c9b!important;color:#f4f7fb!important}
+html[data-theme="dark"] #pageChat #chatFriends,html[data-theme="dark"] #pageChat #chatGroups,html[data-theme="dark"] #pageChat .chat-friends,html[data-theme="dark"] #pageChat .chat-friend{background:var(--dark-card)!important;color:var(--dark-text)!important;border-color:var(--dark-border)!important}
+html[data-theme="dark"] #pageChat .chat-friend-info strong{color:#e4ebf6!important}
+html[data-theme="dark"] #pageChat .chat-friend-info small,html[data-theme="dark"] #pageChat .chat-friend-meta{color:#a8b6ca!important}
+html[data-theme="dark"] #pageChat .chat-list-avatar,html[data-theme="dark"] #pageChat .chat-peer-avatar{background:#354d70!important;color:#d9e7fa!important}
+html[data-theme="dark"] #pageChat .chat-unread{background:#577fb3!important;color:#fff!important}
+html[data-theme="dark"] #pageChat .chat-conversation,html[data-theme="dark"] #pageChat .chat-messages,html[data-theme="dark"] #pageChat .chat-group-messages{background:#192536!important}
+html[data-theme="dark"] #pageChat .chat-conversation-header,html[data-theme="dark"] #pageChat .chat-send,html[data-theme="dark"] #pageChat .chat-group-send{background:var(--dark-card)!important;color:var(--dark-text)!important;border-color:var(--dark-border)!important}
+html[data-theme="dark"] #pageChat .chat-bubble:not(.mine){background:#2d3c52!important;color:#e3eaf5!important}
+html[data-theme="dark"] #pageChat .chat-bubble.mine{background:#405f87!important;color:#f3f6fb!important}
+html[data-theme="dark"] #pageChat .chat-list-search{background:var(--dark-card)!important}
+html[data-theme="dark"] #pageChat .chat-list-search input{background:var(--dark-input)!important}
+html[data-theme="dark"] .appearance-options button{background:#2a374b!important;color:#cbd6e6!important;border-color:#475770!important}
+html[data-theme="dark"] .appearance-options button.active{background:#3c577d!important;color:#f3f6fa!important;border-color:#819dc2!important;box-shadow:none!important}
+html[data-theme="dark"] .bottom-tabs{background:#202b3d!important;border-color:#3a4961!important}
+html[data-theme="dark"] .bottom-tabs .tab.active{background:#354b69!important;color:#e3edfb!important}
+html[data-theme="dark"] .bottom-tabs .tab:not(.active){color:#a8b6ca!important}
+html[data-theme="dark"] .progress-bar,html[data-theme="dark"] progress{accent-color:#7296c7}
