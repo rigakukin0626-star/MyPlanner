@@ -131,3 +131,7 @@
 /* v25: match reminder display to adjacent repeat selector typography */
 .task-form>.task-field-reminder .reminder-display{font-size:inherit;font-weight:400;line-height:normal;}
 @media(max-width:760px){.task-form>.task-field-reminder .reminder-display{font-size:inherit;}}
+
+/* v26: left-align reminder text like the adjacent repeat selector */
+.task-form>.task-field-reminder .reminder-picker{justify-content:flex-start;}
+.task-form>.task-field-reminder .reminder-display{width:100%;max-width:100%;box-sizing:border-box;text-align:left;padding-left:14px;padding-right:8px;}
