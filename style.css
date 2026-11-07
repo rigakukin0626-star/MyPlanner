@@ -923,3 +923,5 @@ html[data-theme="dark"] .chat-pin-button[aria-pressed="true"]{background:#2b3444
 .chat-quoted-message strong{color:#8dbaff;font-size:11px;}
 .chat-quoted-message span{overflow-wrap:anywhere;}
 .chat-reply-text{white-space:pre-wrap;overflow-wrap:anywhere;}
+
+.chat-build-version{margin-left:auto;font-size:11px;color:#8290a7;flex-shrink:0;font-weight:500;}
