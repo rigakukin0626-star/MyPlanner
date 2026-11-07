@@ -911,3 +911,15 @@ html[data-theme="dark"] .chat-pin-button[aria-pressed="true"]{background:#2b3444
 /* v124: prevent iOS text-selection callout competing with chat long-press menu */
 #pageChat .chat-bubble,#pageChat .chat-bubble *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}
 #pageChat .chat-bubble img{-webkit-user-drag:none;user-drag:none;}
+
+/* v125: reply composer and quoted message */
+#chatReplyPreview[hidden]{display:none!important}
+.chat-reply-preview{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#20232a;border-left:3px solid #60a5fa;padding:9px 13px;color:#e8edf7;}
+.chat-reply-preview-info{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;font-size:12px;}
+.chat-reply-preview-info strong{color:#60a5fa;}
+.chat-reply-preview-info span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chat-reply-close{background:transparent;border:0;color:#e8edf7;font-size:25px;min-width:36px;min-height:36px;cursor:pointer;}
+.chat-quoted-message{display:flex;flex-direction:column;gap:3px;padding:6px 9px;margin-bottom:7px;border-left:3px solid #60a5fa;border-radius:4px;background:#0003;font-size:12px;max-width:100%;}
+.chat-quoted-message strong{color:#8dbaff;font-size:11px;}
+.chat-quoted-message span{overflow-wrap:anywhere;}
+.chat-reply-text{white-space:pre-wrap;overflow-wrap:anywhere;}
