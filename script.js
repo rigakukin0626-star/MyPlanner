@@ -1014,15 +1014,25 @@ function chatSetReply(item){
  chatUpdateReplyPreview();
  $("chatMessageInput").focus();
 }
+function chatMarkReplyBubble(bubble){
+ bubble.classList.add("chat-reply-bubble");
+ const critical={display:"block",height:"auto",minHeight:"0px",maxHeight:"none",width:"min(280px, calc(100% - 92px))",boxSizing:"border-box",overflow:"visible"};
+ for(const [key,value] of Object.entries(critical))
+  bubble.style.setProperty(key.replace(/[A-Z]/g,x=>"-"+x.toLowerCase()),value,"important");
+}
+function chatBuildReplyBody(node,reply){
+ node.classList.add("chat-reply-stack");
+ const quote=document.createElement("div");quote.className="chat-quoted-message";
+ const title=document.createElement("strong");title.textContent=chatText("回复消息","返信","Reply");
+ const summary=document.createElement("span");summary.textContent=reply.quote;
+ quote.append(title,summary);
+ const message=document.createElement("div");message.className="chat-reply-text";message.textContent=reply.text;
+ node.append(quote,message);
+}
 function chatDisplayBody(node,body){
  const reply=chatParseReply(body);
- if(reply){
-  const quoted=document.createElement("div");quoted.className="chat-quoted-message";
-  const label=document.createElement("strong");label.textContent=chatText("回复消息","返信","Reply");
-  const content=document.createElement("span");content.textContent=reply.quote;
-  quoted.append(label,content);node.append(quoted);
-  const message=document.createElement("div");message.className="chat-reply-text";message.textContent=reply.text;node.append(message);
- }else chatMessageContent(node,body);
+ if(reply)chatBuildReplyBody(node,reply);
+ else chatMessageContent(node,body);
 }
 function chatMessageContent(node,body){
  if(typeof body==="string"&&body.startsWith(CHAT_IMAGE_PREFIX)){
@@ -1178,13 +1188,21 @@ function chatRenderMessages(){
  const fragment=document.createDocumentFragment();
  for(const item of confirmed){
   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);chatBubbleAvatar(div,item.sender_id);
-  const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else{if(chatParseReply(item.body))div.classList.add("chat-reply-bubble");chatDisplayBody(body,item.body);}
+  const replying=!item.photoUrl&&Boolean(chatParseReply(item.body));
+  const body=document.createElement(replying?"div":"span");
+  if(replying)chatMarkReplyBubble(div);
+  if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}
+  else chatDisplayBody(body,item.body);
   const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
   div.append(body,time);chatMessageActions(div,item);fragment.append(div);
  }
  for(const [key,item] of pending){
   const div=document.createElement("div");div.className="chat-bubble mine";div.dataset.pendingKey=key;chatBubbleAvatar(div,currentUser.id);
-  const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else{if(chatParseReply(item.body))div.classList.add("chat-reply-bubble");chatDisplayBody(body,item.body);}
+  const replying=!item.photoUrl&&Boolean(chatParseReply(item.body));
+  const body=document.createElement(replying?"div":"span");
+  if(replying)chatMarkReplyBubble(div);
+  if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}
+  else chatDisplayBody(body,item.body);
   const time=document.createElement("small");
   const sentAt=new Date(item.createdAt).toLocaleString();
   const state=item.status==="failed"?chatText("发送失败","送信失敗","Failed"):item.status==="uncertain"?chatText("发送超时·待确认","送信確認中","Delivery unconfirmed"):item.status==="sent"?"":chatText("发送中…","送信中…","Sending...");
@@ -1861,7 +1879,9 @@ function groupRenderMessages(items){
  for(const item of incoming){
   const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.dataset.groupMessageCreated=item.created_at;bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");chatBubbleAvatar(bubble,item.sender_id,true);
   const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):(chatRemarkFor(item.sender_id)||item.sender_id.slice(0,8));
-  const body=document.createElement("span");
+  const parsedReply=!item.body.startsWith("[myplanner-group-image]:")?groupParseReply(item.body):null;
+  const body=document.createElement(parsedReply?"div":"span");
+  if(parsedReply)chatMarkReplyBubble(bubble);
   if(item.body.startsWith("[myplanner-group-image]:")){
    const path=item.body.slice("[myplanner-group-image]:".length);
    if(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp|gif)$/i.test(path)){
@@ -1869,8 +1889,7 @@ function groupRenderMessages(items){
 
    }else body.textContent=chatText("照片无效","無効な画像","Invalid photo");
   }else{
-   const reply=groupParseReply(item.body);
-   if(reply){bubble.classList.add("chat-reply-bubble");const quote=document.createElement("div");quote.className="chat-quoted-message";const label=document.createElement("strong");label.textContent=chatText("回复消息","返信","Reply");const content=document.createElement("span");content.textContent=reply.quote;quote.append(label,content);body.append(quote);const text=document.createElement("div");text.className="chat-reply-text";text.textContent=reply.text;body.append(text)}
+   if(parsedReply)chatBuildReplyBody(body,parsedReply);
    else body.textContent=item.body;
   }
   const time=document.createElement("small");time.className="chat-clock";time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});time.dataset.baseClock=time.textContent;
