@@ -1620,3 +1620,16 @@ html[data-theme="dark"] .appearance-options button[aria-pressed="true"]{
 }
 html[data-theme="dark"] .bottom-tabs{background:#17191d!important;border-color:#31363e!important}
 html[data-theme="dark"] .bottom-tabs .tab.active{background:#30394b!important;color:#e3edff!important}
+
+
+/* v166 accessibility/contrast refinements */
+html[data-theme="dark"] #pageChat .chat-app-header{
+ background:#284a8c!important;color:#f7f9ff!important;
+}
+html[data-theme="dark"] #pageChat .chat-send button[type=submit]{
+ background:#4774e3!important;color:#fff!important;
+}
+#pageChat .chat-send textarea:focus-visible{outline:none!important;box-shadow:none!important}
+#pageChat .chat-photo-retry:focus-visible{
+ outline:2px solid #5e88f2;outline-offset:2px;
+}
