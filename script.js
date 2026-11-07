@@ -852,15 +852,47 @@ async function chatRemoveMessage(item,recall){
   });
  }
 }
-function chatMessageActions(bubble,item){
- const actions=document.createElement("span");actions.className="chat-message-actions";
- const hide=document.createElement("button");hide.type="button";hide.className="chat-message-action";hide.textContent=chatText("仅为我删除","自分のみ削除","Delete for me");
- hide.addEventListener("click",()=>chatRemoveMessage(item,false));actions.append(hide);
- if(item.sender_id===currentUser.id){
-  const recall=document.createElement("button");recall.type="button";recall.className="chat-message-action recall";recall.textContent=chatText("撤回","送信取消","Recall");
-  recall.addEventListener("click",()=>chatRemoveMessage(item,true));actions.append(recall);
+let chatMenuNode=null;
+function chatCloseMessageMenu(){
+ if(chatMenuNode){chatMenuNode.remove();chatMenuNode=null}
+}
+function chatOpenMessageMenu(item,bubble){
+ chatCloseMessageMenu();
+ const menu=document.createElement("div");menu.className="chat-context-menu";menu.setAttribute("role","menu");
+ const add=(label,action,extra="")=>{
+  const btn=document.createElement("button");btn.type="button";btn.className="chat-context-option "+extra;btn.textContent=label;
+  btn.addEventListener("click",e=>{e.stopPropagation();chatCloseMessageMenu();action()});menu.append(btn);
+ };
+ if(!String(item.body||"").startsWith(CHAT_IMAGE_PREFIX)){
+  add(chatText("复制","コピー","Copy"),async()=>{
+   try{await navigator.clipboard.writeText(item.body);chatStatus(chatText("已复制","コピーしました","Copied"))}
+   catch{window.prompt(chatText("复制消息","メッセージをコピー","Copy message"),item.body)}
+  });
  }
- bubble.append(actions);
+ add(chatText("回复","返信","Reply"),()=>{
+  const input=$("chatMessageInput");const quote=String(item.body||"").startsWith(CHAT_IMAGE_PREFIX)?chatText("图片","画像","Photo"):String(item.body||"").replace(/\s+/g," ").slice(0,80);
+  input.value="↪ "+quote+"\n";input.focus();input.setSelectionRange(input.value.length,input.value.length);
+ });
+ if(item.sender_id===currentUser.id)add(chatText("撤回","送信取消","Recall"),()=>chatRemoveMessage(item,true),"danger");
+ add(chatText("仅为我删除","自分のみ削除","Delete for me"),()=>chatRemoveMessage(item,false),"danger");
+ document.body.append(menu);chatMenuNode=menu;
+ const rect=bubble.getBoundingClientRect();const width=menu.offsetWidth,height=menu.offsetHeight;
+ menu.style.left=Math.max(8,Math.min(window.innerWidth-width-8,rect.left))+"px";
+ menu.style.top=Math.max(8,Math.min(window.innerHeight-height-8,rect.top-height-8))+"px";
+ setTimeout(()=>document.addEventListener("pointerdown",chatDismissMessageMenu,{once:true}),0);
+}
+function chatDismissMessageMenu(e){if(chatMenuNode&&!chatMenuNode.contains(e.target))chatCloseMessageMenu()}
+function chatMessageActions(bubble,item){
+ let timer=null,startX=0,startY=0,longPressed=false;
+ const cancel=()=>{if(timer!==null){clearTimeout(timer);timer=null}};
+ bubble.addEventListener("pointerdown",e=>{
+  if(e.button!==0||e.target.closest("button,a"))return;
+  startX=e.clientX;startY=e.clientY;longPressed=false;cancel();
+  timer=setTimeout(()=>{timer=null;longPressed=true;chatOpenMessageMenu(item,bubble);navigator.vibrate?.(12)},480);
+ });
+ bubble.addEventListener("pointermove",e=>{if(Math.abs(e.clientX-startX)>12||Math.abs(e.clientY-startY)>12)cancel()});
+ bubble.addEventListener("pointerup",cancel);bubble.addEventListener("pointercancel",cancel);bubble.addEventListener("pointerleave",cancel);
+ bubble.addEventListener("contextmenu",e=>{e.preventDefault();cancel();if(!longPressed)chatOpenMessageMenu(item,bubble)});
 }
 function chatRenderMessages(){
  if(!currentUser||!chatPeer)return;
