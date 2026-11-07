@@ -488,9 +488,8 @@ async function loadChatFriends(){
  chatFriendsLoading=true;
  const requestId=++chatFriendsRequestId;
  try{
- const {data:{user:verifiedUser},error:authError}=await supabaseClient.auth.getUser();
- if(authError){chatError(authError);return}
- currentUser=verifiedUser||null;
+ // Reuse the authenticated session already loaded by the app; avoid an extra network request on every chat visit.
+ const verifiedUser=currentUser;
  updateChatLanguage();
  if(!currentUser){$("chatIdentity").textContent=chatText("请先到设置登录账号。","設定からログインしてください。","Sign in from Settings first.");$("chatFriends").replaceChildren();$("chatAddFriend").disabled=true;return}
  $("chatAddFriend").disabled=false;
@@ -504,10 +503,10 @@ async function loadChatFriends(){
  const {data:profiles}=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name]));
  const {data:recent}=await supabaseClient.from("chat_messages").select("sender_id,recipient_id,body,created_at,read_at").or("sender_id.eq."+currentUser.id+",recipient_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(200);
- const last=new Map(),unread=new Map();
+ const last=new Map(),unread=new Map(),idSet=new Set(ids);
  for(const m of recent||[]){
   const other=m.sender_id===currentUser.id?m.recipient_id:m.sender_id;
-  if(!ids.includes(other))continue;
+  if(!idSet.has(other))continue;
   if(!last.has(other))last.set(other,m);
   if(m.recipient_id===currentUser.id&&!m.read_at)unread.set(other,(unread.get(other)||0)+1);
  }
@@ -603,7 +602,19 @@ function chatRenderMessages(){
   div.append(body,time);fragment.append(div);
  }
  const wasNearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<130;
- root.replaceChildren(fragment);
+ // Append new messages without recreating existing image nodes or restarting their downloads.
+ const oldNodes=[...root.children];
+ const newNodes=[...fragment.children];
+ let canAppend=oldNodes.length>0&&newNodes.length>=oldNodes.length;
+ if(canAppend){
+  for(let i=0;i<oldNodes.length;i++){
+   if(oldNodes[i].dataset.messageId!==newNodes[i].dataset.messageId||
+      oldNodes[i].dataset.pendingKey!==newNodes[i].dataset.pendingKey||
+      oldNodes[i].textContent!==newNodes[i].textContent){canAppend=false;break}
+  }
+ }
+ if(canAppend){for(let i=oldNodes.length;i<newNodes.length;i++)root.append(newNodes[i]);}
+ else root.replaceChildren(fragment);
  if(wasNearBottom||Date.now()<chatAutoScrollUntil)chatScrollToLatest();
 }
 async function chatMarkRead(){
@@ -624,7 +635,7 @@ async function chatMarkRead(){
 }
 async function loadChatMessages(){
  if(!currentUser||!chatPeer)return;
- if(chatRefreshBusy){chatReloadQueued=true;return}
+ if(chatRefreshBusy)return
  chatRefreshBusy=true;
  const requestedPeer=chatPeer;
  const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at,read_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+chatPeer+"),and(sender_id.eq."+chatPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:false}).limit(200);
@@ -637,7 +648,7 @@ async function loadChatMessages(){
  chatRenderMessages();
  chatMarkRead();
  chatRefreshBusy=false;
- if(chatReloadQueued){chatReloadQueued=false;queueMicrotask(loadChatMessages)}
+
 }
 let chatUsernameLoadedFor=null;
 async function chatLoadMyUsername(){
@@ -759,11 +770,20 @@ $("chatSendForm").addEventListener("submit",async e=>{
 
 });
 
+/* v74: batch bursts of realtime events into one reconciliation request. */
+let chatReconcileTimer=null;
+function scheduleChatReconcile(){
+ if(chatReconcileTimer!==null)return;
+ chatReconcileTimer=setTimeout(()=>{
+  chatReconcileTimer=null;
+  if(!document.hidden&&document.body.dataset.activePage==="chat"&&chatPeer)loadChatMessages();
+ },900);
+}
 /* v39: mobile Safari may suspend Realtime sockets; periodically reconcile from DB while chat is visible. */
 setInterval(()=>{
  if(document.hidden||document.body.dataset.activePage!=="chat"||!currentUser)return;
- if(chatPeer){if(Date.now()-chatLastFetchAt>2500)loadChatMessages()}else if(Date.now()-chatFriendsLastLoaded>10000)loadChatFriends();
-},1000);
+ if(chatPeer){if(Date.now()-chatLastFetchAt>6500)loadChatMessages()}else if(Date.now()-chatFriendsLastLoaded>20000)loadChatFriends();
+},3000);
 document.addEventListener("visibilitychange",()=>{
  if(!document.hidden&&document.body.dataset.activePage==="chat"&&currentUser){if(chatPeer)loadChatMessages();else loadChatFriends()}
 });
