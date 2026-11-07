@@ -795,7 +795,7 @@ function chatShowBuildVersion(){
  if(!header)return;
  let version=document.getElementById("chatBuildVersion");
  if(!version){version=document.createElement("small");version.id="chatBuildVersion";version.className="chat-build-version";header.append(version)}
- version.textContent="v127";
+ version.textContent="v128";
 }
 function chatParseReply(body){
  if(typeof body!=="string")return null;
@@ -809,7 +809,7 @@ function chatParseReply(body){
 function chatPlainBody(body){const reply=chatParseReply(body);return reply?reply.text:body}
 function chatQuoteText(body){
  const value=String(chatPlainBody(body)||"");
- return value.startsWith(CHAT_IMAGE_PREFIX)?chatText("图片","画像","Photo"):value.replace(/\s+/g," ").slice(0,100);
+ return value.startsWith(CHAT_IMAGE_PREFIX)?chatText("图片","画像","Photo"):value.replace(/^↪\s*/,"").replace(/\s+/g," ").slice(0,100);
 }
 function chatUpdateReplyPreview(){
  let preview=document.getElementById("chatReplyPreview");
