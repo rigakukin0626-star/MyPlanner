@@ -1179,3 +1179,73 @@ html[data-theme="dark"] #pageChat #chatGroupMembersPanel{
 @media(prefers-reduced-motion:reduce){
  #pageChat #chatGroupInvitePanel,#pageChat #chatGroupMembersPanel{animation:none!important}
 }
+
+
+/* v148: restrained popover, consistent dimensions and stable async content */
+#pageChat #chatGroupInvitePanel,
+#pageChat #chatGroupMembersPanel{
+ top:58px!important;
+ right:12px!important;
+ width:min(310px,calc(100% - 24px))!important;
+ max-height:min(44vh,360px)!important;
+ padding:14px!important;
+ border-radius:15px!important;
+ border:1px solid #e2e8f2!important;
+ box-shadow:0 8px 28px rgba(18,32,58,.13)!important;
+ animation:groupPanelRefined .12s ease-out both!important;
+ font-size:13px!important;
+}
+@keyframes groupPanelRefined{
+ from{opacity:.35;transform:translateY(-3px)}
+ to{opacity:1;transform:translateY(0)}
+}
+#pageChat #chatGroupInvitePanel{gap:7px!important}
+#pageChat #chatGroupInvitePanel>strong,
+#pageChat #chatGroupMembersPanel .chat-group-members-heading strong{
+ font-size:15px!important;letter-spacing:-.2px;
+}
+#pageChat #chatGroupInvitePanel p{font-size:11px!important}
+#pageChat #chatGroupInvitePanel button,
+#pageChat #chatGroupMembersPanel button{
+ padding:7px 9px!important;
+ min-height:34px!important;
+ border-radius:9px!important;
+ font-size:12px!important;
+}
+#pageChat #chatGroupInvitePanel #chatGroupShareInvite{
+ background:#315fe8!important;
+}
+#pageChat #chatGroupInvitePanel .chat-group-invite-row input{
+ padding:8px!important;font-size:11px!important;
+}
+#pageChat #chatGroupFriendInviteList,
+#pageChat #chatGroupMembersList{
+ max-height:165px;
+ overflow-y:auto;
+ overscroll-behavior:contain;
+}
+#pageChat #chatGroupFriendInviteList .group-panel-loading,
+#pageChat #chatGroupMembersList .group-panel-loading{
+ margin:0!important;
+ min-height:46px;
+ display:flex;
+ align-items:center;
+ color:#8290a6;
+ font-size:12px;
+}
+#pageChat #chatGroupMembersPanel .chat-group-member,
+#pageChat #chatGroupInvitePanel .chat-group-member{
+ padding:8px 0!important;
+}
+#pageChat #chatGroupInvitePanel .chat-group-invite-row{gap:6px}
+#pageChat #chatGroupInvitePanel .chat-group-invite-row input{overflow:hidden;text-overflow:ellipsis}
+#pageChat #chatGroupInvitePanel #chatGroupShareInvite{width:100%}
+html[data-theme="dark"] #pageChat #chatGroupInvitePanel,
+html[data-theme="dark"] #pageChat #chatGroupMembersPanel{
+ border-color:#3c414b!important;
+ background:#222429!important;
+ box-shadow:0 10px 30px rgba(0,0,0,.32)!important;
+}
+@media(prefers-reduced-motion:reduce){
+ #pageChat #chatGroupInvitePanel,#pageChat #chatGroupMembersPanel{animation:none!important}
+}
