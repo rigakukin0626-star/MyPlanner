@@ -1030,3 +1030,22 @@ html[data-theme="dark"] body.nova-ui .welcome-auth-card h2{color:#edfae6!importa
 html[data-theme="dark"] body.nova-ui .bottom-tabs{
  background:#25382b!important;border-color:#415b44!important;
 }
+
+
+/* Outgoing-avatar positioning and dark reply text adjustments. */
+body.nova-ui #pageChat .chat-bubble.chat-with-avatar.mine::before{
+ left:auto!important;right:-61px!important;
+ background:#b6d7aa!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-bubble.mine small{
+ color:#385637!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-bubble.mine .chat-reply-text{
+ color:#163421!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-friend:nth-child(3n+2) .chat-list-avatar{
+ background:#5d5139!important;color:#fff0cc!important;
+}
+html[data-theme="dark"] body.nova-ui #pageChat .chat-friend:nth-child(3n) .chat-list-avatar{
+ background:#414e65!important;color:#e5eefe!important;
+}
