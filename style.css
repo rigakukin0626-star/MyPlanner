@@ -512,3 +512,13 @@ body.chat-open #pageChat #chatConversation[hidden],body.chat-open #pageChat #cha
 /* v85: group creation feedback stays visible */
 #pageChat #chatGroupStatus{display:block;min-height:18px;margin:7px 2px 3px;color:#4262a3;font-size:13px;line-height:1.5}
 #pageChat #chatCreateGroup:disabled{opacity:.65;cursor:wait}
+
+/* v86: visible invitation panel and distinguish same-name group accounts */
+#chatGroupInvitePanel[hidden]{display:none!important}
+.chat-group-invite-panel{background:#fff;padding:16px;border-bottom:1px solid #dce6f6;display:grid;gap:10px}
+.chat-group-invite-panel p{margin:0;color:#75849d;font-size:13px;line-height:1.5}
+.chat-group-invite-row{display:flex;gap:8px;min-width:0}
+.chat-group-invite-row input{flex:1;min-width:0;border:1px solid #dce6f6;border-radius:10px;padding:10px;font-size:12px;background:#f7f9ff;color:#273959}
+.chat-group-invite-panel button{border:1px solid #dce6f6;background:#f3f7ff;color:#245bd8;border-radius:10px;padding:10px;font-weight:650}
+.chat-group-invite-panel #chatGroupShareInvite{background:#2d63e9;color:white}
+.chat-group-member span{overflow-wrap:anywhere;min-width:0}
