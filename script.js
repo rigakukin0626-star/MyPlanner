@@ -631,7 +631,9 @@ function chatShowCachedFriends(){
   const root=$("chatFriends");
   if(root.children.length)return;
   const fragment=document.createDocumentFragment();
-  for(const [order,friend] of saved.friends.entries()){
+  const pinnedFriends=new Set(chatPinnedPeers());
+  const orderedFriends=[...saved.friends].sort((a,b)=>Number(pinnedFriends.has(b.id))-Number(pinnedFriends.has(a.id)));
+  for(const [order,friend] of orderedFriends.entries()){
    if(typeof friend.id!=="string"||typeof friend.name!=="string")continue;
    const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
    const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=(friend.name.trim()[0]||"?").toUpperCase();
