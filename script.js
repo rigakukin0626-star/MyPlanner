@@ -326,6 +326,7 @@ refreshReminderDisplay();
 
 /* My Planner Chat V1. Requires the chat database SQL before use. */
 let chatPeer=null,chatSubscription=null,chatRefreshBusy=false,chatLastSignature="",chatReloadQueued=false;
+const chatPending=new Map();
 function chatText(zh,ja,en){return tr(ja,zh,en)}
 function updateChatLanguage(){
  const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"],chatBack:["戻る","返回","Back"]};
@@ -373,12 +374,31 @@ async function loadChatMessages(){
  const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+chatPeer+"),and(sender_id.eq."+chatPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:true}).limit(200);
  if(error){chatRefreshBusy=false;chatError(error.message);return}
  if(chatPeer!==requestedPeer){chatRefreshBusy=false;return}
- const signature=(data||[]).map(m=>m.id).join(",");
- if(signature===chatLastSignature){chatRefreshBusy=false;if(chatReloadQueued){chatReloadQueued=false;queueMicrotask(loadChatMessages)}return}
- chatLastSignature=signature;
- const root=$("chatMessages");root.replaceChildren();
- for(const item of data||[]){const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");const body=document.createElement("span");body.textContent=item.body;const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();div.append(body,time);root.append(div)}
- root.scrollTop=root.scrollHeight;
+ const root=$("chatMessages");
+ const confirmed=data||[];
+ for(const [key,item] of chatPending){
+  if(item.peer!==requestedPeer)continue;
+  if(item.serverId&&confirmed.some(m=>String(m.id)===String(item.serverId)))chatPending.delete(key);
+ }
+ const pending=[...chatPending.entries()].filter(([,item])=>item.peer===requestedPeer);
+ const signature=confirmed.map(m=>m.id).join(",")+"|"+pending.map(([key,item])=>key+":"+item.status).join(",");
+ if(signature!==chatLastSignature){
+  chatLastSignature=signature;
+  root.replaceChildren();
+  for(const item of confirmed){
+   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
+   const body=document.createElement("span");body.textContent=item.body;
+   const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
+   div.append(body,time);root.append(div);
+  }
+  for(const [,item] of pending){
+   const div=document.createElement("div");div.className="chat-bubble mine";
+   const body=document.createElement("span");body.textContent=item.body;
+   const time=document.createElement("small");time.textContent=item.status==="failed"?chatText("发送失败","送信失敗","Failed"):chatText("发送中…","送信中…","Sending...");
+   div.append(body,time);root.append(div);
+  }
+  root.scrollTop=root.scrollHeight;
+ }
  chatRefreshBusy=false;
  if(chatReloadQueued){chatReloadQueued=false;queueMicrotask(loadChatMessages)}
 }
@@ -394,11 +414,27 @@ $("chatBack").addEventListener("click",chatShowList);
 $("chatSendForm").addEventListener("submit",async e=>{
  e.preventDefault();if(!currentUser||!chatPeer)return;
  const input=$("chatMessageInput"),body=input.value.trim();if(!body)return;
- const btn=$("chatSendForm").querySelector("button");btn.disabled=true;
- const {error}=await supabaseClient.from("chat_messages").insert({sender_id:currentUser.id,recipient_id:chatPeer,body});
- btn.disabled=false;
- if(error){chatError(error);return}
- input.value="";chatStatus(chatText("消息已发送","送信しました","Message sent"));await loadChatMessages();
+ const peer=chatPeer;
+ const key="pending-"+Date.now()+"-"+Math.random().toString(36).slice(2);
+ chatPending.set(key,{peer,body,status:"sending",serverId:null});
+ input.value="";
+ // Render immediately, without waiting for the network.
+ const root=$("chatMessages"),bubble=document.createElement("div");
+ bubble.className="chat-bubble mine";bubble.dataset.pendingKey=key;
+ const message=document.createElement("span");message.textContent=body;
+ const state=document.createElement("small");state.textContent=chatText("发送中…","送信中…","Sending...");
+ bubble.append(message,state);root.append(bubble);root.scrollTop=root.scrollHeight;
+ chatLastSignature="";
+ try{
+  const {data,error}=await supabaseClient.from("chat_messages").insert({sender_id:currentUser.id,recipient_id:peer,body}).select("id").single();
+  if(error)throw error;
+  const pending=chatPending.get(key);if(pending){pending.serverId=data.id;pending.status="sent"}
+  if(chatPeer===peer){state.textContent=chatText("已发送","送信済み","Sent");await loadChatMessages()}
+ }catch(error){
+  const pending=chatPending.get(key);if(pending)pending.status="failed";
+  if(chatPeer===peer){state.textContent=chatText("发送失败","送信失敗","Failed");chatError(error)}
+ }
+
 });
 
 /* v39: mobile Safari may suspend Realtime sockets; periodically reconcile from DB while chat is visible. */
