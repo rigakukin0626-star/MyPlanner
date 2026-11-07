@@ -487,6 +487,7 @@ function updateChatLanguage(){
  $("chatGroupLeave").textContent=chatText("退出群聊","グループを退出","Leave group");
  $("chatGroupMessageInput").placeholder=chatText("输入群消息…","グループメッセージ…","Group message...");
  $("chatGroupSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
+ $("chatTitle").textContent=chatMode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
  $("chatMessageInput").placeholder=chatText("输入消息…","メッセージを入力…","Type a message...");
  $("chatSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
 }
@@ -865,6 +866,7 @@ function groupMode(mode){
  $("chatToggleAdd").hidden=mode==="group";
  $("chatInviteSection").hidden=true;
  $("chatStatus").hidden=mode==="group";
+ $("chatTitle").textContent=mode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
  if(mode==="group")groupLoadList();else loadChatFriends();
 }
 async function groupLoadList(){
@@ -873,7 +875,7 @@ async function groupLoadList(){
  if(error){groupError(error);return}
  const ids=(membership||[]).map(m=>m.group_id);
  const root=$("chatGroups");root.replaceChildren();
- if(!ids.length){root.textContent=chatText("还没有群聊，创建或加入一个吧","グループはまだありません","No groups yet. Create or join one.");return}
+ if(!ids.length){const empty=document.createElement("p");empty.className="chat-group-empty";empty.textContent=chatText("还没有群聊，创建或加入一个吧","グループはまだありません。作成または参加してください","No groups yet. Create or join one.");root.append(empty);return}
  const {data:groups,error:groupsError}=await supabaseClient.from("chat_groups").select("id,name,created_by").in("id",ids);
  if(groupsError){groupError(groupsError);return}
  for(const group of groups||[]){
