@@ -371,3 +371,13 @@ body.chat-open .bottom-tabs{z-index:50!important;}
 /* v58: reserve image space so chat stays at the newest message during image loading */
 #pageChat .chat-photo{width:190px!important;height:240px!important;max-width:min(190px,55vw)!important;max-height:240px!important;object-fit:contain!important;background:#e9effa;border-radius:11px;display:block}
 #pageChat .chat-messages{overflow-anchor:none}
+
+/* v61 simplified add-friend sheet */
+#pageChat .chat-invite-section{padding:17px 16px 20px!important}
+#pageChat .chat-invite-heading{font-size:17px;font-weight:750;color:#1c3159;margin-bottom:12px}
+#pageChat .chat-invite-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
+#pageChat .chat-invite-actions button{background:#e8efff!important;border:1px solid #d5e3ff!important;color:#245de1!important;border-radius:12px;min-height:42px;font-size:13px}
+#pageChat .chat-add{display:flex;align-items:center;gap:7px}
+#pageChat .chat-add input{min-width:0;flex:1 1 auto;border-radius:12px}
+#pageChat #chatPasteCode{background:#eef3ff!important;color:#2563eb!important;border:0!important;border-radius:10px;white-space:nowrap;padding:10px!important}
+#pageChat #chatAddFriend{white-space:nowrap;padding:10px 13px!important;border-radius:10px}
