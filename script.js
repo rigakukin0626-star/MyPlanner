@@ -193,7 +193,7 @@ async function refreshAuthUI(){
   $("resetNotificationsBtn").hidden = !currentUser;
   showWelcomeAuth();
   updateCloudSyncSummary();
-  if(currentUser){if(document.body.dataset.activePage==="chat"){if(chatMode==="group"){groupShowCachedList();groupLoadList(true).catch(console.error)}else{chatShowCachedFriends();loadChatFriends().catch(console.error)}}try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}}
+  if(currentUser){if(document.body.dataset.activePage==="chat"){if(chatMode==="group"){groupShowCachedList();groupLoadList(true).catch(console.error)}else{chatShowCachedFriends();loadChatFriends().catch(console.error)}}try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}const warmUser=currentUser?.id;if(warmUser)setTimeout(()=>{if(currentUser?.id===warmUser)groupWarmListCache().catch(console.warn)},500)}
   else{cloudReady=false;setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."))}
 }
 const welcomeTranslations={
@@ -1110,8 +1110,14 @@ async function loadChatMessages(){
 let chatUsernameLoadedFor=null;
 async function chatLoadMyUsername(){
  if(!currentUser||chatUsernameLoadedFor===currentUser.id)return;
+ const userId=currentUser.id,cacheKey="myplanner-own-username-"+userId;
+ try{const cached=localStorage.getItem(cacheKey);if(cached!==null&&document.activeElement!==$("accountMyUsername"))$("accountMyUsername").value=cached}catch{}
  const {data,error}=await supabaseClient.rpc("chat_get_my_username");
- if(!error&&currentUser){$("accountMyUsername").value=data||"";chatUsernameLoadedFor=currentUser.id}
+ if(!error&&currentUser?.id===userId){
+  if(document.activeElement!==$("accountMyUsername"))$("accountMyUsername").value=data||"";
+  try{localStorage.setItem(cacheKey,data||"")}catch{}
+  chatUsernameLoadedFor=userId;
+ }
 }
 function chatUsernameValid(value){return /^[a-z0-9_]{3,20}$/.test(value)}
 $("accountSaveUsername").addEventListener("click",async()=>{
@@ -1124,6 +1130,7 @@ $("accountSaveUsername").addEventListener("click",async()=>{
   const {error}=await supabaseClient.rpc("chat_set_username",{new_username:username});
   if(error)throw error;
   chatUsernameLoadedFor=currentUser.id;
+  try{localStorage.setItem("myplanner-own-username-"+currentUser.id,username)}catch{}
   $("accountMyUsername").value=username;
   status.textContent=chatText("用户名已保存：@","ユーザー名を保存しました：@","Username saved: @")+username;
  }catch(error){status.textContent=error.message||String(error)}
@@ -1259,6 +1266,30 @@ window.addEventListener("online",chatRefreshAfterReconnect);
 let chatMode="private",chatActiveGroup=null,groupPolling=false,groupLastSignature="",groupChannel=null;
 let groupListLoading=false,groupListLastLoaded=0,groupListSignature="",groupMessageRefreshTimer=null,groupMessageLastFetched=0;
 const groupListCacheKey="myplanner-groups-v1";
+let groupListWarmedFor=null;
+async function groupWarmListCache(){
+ const userId=currentUser?.id;
+ if(!userId||groupListWarmedFor===userId||chatMode==="group")return;
+ groupListWarmedFor=userId;
+ try{
+  const {data:members,error}=await supabaseClient.from("chat_group_members").select("group_id").eq("user_id",userId);
+  if(error)throw error;
+  const ids=[...new Set((members||[]).map(x=>x.group_id))];
+  let groups=[];
+  if(ids.length){
+   const res=await supabaseClient.from("chat_groups").select("id,name,created_by").in("id",ids);
+   if(res.error)throw res.error;
+   groups=res.data||[];
+  }
+  if(currentUser?.id!==userId||chatMode==="group")return;
+  let existing=[];
+  try{const cache=JSON.parse(localStorage.getItem(groupListCacheKey)||"null");if(cache?.userId===userId&&Array.isArray(cache.groups))existing=cache.groups}catch{}
+  const old=new Map(existing.map(g=>[g.id,g]));
+  const merged=groups.map(g=>({...old.get(g.id),...g}));
+  localStorage.setItem(groupListCacheKey,JSON.stringify({userId,groups:merged}));
+ }catch(error){console.warn("Group list warmup unavailable",error);groupListWarmedFor=null}
+}
+
 const groupReadKey="myplanner-group-read-v1";
 function groupReadTimes(){
  try{const all=JSON.parse(localStorage.getItem(groupReadKey)||"{}");return all[currentUser?.id]||{}}catch{return {}}
