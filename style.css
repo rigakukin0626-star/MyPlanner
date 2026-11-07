@@ -480,3 +480,6 @@ body.chat-open #pageChat #chatGroupConversation{display:flex!important;flex-dire
 body.chat-open #pageChat #chatGroupConversation .chat-messages{flex:1 1 auto!important;height:auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important}
 body.chat-open #pageChat #chatGroupConversation .chat-send{flex:0 0 auto!important;padding:9px 12px!important}
 body.chat-open #pageChat .chat-mode-switch,body.chat-open #pageChat .chat-group-tools,body.chat-open #pageChat #chatGroups{display:none!important}
+
+/* v81: hide the inactive private/group conversation even when viewport is locked */
+body.chat-open #pageChat #chatConversation[hidden],body.chat-open #pageChat #chatGroupConversation[hidden]{display:none!important}
