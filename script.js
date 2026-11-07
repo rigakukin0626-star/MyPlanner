@@ -85,12 +85,16 @@ function loadTasks() {
     return Array.isArray(saved) ? saved.map(t => ({id:String(t.id ?? Date.now()+Math.random()),text:String(t.text ?? ""),date:t.date || null,completed:Boolean(t.completed),priority:["high","medium","low"].includes(t.priority)?t.priority:"medium",reminderAt:t.reminderAt||null,repeat:t.repeat||"none"})).filter(t=>t.text.trim()) : [];
   } catch { return []; }
 }
+const DELETED_TASKS_KEY="myPlannerDeletedTaskIds";
+function deletedTaskIds(){try{return new Set(JSON.parse(localStorage.getItem(DELETED_TASKS_KEY)||"[]").map(String))}catch{return new Set()}}
+function markTaskDeleted(id){const ids=deletedTaskIds();ids.add(String(id));localStorage.setItem(DELETED_TASKS_KEY,JSON.stringify([...ids]));}
 function saveTasks() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   if (currentUser && cloudReady) queueCloudUpsert();
 }
 function queueCloudUpsert() {
-  const snapshot = tasks.map(t=>({id:String(t.id),user_id:currentUser.id,text:t.text,date:t.date||null,completed:Boolean(t.completed),priority:["high","medium","low"].includes(t.priority)?t.priority:"medium",reminder_at:t.reminderAt||null,repeat_rule:t.repeat||"none"}));
+  const deleted=deletedTaskIds();
+  const snapshot = tasks.filter(t=>!deleted.has(String(t.id))).map(t=>({id:String(t.id),user_id:currentUser.id,text:t.text,date:t.date||null,completed:Boolean(t.completed),priority:["high","medium","low"].includes(t.priority)?t.priority:"medium",reminder_at:t.reminderAt||null,repeat_rule:t.repeat||"none"}));
   syncQueue = syncQueue.then(async()=>{
     if (!currentUser) return;
     setAuthStatus(bilingual("タスクを同期中…","正在同步任务…"));
@@ -99,16 +103,31 @@ function queueCloudUpsert() {
     setAuthStatus(tr("同期済み","已同步","Synced")+" · "+currentUser.email,"synced");
   }).catch(error=>{console.error(error);setAuthStatus(tr("同期失敗：","同步失败：","Sync failed: ")+error.message);});
 }
+function queuePendingTaskDeletes(){
+ const ids=[...deletedTaskIds()];
+ if(!ids.length||!currentUser)return syncQueue;
+ const owner=currentUser.id;
+ syncQueue=syncQueue.catch(()=>{}).then(async()=>{
+  const {error}=await supabaseClient.from("tasks").delete().eq("user_id",owner).in("id",ids);
+  if(error)throw error;
+  // Keep tombstones locally to prevent stale cloud records from being reimported.
+ }).catch(error=>{console.error("Task deletion sync failed",error);setAuthStatus(tr("削除の同期に失敗：","删除同步失败：","Deletion sync failed: ")+error.message)});
+ return syncQueue;
+}
 async function loadCloudTasks() {
   setAuthStatus(bilingual("クラウドから読み込み中…","正在读取云端任务…"));
   const {data,error}=await supabaseClient.from("tasks").select("id,text,date,completed,priority,reminder_at,repeat_rule").order("created_at",{ascending:true});
   if(error) throw error;
-  const local=loadTasks(), merged=new Map();
+  const deleted=deletedTaskIds(),local=loadTasks(), merged=new Map();
   // 云端同 ID 记录优先；本设备尚未上传的新任务也会合并上去。
-  for(const t of data||[]) merged.set(String(t.id),{id:String(t.id),text:t.text,date:t.date||null,completed:Boolean(t.completed),priority:["high","medium","low"].includes(t.priority)?t.priority:"medium",reminderAt:t.reminder_at||null,repeat:t.repeat_rule||"none"});
-  for(const t of local) if(!merged.has(String(t.id))) merged.set(String(t.id),t);
-  tasks=Array.from(merged.values()); localStorage.setItem(STORAGE_KEY,JSON.stringify(tasks)); cloudReady=true; render();
-  await queueCloudUpsert();
+  for(const t of data||[]) if(!deleted.has(String(t.id))) merged.set(String(t.id),{id:String(t.id),text:t.text,date:t.date||null,completed:Boolean(t.completed),priority:["high","medium","low"].includes(t.priority)?t.priority:"medium",reminderAt:t.reminder_at||null,repeat:t.repeat_rule||"none"});
+  // After first successful cloud sync, cloud is authoritative for missing records.
+  const syncedBefore=localStorage.getItem("myPlannerCloudInitialized")==="true";
+  if(!syncedBefore)for(const t of local)if(!deleted.has(String(t.id))&&!merged.has(String(t.id)))merged.set(String(t.id),t);
+  tasks=Array.from(merged.values()); localStorage.setItem(STORAGE_KEY,JSON.stringify(tasks)); cloudReady=true;localStorage.setItem("myPlannerCloudInitialized","true");render();
+  // Retry pending deletions before allowing further cloud upserts.
+  if(deleted.size)await queuePendingTaskDeletes();
+  if(!syncedBefore)queueCloudUpsert();
 }
 function bilingual(ja,zh){return tr(ja,zh);}
 function setAuthStatus(message,statusKey=""){const el=$("authStatus");if(el){el.dataset.statusKey=statusKey;el.textContent=statusKey==="synced"&&currentUser?tr("同期済み","已同步","Synced")+" · "+currentUser.email:message;}}
@@ -242,7 +261,7 @@ function confirmDeleteDialog(){
   dialog.showModal();
  });
 }
-async function deleteTask(id){if(!await confirmDeleteDialog())return;tasks=tasks.filter(t=>t.id!==id);saveTasks();if(currentUser&&cloudReady){const {error}=await supabaseClient.from("tasks").delete().eq("id",String(id));if(error)setAuthStatus("云端删除失败："+error.message)}render()}
+async function deleteTask(id){if(!await confirmDeleteDialog())return;markTaskDeleted(id);tasks=tasks.filter(t=>String(t.id)!==String(id));localStorage.setItem(STORAGE_KEY,JSON.stringify(tasks));render();if(currentUser&&cloudReady)await queuePendingTaskDeletes()}
 function refreshEditDateDisplays(){
   const date=$("editDate").value;
   const reminder=$("editReminder").value;
