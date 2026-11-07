@@ -48,3 +48,11 @@ Supabase SQL Editor. It was NOT automatically applied.
 - Work branch: `fix-chat-keyboard-skyblue-2026-11-07`
 - Only UI, chat presentation, in-browser keyboard handling, and PWA versioning were changed; Supabase data and policies were not touched.
 - This backup is code only. It does not export device-local data, Supabase SQL tables, or Supabase Storage files.
+
+## LINE-style chat menu and swipe UI — 2026-11-07
+
+- Original code SHA: `5204726dd34b0d556b88fae045e3f3373ab3a23b`
+- Backup branch: `backup-before-line-menus-2026-11-07`
+- Development branch: `feat-line-swipe-menu-2026-11-07`
+- UI-only code changes; chat data, users, group membership, Supabase policies, storage objects, and existing storage keys are not changed.
+- Restore original code from the backup branch if desired; this is not a cloud database backup and does not include unsynced local storage.
