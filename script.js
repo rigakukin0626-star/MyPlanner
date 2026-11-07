@@ -1050,12 +1050,19 @@ async function groupShowMembers(){
  const members=[...new Map((data||[]).map(m=>[m.user_id,m])).values()];
  const ids=members.map(x=>x.user_id);
  let profiles=[];
- if(ids.length){const res=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);if(!res.error)profiles=res.data||[]}
- const names=new Map(profiles.map(p=>[p.id,p.display_name]));
+ if(ids.length){
+  const res=await supabaseClient.from("chat_profiles").select("id,display_name,username").in("id",ids);
+  if(!res.error)profiles=res.data||[];
+  else {
+   const fallback=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);
+   if(!fallback.error)profiles=fallback.data||[];
+  }
+ }
+ const names=new Map(profiles.map(p=>[p.id,p.username?"@"+p.username:(p.display_name||"")]));
  const nameCounts=new Map();for(const id of ids){const name=names.get(id);if(name)nameCounts.set(name,(nameCounts.get(name)||0)+1)}
  for(const member of members){
   const row=document.createElement("div");row.className="chat-group-member";
-  const label=document.createElement("span");label.textContent=(names.get(member.user_id)||member.user_id.slice(0,8))+(nameCounts.get(names.get(member.user_id))>1?" ("+member.user_id.slice(0,6)+")":"")+(member.user_id===chatActiveGroup.created_by?" ★":"");
+  const label=document.createElement("span");label.textContent=(names.get(member.user_id)||"ID: "+member.user_id.slice(0,8))+(nameCounts.get(names.get(member.user_id))>1?" · "+member.user_id.slice(0,8):"")+(member.user_id===chatActiveGroup.created_by?" ★":"")+(member.user_id===currentUser.id?chatText("（我）","（自分）"," (Me)"):"");
   row.append(label);
   if(chatActiveGroup.created_by===currentUser.id&&member.user_id!==currentUser.id){
    const kick=document.createElement("button");kick.type="button";kick.textContent=chatText("移除","削除","Remove");
