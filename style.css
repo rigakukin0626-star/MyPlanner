@@ -89,3 +89,23 @@
  .calendar-nav strong{font-size:11px}
  .calendar-nav .icon-button{width:28px;height:28px;flex-basis:28px}
 }
+
+/* v21: native-style tab navigation */
+.app-page{display:none}.app-page.active{display:block}
+#pageTasks>.overview,#pageTasks>.tasks-panel,#pageCalendar>.calendar-panel{margin-bottom:16px}
+#pageTasks>.tasks-panel,#pageCalendar>.calendar-panel{width:100%}
+#pageCalendar>.calendar-panel{max-width:680px;margin-inline:auto}
+#pageSettings>.auth-panel{margin:0 auto;max-width:680px}
+.settings-title{font-size:21px;margin:0 0 15px}
+.bottom-tabs{position:fixed;z-index:50;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:10px;padding:9px 12px calc(9px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);border-top:1px solid #e6ebf4;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.bottom-tabs .tab{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;min-width:86px;max-width:150px;flex:1;border:0;border-radius:13px;background:transparent;color:#8591a5;font-weight:700;font-size:11px;padding:7px 12px;cursor:pointer}
+.bottom-tabs .tab.active{color:#2563eb;background:#eaf1ff}
+.bottom-tabs .tab-icon{font-size:21px;line-height:1}
+.app-shell{padding-bottom:125px}
+@media(max-width:760px){
+ .app-shell{padding-top:22px;padding-bottom:120px}
+ .topbar{margin-bottom:17px}
+ #pageTasks>.overview{margin-bottom:13px}
+ #pageCalendar>.calendar-panel{padding:17px}
+ .bottom-tabs .tab{min-width:0}
+}
