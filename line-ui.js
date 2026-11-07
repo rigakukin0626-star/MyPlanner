@@ -46,6 +46,15 @@
  const friendPanel=$("chatInviteSection");
  const groupPanel=$("chatGroupTools");
  actionContent.append(friendPanel,groupPanel);
+ const friendStatus=document.createElement("p");
+ friendStatus.className="line-action-error";friendStatus.setAttribute("role","status");
+ friendPanel.append(friendStatus);
+ const globalChatStatus=$("chatStatus");
+ if(globalChatStatus){
+  new MutationObserver(()=>{
+   if(selectedAction==="friend"&&!screen.hidden)friendStatus.textContent=globalChatStatus.textContent||"";
+  }).observe(globalChatStatus,{childList:true,characterData:true,subtree:true});
+ }
  let selectedAction="";
  const closePopup=()=>{menu.hidden=true;plus.setAttribute("aria-expanded","false")};
  function closeScreen(){
@@ -63,6 +72,7 @@
    groupMode("private");
   }
   selectedAction=action;screen.dataset.screen=action;screen.hidden=false;
+  friendStatus.textContent="";
   document.body.classList.add("line-action-open");
   friendPanel.hidden=action!=="friend";
   groupPanel.hidden=action==="friend";
@@ -197,9 +207,10 @@
   const dx=t.clientX-start.x,dy=t.clientY-start.y;
   start=null;
   if(Math.abs(dx)<65||Math.abs(dx)<Math.abs(dy)*1.35||Math.abs(dy)>110)return;
+  event.preventDefault(); // Prevent the swipe from accidentally opening a chat row.
   if(dx<0&&typeof chatMode!=="undefined"&&chatMode==="private")groupMode("group");
   else if(dx>0&&typeof chatMode!=="undefined"&&chatMode==="group")groupMode("private");
- },{passive:true});
+ },{passive:false});
  root.addEventListener("touchcancel",()=>{start=null},{passive:true});
  document.addEventListener("keydown",event=>{
   if(event.key!=="Escape")return;
