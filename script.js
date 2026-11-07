@@ -368,6 +368,10 @@ function updateChatLanguage(){
  const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"],chatBack:["戻る","返回","Back"]};
  for(const [id,values] of Object.entries(labels)){const el=$(id);if(el)el.textContent=values[uiLanguage==="ja"?0:uiLanguage==="zh"?1:2]}
  $("chatFriendCode").placeholder=chatText("粘贴好友的邀请码","友達のコードを貼り付け","Paste friend code");
+ $("chatMyUsername").placeholder=chatText("设置用户名，如 planner123","ユーザー名を設定","Choose username");
+ $("chatSearchUsername").placeholder=chatText("输入好友用户名","友達のユーザー名","Friend username");
+ $("chatSaveUsername").textContent=chatText("保存","保存","Save");
+ $("chatSearchUser").textContent=chatText("搜索","検索","Search");
  $("chatCopyCode").textContent=chatText("复制我的邀请码","自分のコードをコピー","Copy my code");
  $("chatShareCode").textContent=chatText("分享","共有","Share");
  $("chatPasteCode").textContent=chatText("粘贴","貼り付け","Paste");
@@ -538,6 +542,49 @@ async function loadChatMessages(){
  chatRefreshBusy=false;
  if(chatReloadQueued){chatReloadQueued=false;queueMicrotask(loadChatMessages)}
 }
+let chatUsernameLoadedFor=null;
+async function chatLoadMyUsername(){
+ if(!currentUser||chatUsernameLoadedFor===currentUser.id)return;
+ const {data,error}=await supabaseClient.rpc("chat_get_my_username");
+ if(!error&&currentUser){$("chatMyUsername").value=data||"";chatUsernameLoadedFor=currentUser.id}
+}
+function chatUsernameValid(value){return /^[a-z0-9_]{3,20}$/.test(value)}
+$("chatSaveUsername").addEventListener("click",async()=>{
+ if(!currentUser)return;
+ const username=$("chatMyUsername").value.trim().toLowerCase();
+ if(!chatUsernameValid(username)){chatStatus(chatText("用户名只能用3–20位小写英文字母、数字或下划线","ユーザー名は英小文字・数字・_ の3〜20文字","Use 3–20 lowercase letters, numbers or underscores"));return}
+ const button=$("chatSaveUsername");button.disabled=true;
+ try{
+  const {error}=await supabaseClient.rpc("chat_set_username",{new_username:username});
+  if(error)throw error;
+  chatUsernameLoadedFor=currentUser.id;chatStatus(chatText("用户名已保存：@","ユーザー名を保存：@","Username saved: @")+username);
+ }catch(error){chatError(error)}finally{button.disabled=false}
+});
+$("chatSearchUser").addEventListener("click",async()=>{
+ if(!currentUser)return;
+ const username=$("chatSearchUsername").value.trim().replace(/^@/,"").toLowerCase();
+ const root=$("chatSearchResult");root.replaceChildren();
+ if(!chatUsernameValid(username)){root.textContent=chatText("请输入完整用户名（3–20位）","ユーザー名を入力してください","Enter a full username");return}
+ const button=$("chatSearchUser");button.disabled=true;root.textContent=chatText("搜索中…","検索中…","Searching…");
+ try{
+  const {data,error}=await supabaseClient.rpc("chat_find_username",{search_username:username});
+  if(error)throw error;
+  root.replaceChildren();
+  const person=Array.isArray(data)?data[0]:null;
+  if(!person){root.textContent=chatText("没有找到该用户名","ユーザーが見つかりません","No user found");return}
+  const name=document.createElement("span");name.textContent="@"+person.username;
+  root.append(name);
+  if(person.id===currentUser.id){root.append(document.createTextNode(chatText("（这是你）","（自分）"," (You)")));return}
+  const add=document.createElement("button");add.type="button";add.className="button button-primary";add.textContent=chatText("添加好友","友達を追加","Add friend");
+  add.addEventListener("click",async()=>{
+   add.disabled=true;
+   try{const {error}=await supabaseClient.rpc("chat_add_friend",{friend_code:person.id});if(error)throw error;chatStatus(chatText("好友添加成功","友達を追加しました","Friend added"));root.replaceChildren();await loadChatFriends()}
+   catch(error){chatError(error);add.disabled=false}
+  });
+  root.append(add);
+ }catch(error){root.textContent=error.message||String(error)}
+ finally{button.disabled=false}
+});
 $("chatCopyCode").addEventListener("click",async()=>{
  if(!currentUser)return;
  try{await navigator.clipboard.writeText(currentUser.id);chatStatus(chatText("邀请码已复制","コードをコピーしました","Code copied"))}
@@ -624,5 +671,5 @@ document.addEventListener("visibilitychange",()=>{
 $("chatToggleAdd").addEventListener("click",()=>{
  const panel=$("chatInviteSection"),open=panel.hidden;
  panel.hidden=!open;$("chatToggleAdd").setAttribute("aria-expanded",String(open));
- if(open&&currentUser)$("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;
+ if(open&&currentUser){$("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;chatLoadMyUsername()}
 });
