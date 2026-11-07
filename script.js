@@ -947,7 +947,23 @@ $("chatCreateGroup").addEventListener("click",async()=>{
  if(!currentUser)return;
  const name=$("chatGroupName").value.trim();if(name.length<2||name.length>40){groupStatus(chatText("群名称需要2–40个字符","グループ名は2〜40文字","Group name must be 2–40 characters"));return}
  const btn=$("chatCreateGroup");btn.disabled=true;
- try{const {error}=await supabaseClient.rpc("chat_create_group",{group_name:name});if(error)throw error;$("chatGroupName").value="";groupStatus(chatText("群聊创建成功","グループを作成しました","Group created"));await groupLoadList()}catch(error){groupError(error)}finally{btn.disabled=false}
+ try{
+  groupStatus(chatText("正在创建群聊…","グループを作成中…","Creating group..."));
+  btn.textContent=chatText("创建中…","作成中…","Creating...");
+  const {data:groupId,error}=await supabaseClient.rpc("chat_create_group",{group_name:name});
+  if(error)throw error;
+  $("chatGroupName").value="";
+  groupStatus(chatText("群聊创建成功，正在打开…","作成しました。開いています…","Group created. Opening..."));
+  if(typeof groupId==="string"&&/^[0-9a-f-]{36}$/i.test(groupId)){
+   await groupOpen({id:groupId,name,created_by:currentUser.id});
+  }else{
+   await groupLoadList();
+   groupStatus(chatText("群聊已创建，请在下方列表中打开","グループを作成しました","Group created; open it below"));
+  }
+ }catch(error){
+  groupError(error);
+  alert(chatText("创建群聊失败：","グループ作成に失敗：","Could not create group: ")+(error?.message||String(error)));
+ }finally{btn.disabled=false;btn.textContent=chatText("创建群聊","グループ作成","Create")}
 });
 $("chatJoinGroup").addEventListener("click",async()=>{
  if(!currentUser)return;
