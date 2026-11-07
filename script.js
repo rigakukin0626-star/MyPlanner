@@ -796,7 +796,7 @@ function chatParseReply(body){
   try{const value=JSON.parse(body.slice(CHAT_REPLY_PREFIX.length));if(value&&typeof value.text==="string"&&typeof value.quote==="string")return value}catch{}
   return null;
  }
- const match=/^↪「([^\\n]{0,120})」\\n([\\s\\S]+)$/.exec(body);
+ const match=/^↪「([^\n]{0,120})」\n([\s\S]+)$/.exec(body);
  return match?{quote:match[1],text:match[2]}:null;
 }
 function chatPlainBody(body){const reply=chatParseReply(body);return reply?reply.text:body}
