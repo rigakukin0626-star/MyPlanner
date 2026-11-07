@@ -148,6 +148,49 @@
     </div>
   </dialog>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=129"></script>
+  <script>
+/* Restore existing page layout and navigation when another module fails. */
+(function(){
+ function recover(){
+  const main=document.getElementById("appMain");
+  if(!main)return;
+  const tasks=document.getElementById("pageTasks"),calendar=document.getElementById("pageCalendar"),settings=document.getElementById("pageSettings");
+  const overview=main.querySelector(".overview"),grid=main.querySelector(".main-grid");
+  const taskPanel=grid?.querySelector(".tasks-panel"),calendarPanel=grid?.querySelector(".calendar-panel");
+  if(overview&&tasks&&overview.parentElement!==tasks)tasks.append(overview);
+  if(taskPanel&&tasks&&taskPanel.parentElement!==tasks)tasks.append(taskPanel);
+  if(calendarPanel&&calendar&&calendarPanel.parentElement!==calendar)calendar.append(calendarPanel);
+  const auth=document.getElementById("authPanel");
+  if(auth&&settings&&auth.parentElement!==settings)settings.append(auth);
+  if(grid&&!grid.querySelector(".tasks-panel,.calendar-panel"))grid.remove();
+  if(!document.querySelector(".bottom-tabs .tab.active"))show("chat");
+ }
+ function show(page){
+  if(!["tasks","longterm","calendar","chat","settings"].includes(page))return;
+  const panel=document.querySelector(".tasks-panel");
+  const target=document.getElementById(page==="longterm"?"pageLongTerm":"pageTasks");
+  if(panel&&target&&(page==="tasks"||page==="longterm")){
+   if(page==="longterm"){const countdown=target.querySelector(".countdown-panel");if(countdown)target.insertBefore(panel,countdown);else target.append(panel)}
+   else target.append(panel);
+  }
+  document.querySelectorAll(".app-page").forEach(el=>el.classList.toggle("active",el.dataset.page===page));
+  document.querySelectorAll(".bottom-tabs .tab").forEach(el=>el.classList.toggle("active",el.dataset.target===page));
+  document.body.dataset.activePage=page;
+  document.body.classList.remove("chat-open");
+  window.scrollTo(0,0);
+ }
+ document.addEventListener("DOMContentLoaded",recover,{once:true});
+ document.addEventListener("click",function(event){
+  const btn=event.target.closest?.(".bottom-tabs .tab[data-target]");
+  if(!btn)return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  recover();
+  try{if(typeof switchPlannerPage==="function")switchPlannerPage(btn.dataset.target);else show(btn.dataset.target)}
+  catch(error){console.error("Navigation recovery:",error);show(btn.dataset.target)}
+ },true);
+})();
+</script>
+  <script src="script.js?v=139"></script>
 </body>
 </html>
