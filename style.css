@@ -1633,3 +1633,91 @@ html[data-theme="dark"] #pageChat .chat-send button[type=submit]{
 #pageChat .chat-photo-retry:focus-visible{
  outline:2px solid #5e88f2;outline-offset:2px;
 }
+
+
+/* Studio layout refinements for plans, calendar and settings */
+#pageTasks .overview{
+ padding:20px 22px!important;
+ gap:14px!important;
+}
+#pageTasks .overview-date strong{font-weight:790;letter-spacing:-.35px}
+#pageTasks .tasks-panel,
+#pageLongTerm .tasks-panel,
+#pageCalendar .calendar-panel{
+ padding:20px!important;
+}
+#pageTasks .task-item,
+#pageLongTerm .task-item{
+ min-height:56px;
+ padding:13px 9px!important;
+ border-bottom:1px solid #eef1f6!important;
+ border-radius:10px;
+}
+#pageTasks .task-item:active,
+#pageLongTerm .task-item:active{background:#f4f7ff!important}
+.task-text{line-height:1.45;font-weight:560}
+.task-action{border-radius:9px!important;min-height:34px}
+.task-check{width:20px!important;height:20px!important;flex-basis:20px!important;border-radius:7px!important}
+.task-form :is(input,select),
+.auth-form input,
+#pageSettings input,
+.edit-dialog :is(input,select){
+ border-radius:12px!important;
+ min-height:43px;
+ font-size:16px!important;
+ background:#f9fafc;
+}
+.task-form button[type=submit]{border-radius:12px!important;min-height:43px;font-weight:690}
+#pageCalendar .calendar-grid{gap:5px}
+#pageCalendar .calendar-day{
+ min-height:41px;max-height:none!important;
+ border-radius:11px!important;
+ color:#344159;
+}
+#pageCalendar .calendar-day.selected{
+ background:#dfeaff!important;color:#2359c9!important;
+ box-shadow:inset 0 0 0 1px #bad0ff!important;
+}
+#pageCalendar .calendar-day.today:not(.selected){
+ background:#f4f7fd!important;color:#2b5fdf!important;
+ box-shadow:inset 0 0 0 1px #c9d8f5!important;
+}
+#pageSettings .appearance-panel{padding:24px!important}
+#pageSettings .appearance-copy h3{font-size:19px;letter-spacing:-.3px}
+#pageSettings .appearance-copy p{line-height:1.55;color:#7d8aa1}
+#pageSettings .auth-panel{padding:22px!important}
+#pageSettings .auth-panel h2{letter-spacing:-.35px}
+#pageSettings .cloud-sync-details{border-radius:13px!important}
+.bottom-tabs .tab span:last-child{
+ font-weight:630!important;font-size:11px!important;
+}
+@media(max-width:700px){
+ #pageTasks .overview{padding:17px!important;gap:13px!important}
+ #pageTasks .tasks-panel,
+ #pageLongTerm .tasks-panel,
+ #pageCalendar .calendar-panel{padding:16px!important}
+ #pageSettings .appearance-panel,
+ #pageSettings .auth-panel{padding:17px!important}
+ #pageCalendar .calendar-grid{gap:3px!important}
+ #pageCalendar .calendar-day{min-height:38px;max-height:42px!important}
+ #pageTasks .task-item,
+ #pageLongTerm .task-item{padding:12px 4px!important}
+}
+html[data-theme="dark"] #pageTasks .task-item,
+html[data-theme="dark"] #pageLongTerm .task-item{border-bottom-color:#333741!important}
+html[data-theme="dark"] #pageTasks .task-item:active,
+html[data-theme="dark"] #pageLongTerm .task-item:active{background:#242c3a!important}
+html[data-theme="dark"] .task-form :is(input,select),
+html[data-theme="dark"] .auth-form input,
+html[data-theme="dark"] #pageSettings input,
+html[data-theme="dark"] .edit-dialog :is(input,select){
+ background:#22252b!important;color:#f5f6f8!important;border-color:#424751!important;
+}
+html[data-theme="dark"] #pageCalendar .calendar-day{color:#d9e0ee!important}
+html[data-theme="dark"] #pageCalendar .calendar-day.selected{
+ background:#344669!important;color:#f4f7ff!important;box-shadow:inset 0 0 0 1px #627dab!important;
+}
+html[data-theme="dark"] #pageCalendar .calendar-day.today:not(.selected){
+ background:#242f40!important;color:#bed3ff!important;box-shadow:inset 0 0 0 1px #4a648b!important;
+}
+html[data-theme="dark"] #pageSettings .appearance-copy p{color:#a3adbd!important}
