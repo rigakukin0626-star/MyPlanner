@@ -527,3 +527,12 @@ body.chat-open #pageChat #chatConversation[hidden],body.chat-open #pageChat #cha
 #chatGroupDisband[hidden]{display:none!important}
 .chat-group-members .chat-group-disband{display:block;width:100%;margin-top:10px;padding:12px;background:#c92b3a;color:white;border:1px solid #c92b3a;border-radius:10px;font-weight:700}
 .chat-group-members .chat-group-disband:disabled{opacity:.6}
+
+/* v88: invite existing friends from group invitation panel */
+#chatGroupFriendInvite[hidden]{display:none!important}
+.chat-group-friend-invite{margin-top:8px;padding-top:14px;border-top:1px solid #e3eaf5;display:grid;gap:10px}
+.chat-group-friend-invite-list{max-height:230px;overflow-y:auto;display:grid;gap:6px}
+.chat-group-invite-friend{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #edf1f8}
+.chat-group-invite-friend span{min-width:0;overflow-wrap:anywhere}
+.chat-group-invite-friend button{flex-shrink:0}
+.chat-group-invite-friend button:disabled{opacity:.5}
