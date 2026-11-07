@@ -188,7 +188,7 @@ async function refreshAuthUI(){
   currentUser=session?.user||null;
   if(previousUserId!==currentUser?.id){
    chatConfirmedCache=[];chatPending.clear();chatLastSignature="";
-   chatImageUrlCache.clear();chatImageUrlRequests.clear();
+   chatRevokeImageBlobUrls();chatImageUrlCache.clear();chatImageUrlRequests.clear();
    groupListSignature="";groupListLastLoaded=0;groupLastSignature="";
    if(chatActiveGroup)groupClose();
    if(chatPeer)chatShowList();
@@ -833,48 +833,103 @@ async function openChat(id,name){
 const CHAT_IMAGE_PREFIX="[myplanner-image]:";
 const chatImageUrlCache=new Map();
 const chatImageUrlRequests=new Map();
+const chatImageBlobUrls=new Set();
+function chatRevokeImageBlobUrls(){
+ for(const url of chatImageBlobUrls)URL.revokeObjectURL(url);
+ chatImageBlobUrls.clear();
+}
+function chatRememberPhotoUrl(path,url,ttl){
+ const old=chatImageUrlCache.get(path);
+ if(old?.url!==url&&old?.url?.startsWith("blob:")){
+  URL.revokeObjectURL(old.url);chatImageBlobUrls.delete(old.url);
+ }
+ chatImageUrlCache.set(path,{url,expires:Date.now()+ttl});
+ if(chatImageUrlCache.size>180){
+  for(const [key,value] of chatImageUrlCache){
+   if(value.expires<=Date.now()||chatImageUrlCache.size>135){
+    if(value.url?.startsWith("blob:")){URL.revokeObjectURL(value.url);chatImageBlobUrls.delete(value.url)}
+    chatImageUrlCache.delete(key);
+   }
+  }
+ }
+}
+async function chatDownloadImageUrl(path){
+ // Authenticated fallback: unlike public URLs, this is still checked against
+ // storage.objects SELECT policies for the currently signed-in chat participant.
+ const {data,error}=await supabaseClient.storage.from("chat-photos").download(path);
+ if(error||!data)throw error||new Error("Photo download unavailable");
+ const url=URL.createObjectURL(data);
+ chatImageBlobUrls.add(url);
+ chatRememberPhotoUrl(path,url,6*60*1000);
+ return url;
+}
 async function chatGetSignedImageUrl(path){
  const cached=chatImageUrlCache.get(path);
- if(cached&&cached.expires>Date.now())return cached.url;
+ if(cached?.expires>Date.now())return cached.url;
  if(chatImageUrlRequests.has(path))return chatImageUrlRequests.get(path);
  const request=(async()=>{
-  const {data,error}=await supabaseClient.storage.from("chat-photos").createSignedUrl(path,3600);
-  if(error||!data?.signedUrl)throw error||new Error("Photo URL unavailable");
-  chatImageUrlCache.set(path,{url:data.signedUrl,expires:Date.now()+3300000});
-  if(chatImageUrlCache.size>250){
-   for(const [key,value] of chatImageUrlCache){if(value.expires<=Date.now()||chatImageUrlCache.size>200)chatImageUrlCache.delete(key)}
+  try{
+   const {data,error}=await supabaseClient.storage.from("chat-photos").createSignedUrl(path,3600);
+   if(error||!data?.signedUrl)throw error||new Error("Photo URL unavailable");
+   chatRememberPhotoUrl(path,data.signedUrl,50*60*1000);
+   return data.signedUrl;
+  }catch(signedError){
+   // Some iOS/network configurations fail signed-URL issuance or delivery.
+   // Try the authenticated download method before showing an error.
+   try{return await chatDownloadImageUrl(path)}
+   catch(downloadError){
+    const error=new Error("Photo access failed. Storage SELECT permission or the original photo may be missing.");
+    error.cause={signed:signedError?.message,download:downloadError?.message};
+    throw error;
+   }
   }
-  return data.signedUrl;
  })();
  chatImageUrlRequests.set(path,request);
  try{return await request}finally{chatImageUrlRequests.delete(path)}
 }
-/* Private photos remain private; show an actionable retry when Storage denies a signed URL. */
 function chatAttachStoredPhoto(node,path,isGroup=false){
  const wrap=document.createElement("span");wrap.className="chat-media-frame";
  const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.decoding="async";
  img.alt=chatText("照片加载中…","写真を読み込み中…","Loading photo...");
  const retry=document.createElement("button");retry.type="button";retry.className="chat-photo-retry";retry.hidden=true;
- retry.textContent=chatText("照片加载失败 · 点击重试","写真を読み込めません · 再試行","Photo unavailable · Retry");
+ retry.textContent=chatText("照片无法读取 · 点击重试","写真を読み込めません · 再試行","Photo unavailable · Retry");
+ retry.setAttribute("aria-label",retry.textContent);
  retry.addEventListener("pointerdown",event=>event.stopPropagation());
+ let activeRequest=0;
  const failed=(error)=>{
+  if(!wrap.isConnected)return;
   img.hidden=true;retry.hidden=false;
-  if(error)console.warn("Chat photo access unavailable",error?.message||error);
+  img.removeAttribute("src");
+  if(error)console.warn("Chat photo could not be loaded",path,error?.message||error,error?.cause||"");
+ };
+ const setPhoto=(url,requestId,allowDownload)=>{
+  if(!wrap.isConnected||requestId!==activeRequest)return;
+  img.onerror=()=>{
+   if(allowDownload){
+    // A previously issued signed URL can be rejected by an image request,
+    // even if createSignedUrl succeeded. Fall back to authorized download.
+    chatDownloadImageUrl(path).then(downloadUrl=>setPhoto(downloadUrl,requestId,false)).catch(failed);
+   }else failed(new Error("Image download or decoding failed"));
+  };
+  img.onload=()=>{
+   img.alt=chatText("聊天照片","チャット写真","Chat photo");
+   if(!isGroup&&Date.now()<chatAutoScrollUntil)chatScrollToLatest();
+  };
+  img.hidden=false;retry.hidden=true;img.src=url;
  };
  const load=(force=false)=>{
+  const id=++activeRequest;
   retry.hidden=true;img.hidden=false;
-  if(force)chatImageUrlCache.delete(path);
-  chatGetSignedImageUrl(path).then(url=>{
-   if(!wrap.isConnected)return;
-   img.onerror=()=>failed(new Error("Image download or decoding failed"));
-   img.onload=()=>{img.alt=chatText("聊天照片","チャット写真","Chat photo");if(!isGroup&&Date.now()<chatAutoScrollUntil)chatScrollToLatest()};
-   img.src=url;
-  }).catch(failed);
+  if(force){
+   const old=chatImageUrlCache.get(path);
+   if(old?.url?.startsWith("blob:")){URL.revokeObjectURL(old.url);chatImageBlobUrls.delete(old.url)}
+   chatImageUrlCache.delete(path);
+  }
+  chatGetSignedImageUrl(path).then(url=>setPhoto(url,id,!url.startsWith("blob:"))).catch(failed);
  };
  retry.addEventListener("click",event=>{event.stopPropagation();load(true)});
  img.addEventListener("click",event=>{event.stopPropagation();if(img.src)chatOpenPhotoPreview(img.src)});
  wrap.append(img,retry);node.append(wrap);
- // The render transaction attaches the node before this microtask.
  queueMicrotask(load);
 }
 async function chatPrepareUploadFile(file){
