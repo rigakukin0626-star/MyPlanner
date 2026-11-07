@@ -318,3 +318,19 @@ body.chat-open #pageChat .chat-send{
  z-index:1;
 }
 body.chat-open .bottom-tabs{z-index:50!important;}
+
+/* v48: unify chat colors with My Planner's blue theme */
+#pageChat .chat-app-header{background:#2563eb!important;}
+#pageChat .chat-brand-icon{color:#2563eb!important;}
+#pageChat .chat-header-add{background:rgba(255,255,255,.15);}
+#pageChat .chat-invite-section{background:#f5f8ff!important;border-bottom-color:#e2e9f7!important;}
+#pageChat .chat-add .button-primary{background:#2563eb!important;border-color:#2563eb!important;}
+#pageChat .chat-list-avatar,#pageChat .chat-peer-avatar{background:#e2ebff!important;color:#2563eb!important;}
+#pageChat .chat-conversation{background:#edf3fc!important;}
+#pageChat .chat-bubble{background:#fff!important;color:#1e2d46!important;}
+#pageChat .chat-bubble.mine{background:#dce8ff!important;color:#183c81!important;}
+#pageChat .chat-bubble small{color:#7184a5!important;}
+#pageChat .chat-send{background:#f8faff!important;border-top-color:#e0e8f6!important;}
+#pageChat .chat-send input:focus{border-color:#2563eb!important;}
+#pageChat .chat-send button{background:#2563eb!important;color:#fff!important;}
+#pageChat .chat-friend:hover{background:#f5f8ff!important;}
