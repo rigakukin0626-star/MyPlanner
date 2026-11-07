@@ -451,6 +451,24 @@ let chatLastFetchAt=0;
 const chatPending=new Map();
 function chatText(zh,ja,en){return tr(ja,zh,en)}
 function updateChatLanguage(){
+ const status=$("chatStatus");
+ if(status?.dataset?.friendsSyncedCount!==undefined&&status.dataset.friendsSyncedCount!==""){
+  const n=status.dataset.friendsSyncedCount;
+  status.textContent=chatText("好友列表已同步（"+n+"）","友達一覧を同期しました（"+n+"）","Friends synced ("+n+")");
+ }
+ if(chatMode==="group"){
+  const list=$("chatGroups");
+  if(list?.children.length){
+   list.querySelectorAll(".chat-friend").forEach(btn=>{
+    const hint=btn.querySelector(".chat-friend-info small");
+    if(hint)hint.textContent=chatText("点击进入群聊","タップしてグループを開く","Open group chat");
+    const avatar=btn.querySelector(".chat-list-avatar");
+    if(avatar)avatar.textContent=chatText("群","グ","G");
+   });
+   const empty=list.querySelector(".chat-group-empty");
+   if(empty)empty.textContent=chatText("还没有群聊，创建或加入一个吧","グループはまだありません。作成または参加してください","No groups yet. Create or join one.");
+  }
+ }
  const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"],chatBack:["戻る","返回","Back"]};
  for(const [id,values] of Object.entries(labels)){const el=$(id);if(el)el.textContent=values[uiLanguage==="ja"?0:uiLanguage==="zh"?1:2]}
  $("chatFriendCode").placeholder=chatText("粘贴好友的邀请码","友達のコードを貼り付け","Paste friend code");
@@ -473,12 +491,12 @@ function updateChatLanguage(){
  $("chatBack").setAttribute("aria-label",chatText("返回","戻る","Back"));
  $("chatBack").style.setProperty("--chat-back-label",JSON.stringify(chatText("返回","戻る","Back")));
 
- $("chatPrivateMode").textContent=chatText("私聊","個人","Private");
+ $("chatPrivateMode").textContent=chatText("私聊","個人チャット","Private");
  $("chatGroupMode").textContent=chatText("群聊","グループ","Groups");
  $("chatGroupName").placeholder=chatText("群名称","グループ名","Group name");
- $("chatCreateGroup").textContent=chatText("创建群聊","グループ作成","Create");
- $("chatGroupJoinCode").placeholder=chatText("群邀请码","招待コード","Group invite code");
- $("chatJoinGroup").textContent=chatText("加入群聊","参加","Join");
+ $("chatCreateGroup").textContent=chatText("创建群聊","グループを作成","Create group");
+ $("chatGroupJoinCode").placeholder=chatText("群邀请码","グループ招待コード","Group invite code");
+ $("chatJoinGroup").textContent=chatText("加入群聊","グループに参加","Join group");
  $("chatGroupInvite").textContent=chatText("邀请","招待","Invite");
  $("chatGroupInviteHeading").textContent=chatText("邀请成员","メンバーを招待","Invite members");
  $("chatGroupInviteHint").textContent=chatText("复制邀请码发送给好友，好友可用邀请码加入群聊。","招待コードを共有してください","Share the code so friends can join.");
@@ -498,7 +516,7 @@ function updateChatLanguage(){
  $("chatMessageInput").placeholder=chatText("输入消息…","メッセージを入力…","Type a message...");
  $("chatSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
 }
-function chatStatus(message){$("chatStatus").textContent=message}
+function chatStatus(message){$("chatStatus").textContent=message;if(!/^(好友列表已同步|友達一覧を同期しました|Friends synced)/.test(message))delete $("chatStatus").dataset.friendsSyncedCount}
 function chatError(error){chatStatus(error?.message||String(error))}
 function chatShowList(){if(chatActiveGroup)groupClose();document.body.classList.remove("chat-open");chatConfirmedCache=[];chatCachePeer=null;chatReadLastId=null;chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
 function chatStopRealtime(){if(chatSubscription){supabaseClient.removeChannel(chatSubscription);chatSubscription=null}}
@@ -546,6 +564,7 @@ async function loadChatFriends(){
  const {data,error}=await supabaseClient.from("chat_friends").select("user_a,user_b,created_at").or("user_a.eq."+currentUser.id+",user_b.eq."+currentUser.id).order("created_at",{ascending:false});
  if(error){chatError(chatText("好友列表读取失败：","友達一覧の読み込みに失敗：","Failed to load friends: ")+error.message);return}
  const ids=[...new Set((data||[]).map(f=>f.user_a===currentUser.id?f.user_b:f.user_a))];
+ $("chatStatus").dataset.friendsSyncedCount=String(ids.length);
  chatStatus(chatText("好友列表已同步（"+ids.length+"）","友達一覧を同期しました（"+ids.length+"）","Friends synced ("+ids.length+")"));
  const root=$("chatFriends");const fragment=document.createDocumentFragment();
  if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");fragment.append(empty);if(requestId===chatFriendsRequestId&&!chatPeer)root.replaceChildren(fragment);try{localStorage.setItem(CHAT_FRIEND_CACHE_KEY,JSON.stringify({userId:currentUser.id,friends:[]}))}catch(error){}return}
@@ -866,14 +885,14 @@ let chatMode="private",chatActiveGroup=null,groupPolling=false,groupLastSignatur
 let groupListLoading=false,groupListLastLoaded=0,groupListSignature="",groupMessageRefreshTimer=null,groupMessageLastFetched=0;
 const groupListCacheKey="myplanner-groups-v1";
 function groupRenderList(groups){
- const signature=JSON.stringify(groups.map(g=>[g.id,g.name,g.created_by]));
+ const signature=uiLanguage+"|"+JSON.stringify(groups.map(g=>[g.id,g.name,g.created_by]));
  if(signature===groupListSignature&&$("chatGroups").children.length)return;
  groupListSignature=signature;
  const root=$("chatGroups"),fragment=document.createDocumentFragment();
  if(!groups.length){const empty=document.createElement("p");empty.className="chat-group-empty";empty.textContent=chatText("还没有群聊，创建或加入一个吧","グループはまだありません。作成または参加してください","No groups yet. Create or join one.");fragment.append(empty)}
  for(const group of groups){
   const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
-  const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent="群";
+  const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=chatText("群","グ","G");
   const info=document.createElement("span");info.className="chat-friend-info";
   const name=document.createElement("strong");name.textContent=group.name;
   const hint=document.createElement("small");hint.textContent=chatText("点击进入群聊","タップしてグループを開く","Open group chat");
@@ -900,6 +919,7 @@ function groupMode(mode){
  $("chatToggleAdd").hidden=mode==="group";
  $("chatInviteSection").hidden=true;
  $("chatStatus").hidden=mode==="group";
+ if(mode==="private"&&$("chatStatus").dataset.friendsSyncedCount!==undefined)updateChatLanguage();
  $("chatTitle").textContent=mode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
  if(mode==="group"){groupShowCachedList();groupLoadList()}else loadChatFriends();
 }
