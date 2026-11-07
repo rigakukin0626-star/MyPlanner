@@ -424,3 +424,21 @@ button,a,input,textarea,select,[role="button"],.bottom-tabs{touch-action:manipul
 #accountUsernameSection .chat-username-row input{flex:1;min-width:0;border:1px solid #dbe4f2;border-radius:11px;padding:11px;font-size:16px}
 #accountUsernameSection .chat-username-row button{white-space:nowrap}
 #accountUsernameSection label{display:block;margin-bottom:8px;font-size:14px;font-weight:700;color:#3b527a}
+
+/* v70: account settings in full-width rows, not a squeezed grid column */
+#pageSettings #authPanel{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:16px!important;min-width:0!important}
+#pageSettings #authPanel>*{width:100%;min-width:0;box-sizing:border-box}
+#pageSettings #authPanel .auth-copy h2{font-size:18px!important;overflow-wrap:normal!important;word-break:normal!important}
+#pageSettings #authPanel .auth-copy .auth-status{font-size:13px!important;line-height:1.5!important;overflow-wrap:anywhere}
+#pageSettings #authPanel .auth-form.signed-in{justify-content:flex-start!important}
+#pageSettings #authPanel .auth-buttons{justify-content:flex-start!important}
+#accountUsernameSection{margin:0!important;padding:16px!important;border:1px solid #dce6f7;border-radius:16px;background:#f5f8ff}
+#accountUsernameSection[hidden]{display:none!important}
+.account-username-heading{display:flex;flex-direction:column;gap:4px;margin-bottom:15px}
+.account-username-heading span{font-weight:800;color:#213a68;font-size:17px}
+.account-username-heading small{color:#7c8da8;font-size:12px}
+#accountUsernameSection label{display:block;margin:0 0 8px;font-size:13px;color:#4b6085;font-weight:700}
+.account-username-row{display:flex;gap:10px;align-items:stretch;min-width:0}
+.account-username-row input{min-width:0;flex:1;width:0;padding:12px;border:1px solid #dce5f5;border-radius:12px;background:white;font-size:16px}
+.account-username-row button{flex:0 0 auto;border-radius:12px;padding:10px 16px}
+#accountUsernameStatus:empty{display:none}
