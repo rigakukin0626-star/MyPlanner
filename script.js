@@ -1597,9 +1597,11 @@ async function groupLoadInviteFriends(){
  if(!isOwner){root.replaceChildren();return}
  // Keep the panel stable while fetching; no temporary loading text or layout jump.
  const prepared=groupPanelPrefetch?.groupId===groupId&&groupPanelPrefetch?.userId===currentUser.id?groupPanelPrefetch:null;
+ const prefetchedFriends=prepared?.friends,prefetchedInviteMembers=prepared?.inviteMembers;
+ if(prepared){prepared.friends=null;prepared.inviteMembers=null}
  const [friendsResult,membersResult]=await Promise.all([
-  prepared?.friends||supabaseClient.from("chat_friends").select("user_a,user_b").or("user_a.eq."+currentUser.id+",user_b.eq."+currentUser.id),
-  prepared?.inviteMembers||supabaseClient.from("chat_group_members").select("user_id").eq("group_id",groupId)
+  prefetchedFriends||supabaseClient.from("chat_friends").select("user_a,user_b").or("user_a.eq."+currentUser.id+",user_b.eq."+currentUser.id),
+  prefetchedInviteMembers||supabaseClient.from("chat_group_members").select("user_id").eq("group_id",groupId)
  ]);
  if(!chatActiveGroup||chatActiveGroup.id!==groupId||$("chatGroupInvitePanel").hidden)return;
  if(friendsResult.error||membersResult.error){if(!cached)root.textContent=(friendsResult.error||membersResult.error).message;return}
@@ -1649,7 +1651,9 @@ async function groupShowMembers(){
  const cached=root.dataset.groupId===groupId&&root.dataset.userId===currentUser.id&&root.children.length>0;
  if(!cached){root.replaceChildren();root.dataset.groupId=groupId;root.dataset.userId=currentUser.id}
  const prepared=groupPanelPrefetch?.groupId===groupId&&groupPanelPrefetch?.userId===currentUser.id?groupPanelPrefetch:null;
- const {data,error}=await (prepared?.members||supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId).order("joined_at"));
+ const prefetchedMembers=prepared?.members;
+ if(prepared)prepared.members=null;
+ const {data,error}=await (prefetchedMembers||supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId).order("joined_at"));
  if(error){groupError(error);return}
  if(!chatActiveGroup||chatActiveGroup.id!==groupId||panel.hidden)return;
  root.replaceChildren();
