@@ -170,3 +170,7 @@
 .bottom-tabs>.tab{min-width:0;padding-left:2px;padding-right:2px;}
 .bottom-tabs>.tab span:last-child{font-size:clamp(10px,2.8vw,13px);white-space:nowrap;}
 #pageLongTerm .tasks-panel{width:100%;}
+
+/* Countdown for long-term plans */
+.longterm-hint{font-size:13px;line-height:1.5;color:#8793aa;margin:0 0 14px;padding:0 8px;}
+.task-countdown{display:inline-flex;align-items:center;max-width:100%;font-size:12px;font-weight:600;color:#2563eb;background:#eef4ff;border-radius:999px;padding:5px 9px;white-space:normal;}
