@@ -23,7 +23,7 @@ function tr(ja,zh,en){return uiLanguage==="zh"?zh:uiLanguage==="en"?(en||uiEngli
 function applyLanguage(){
  document.documentElement.lang=uiLanguage==="zh"?"zh-CN":uiLanguage;
  const picker=$("languageSelect");if(picker)picker.value=uiLanguage;
- const auth=$("authStatus");if(auth?.dataset.statusKey==="synced"&&currentUser)auth.textContent=tr("同期済み","已同步","Synced")+" · "+currentUser.email;
+ const auth=$("authStatus");if(auth&&currentUser&&(auth.dataset.statusKey==="synced"||/^(同期済み|已同步|Synced)\s*[·・]/.test(auth.textContent||""))){auth.dataset.statusKey="synced";auth.textContent=tr("同期済み","已同步","Synced")+" · "+currentUser.email;}
  document.querySelectorAll(".bilingual").forEach(el=>{
   if(!el.dataset.ja)return;
   el.textContent=tr(el.dataset.ja,el.dataset.zh);
@@ -97,7 +97,7 @@ async function loadCloudTasks() {
   await queueCloudUpsert();
 }
 function bilingual(ja,zh){return tr(ja,zh);}
-function setAuthStatus(message,statusKey=""){const el=$("authStatus");if(el){el.dataset.statusKey=statusKey;el.textContent=message;}}
+function setAuthStatus(message,statusKey=""){const el=$("authStatus");if(el){el.dataset.statusKey=statusKey;el.textContent=statusKey==="synced"&&currentUser?tr("同期済み","已同步","Synced")+" · "+currentUser.email:message;}}
 async function refreshAuthUI(){
   const {data:{session}}=await supabaseClient.auth.getSession(); currentUser=session?.user||null;
   $("authEmail").hidden=!!currentUser; $("authPassword").hidden=!!currentUser;
