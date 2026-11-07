@@ -789,24 +789,41 @@ function chatHideForMe(id){
  try{localStorage.setItem(CHAT_HIDDEN_KEY,JSON.stringify(all))}catch(error){console.warn("Could not save hidden messages",error)}
  chatLastSignature="";chatRenderMessages();
 }
+const chatRemovingMessages=new Set();
 async function chatRemoveMessage(item,recall){
  if(!currentUser||!chatPeer||!item?.id)return;
- const owner=item.sender_id===currentUser.id;
- if(recall&&!owner)return;
+ if(recall&&item.sender_id!==currentUser.id)return;
+ const id=String(item.id);
+ if(chatRemovingMessages.has(id))return;
  const question=recall?chatText("撤回这条消息？对方的聊天记录也将删除。","このメッセージを取り消しますか？相手側からも削除されます。","Recall this message for everyone?"):chatText("仅在此设备隐藏这条消息？","この端末でのみ非表示にしますか？","Hide this message on this device only?");
  if(!window.confirm(question))return;
- if(!recall){chatHideForMe(item.id);return}
+ if(!recall){chatHideForMe(id);return}
  const peer=chatPeer,userId=currentUser.id;
+ chatRemovingMessages.add(id);
+ document.querySelectorAll(".chat-bubble[data-message-id]").forEach(node=>{
+  if(node.dataset.messageId===id)node.querySelectorAll(".chat-message-action").forEach(btn=>btn.disabled=true);
+ });
+ chatStatus(chatText("正在撤回消息…","メッセージを取り消しています…","Recalling message…"));
  try{
   const {data,error}=await supabaseClient.from("chat_messages").delete().eq("id",item.id).eq("sender_id",userId).eq("recipient_id",peer).select("id");
   if(error)throw error;
-  if(!data?.length)throw new Error(chatText("服务器未允许删除，请检查消息删除权限。","サーバーが削除を許可しませんでした。","Server did not authorize deletion."));
+  if(!data?.length)throw new Error(chatText("服务器未授权删除。请在 Supabase 中配置 chat_messages 的 DELETE 权限。","サーバーに削除権限がありません。Supabase の DELETE ポリシーを確認してください。","Server did not authorize deletion. Check the chat_messages DELETE policy in Supabase."));
   if(currentUser?.id!==userId||chatPeer!==peer)return;
-  chatConfirmedCache=chatConfirmedCache.filter(m=>String(m.id)!==String(item.id));
+  chatConfirmedCache=chatConfirmedCache.filter(m=>String(m.id)!==id);
   chatSaveSnapshot(peer,chatConfirmedCache);
   chatLastSignature="";chatRenderMessages();
-  loadChatMessages();
- }catch(error){chatError(chatText("撤回失败：","取り消しに失敗：","Recall failed: ")+(error.message||String(error)))}
+  chatStatus(chatText("消息已撤回","メッセージを取り消しました","Message recalled"));
+  await loadChatMessages();
+ }catch(error){
+  const message=chatText("撤回失败：","取り消しに失敗：","Recall failed: ")+(error.message||String(error));
+  chatError(message);
+  window.alert(message);
+ }finally{
+  chatRemovingMessages.delete(id);
+  document.querySelectorAll(".chat-bubble[data-message-id]").forEach(node=>{
+   if(node.dataset.messageId===id)node.querySelectorAll(".chat-message-action").forEach(btn=>btn.disabled=false);
+  });
+ }
 }
 function chatMessageActions(bubble,item){
  const actions=document.createElement("span");actions.className="chat-message-actions";
