@@ -736,7 +736,7 @@ async function openChat(id,name){
  chatStopRealtime();
  chatReplyTarget=null;chatUpdateReplyPreview();chatShowBuildVersion();chatLastSignature="";chatConfirmedCache=chatRestoreSnapshot(id);chatCachePeer=id;chatReadLastId=null;chatPeer=id;chatAutoScrollUntil=Date.now()+8000;document.body.classList.add("chat-open");
  $("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");
- $("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
+ $("chatPeerName").dataset.originalName=name;$("chatPeerName").textContent=chatRemarkFor(id)||name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
  chatRenderMessages();chatScrollToLatest();
  const userId=currentUser.id;
  chatRecallChannel=supabaseClient.channel(chatRecallTopic(userId,id))
@@ -954,12 +954,44 @@ function chatMessageActions(bubble,item){
  bubble.addEventListener("selectstart",e=>e.preventDefault());
  bubble.addEventListener("contextmenu",e=>{e.preventDefault();cancel();if(!longPressed)chatOpenMessageMenu(item,bubble)});
 }
+const CHAT_REMARKS_KEY="myplanner-chat-remarks-v1";
+function chatRemarkFor(userId){
+ if(!currentUser||!userId)return "";
+ try{return String(JSON.parse(localStorage.getItem(CHAT_REMARKS_KEY)||"{}")[currentUser.id]?.[userId]||"")}catch{return ""}
+}
+function chatSetRemarkFor(userId){
+ if(!currentUser||!userId||userId===currentUser.id)return;
+ const old=chatRemarkFor(userId);
+ const value=prompt(chatText("设置备注（留空则恢复原名称）","表示名を設定（空欄で元に戻す）","Set a nickname (blank to reset)"),old);
+ if(value===null)return;
+ const remark=value.trim().slice(0,40);
+ try{
+  const all=JSON.parse(localStorage.getItem(CHAT_REMARKS_KEY)||"{}");
+  const own=all[currentUser.id]||{};
+  if(remark)own[userId]=remark;else delete own[userId];
+  all[currentUser.id]=own;localStorage.setItem(CHAT_REMARKS_KEY,JSON.stringify(all));
+ }catch(error){alert(chatText("备注保存失败","保存できませんでした","Could not save nickname"));return}
+ chatLastSignature="";groupLastSignature="";
+ if(chatPeer===userId&&$("chatPeerName"))$("chatPeerName").textContent=remark||$("chatPeerName").dataset.originalName||userId.slice(0,8);
+ if(chatPeer)chatRenderMessages();
+ if(chatActiveGroup)groupLoadMessages();
+}
 function chatBubbleAvatar(bubble, senderId, isGroup=false){
  const mine=senderId===currentUser?.id;
- let label=mine?chatText("我","私","Me"):isGroup?String(senderId||"?").slice(0,1).toUpperCase():String($("chatPeerName")?.textContent||$("chatTitle")?.textContent||"?").trim().slice(0,1).toUpperCase();
+ const remark=chatRemarkFor(senderId);
+ let label=mine?chatText("我","私","Me"):remark?remark.slice(0,1):isGroup?String(senderId||"?").slice(0,1).toUpperCase():String($("chatPeerName")?.textContent||$("chatTitle")?.textContent||"?").trim().slice(0,1).toUpperCase();
  if(!label)label="?";
  bubble.dataset.avatar=label;
  bubble.classList.add("chat-with-avatar");
+ if(!mine){
+  bubble.addEventListener("click",event=>{
+   const rect=bubble.getBoundingClientRect();
+   const size=56,gap=10;
+   const onAvatar=event.clientX>=rect.left-size-gap&&event.clientX<rect.left-1&&event.clientY>=rect.bottom-size&&event.clientY<=rect.bottom;
+   if(!onAvatar)return;
+   event.preventDefault();event.stopPropagation();chatCloseMessageMenu();chatSetRemarkFor(senderId);
+  });
+ }
 }
 function chatRenderMessages(){
  if(!currentUser||!chatPeer)return;
@@ -1464,7 +1496,7 @@ function groupRenderMessages(items){
  for(const item of items){
   if(hidden.has(String(item.id)))continue;
   const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");chatBubbleAvatar(bubble,item.sender_id,true);
-  const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):item.sender_id.slice(0,8);
+  const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):(chatRemarkFor(item.sender_id)||item.sender_id.slice(0,8));
   const body=document.createElement("span");
   if(item.body.startsWith("[myplanner-group-image]:")){
    const path=item.body.slice("[myplanner-group-image]:".length);
@@ -1495,7 +1527,7 @@ async function groupLoadMessages(){
   const {data,error}=await supabaseClient.from("chat_group_messages").select("id,sender_id,body,created_at").eq("group_id",groupId).order("created_at",{ascending:false}).limit(150);
   if(error)throw error;
   if(!chatActiveGroup||chatActiveGroup.id!==groupId||currentUser?.id!==userId)return;
-  const items=(data||[]).reverse(),signature=uiLanguage+"|"+items.map(m=>m.id).join(",");
+  const items=(data||[]).reverse(),signature=uiLanguage+"|"+items.map(m=>m.id+":"+chatRemarkFor(m.sender_id)).join(",");
   if(signature===groupLastSignature)return;
   groupLastSignature=signature;
   groupRenderMessages(items);
