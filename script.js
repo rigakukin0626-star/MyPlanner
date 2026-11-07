@@ -1497,6 +1497,16 @@ function groupPreparePanels(group){
  const inviteMembers=supabaseClient.from("chat_group_members").select("user_id").eq("group_id",groupId).then(x=>x);
  groupPanelPrefetch={groupId,userId,members,friends,inviteMembers};
 }
+let groupPanelWarm=null;
+function groupWarmPanels(group){
+ if(!currentUser||!group)return;
+ const state={groupId:group.id,userId:currentUser.id,membersPending:true,invitePending:true};
+ groupPanelWarm=state;
+ groupShowMembers(true).catch(error=>console.warn("Member preload failed",error)).finally(()=>{state.membersPending=false});
+ if(group.created_by===currentUser.id){
+  groupLoadInviteFriends(true).catch(error=>console.warn("Invite preload failed",error)).finally(()=>{state.invitePending=false});
+ }else state.invitePending=false;
+}
 async function groupOpen(group){
  if(groupMessageRefreshTimer){clearTimeout(groupMessageRefreshTimer);groupMessageRefreshTimer=null}
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
@@ -1509,6 +1519,7 @@ async function groupOpen(group){
  $("chatGroupConversation").hidden=false;document.body.classList.add("chat-open");
  $("chatGroupMessages").replaceChildren();$("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
  groupShowCachedMessages(group.id);
+ groupWarmPanels(group);
  groupChannel=supabaseClient.channel("group-"+group.id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+group.id},()=>groupScheduleRefresh())
  .on("postgres_changes",{event:"DELETE",schema:"public",table:"chat_group_messages"},()=>groupScheduleRefresh())
@@ -1610,14 +1621,16 @@ $("chatGroupInvite").addEventListener("click",()=>{
  $("chatGroupInvitePanel").hidden=false;
  groupLoadInviteFriends();
 });
-async function groupLoadInviteFriends(){
+async function groupLoadInviteFriends(warm=false,force=false){
  if(!chatActiveGroup||!currentUser)return;
  const groupId=chatActiveGroup.id;
  const area=$("chatGroupFriendInvite"),root=$("chatGroupFriendInviteList");
  const isOwner=chatActiveGroup.created_by===currentUser.id;
  area.hidden=!isOwner;
  const cached=root.dataset.groupId===groupId&&root.dataset.userId===currentUser.id&&root.children.length>0;
- if(!cached){root.replaceChildren();root.dataset.groupId=groupId;root.dataset.userId=currentUser.id}
+ if(!cached){root.replaceChildren();root.dataset.groupId=groupId;root.dataset.userId=currentUser.id;root.dataset.renderedAt="0"}
+ if(!warm&&!force&&cached&&Date.now()-Number(root.dataset.renderedAt||0)<30000)return;
+ if(!warm&&groupPanelWarm?.groupId===groupId&&groupPanelWarm?.userId===currentUser.id&&groupPanelWarm.invitePending)return;
  if(!isOwner){root.replaceChildren();return}
  // Keep the panel stable while fetching; no temporary loading text or layout jump.
  const prepared=groupPanelPrefetch?.groupId===groupId&&groupPanelPrefetch?.userId===currentUser.id?groupPanelPrefetch:null;
@@ -1627,13 +1640,13 @@ async function groupLoadInviteFriends(){
   prefetchedFriends||supabaseClient.from("chat_friends").select("user_a,user_b").or("user_a.eq."+currentUser.id+",user_b.eq."+currentUser.id),
   prefetchedInviteMembers||supabaseClient.from("chat_group_members").select("user_id").eq("group_id",groupId)
  ]);
- if(!chatActiveGroup||chatActiveGroup.id!==groupId||$("chatGroupInvitePanel").hidden)return;
+ if(!chatActiveGroup||chatActiveGroup.id!==groupId||($("chatGroupInvitePanel").hidden&&!warm))return;
  if(friendsResult.error||membersResult.error){if(!cached)root.textContent=(friendsResult.error||membersResult.error).message;return}
  const ids=[...new Set((friendsResult.data||[]).map(f=>f.user_a===currentUser.id?f.user_b:f.user_a))].filter(id=>id!==currentUser.id);
  const members=new Set((membersResult.data||[]).map(m=>m.user_id));
  if(!ids.length){root.textContent=chatText("还没有好友，可以先添加好友","友達がまだいません","No friends yet");return}
  const {data:profiles,error}=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);
- if(!chatActiveGroup||chatActiveGroup.id!==groupId||$("chatGroupInvitePanel").hidden)return;
+ if(!chatActiveGroup||chatActiveGroup.id!==groupId||($("chatGroupInvitePanel").hidden&&!warm))return;
  if(error){if(!cached)root.textContent=error.message;return}
  const fragment=document.createDocumentFragment();
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name]));
@@ -1652,7 +1665,7 @@ async function groupLoadInviteFriends(){
   });
   row.append(name,btn);fragment.append(row);
  }
- root.replaceChildren(fragment);
+ root.replaceChildren(fragment);root.dataset.renderedAt=String(Date.now());
 }
 $("chatGroupInviteClose").addEventListener("click",()=>{$("chatGroupInvitePanel").hidden=true});
 $("chatGroupCopyInvite").addEventListener("click",async()=>{
@@ -1666,21 +1679,22 @@ $("chatGroupShareInvite").addEventListener("click",async()=>{
  $("chatGroupInviteCode").focus();$("chatGroupInviteCode").select();
  $("chatGroupInviteFeedback").textContent=chatText("请复制上方邀请码分享给好友","上のコードをコピーして共有","Copy the code above to share");
 });
-async function groupShowMembers(){
+async function groupShowMembers(warm=false,force=false){
  if(!chatActiveGroup)return;
  const panel=$("chatGroupMembersPanel"),root=$("chatGroupMembersList");
- $("chatGroupInvitePanel").hidden=true;
- panel.hidden=false;
+ if(!warm){$("chatGroupInvitePanel").hidden=true;panel.hidden=false;}
  const groupId=chatActiveGroup.id;
  const cached=root.dataset.groupId===groupId&&root.dataset.userId===currentUser.id&&root.children.length>0;
- if(!cached){root.replaceChildren();root.dataset.groupId=groupId;root.dataset.userId=currentUser.id}
+ if(!cached){root.replaceChildren();root.dataset.groupId=groupId;root.dataset.userId=currentUser.id;root.dataset.renderedAt="0"}
+ if(!warm&&!force&&cached&&Date.now()-Number(root.dataset.renderedAt||0)<30000)return;
+ if(!warm&&groupPanelWarm?.groupId===groupId&&groupPanelWarm?.userId===currentUser.id&&groupPanelWarm.membersPending)return;
  const prepared=groupPanelPrefetch?.groupId===groupId&&groupPanelPrefetch?.userId===currentUser.id?groupPanelPrefetch:null;
  const prefetchedMembers=prepared?.members;
  if(prepared)prepared.members=null;
  const {data,error}=await (prefetchedMembers||supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId).order("joined_at"));
  if(error){groupError(error);return}
- if(!chatActiveGroup||chatActiveGroup.id!==groupId||panel.hidden)return;
- root.replaceChildren();
+ if(!chatActiveGroup||chatActiveGroup.id!==groupId||(panel.hidden&&!warm))return;
+ const fragment=document.createDocumentFragment();
  $("chatGroupAddMember").hidden=chatActiveGroup.created_by!==currentUser.id;
  $("chatGroupDisband").hidden=chatActiveGroup.created_by!==currentUser.id;
  if(chatActiveGroup.created_by===currentUser.id){
@@ -1702,7 +1716,7 @@ async function groupShowMembers(){
    if(chatActiveGroup?.id===active.id){chatActiveGroup.name=name;$("chatGroupTitle").textContent=name}
    groupListLastLoaded=0;groupListSignature="";
   });
-  renameRow.append(renameButton);root.append(renameRow);
+  renameRow.append(renameButton);fragment.append(renameRow);
  }
  const members=[...new Map((data||[]).map(m=>[m.user_id,m])).values()];
  const ids=members.map(x=>x.user_id);
@@ -1736,12 +1750,13 @@ async function groupShowMembers(){
    kick.addEventListener("click",async()=>{
     if(!confirm(chatText("确定移除此成员？","このメンバーを削除しますか？","Remove this member?")))return;
     const {error}=await supabaseClient.rpc("chat_remove_group_member",{target_group:groupId,target_user:member.user_id});
-    if(error)groupError(error);else groupShowMembers();
+    if(error)groupError(error);else groupShowMembers(false,true);
    });row.append(kick);
   }
-  root.append(row);
+  fragment.append(row);
  }
- panel.hidden=false;
+ root.replaceChildren(fragment);root.dataset.renderedAt=String(Date.now());
+ if(!warm)panel.hidden=false;
 }
 $("chatGroupAddByUsername").addEventListener("click",async()=>{
  if(!chatActiveGroup||!currentUser||chatActiveGroup.created_by!==currentUser.id)return;
@@ -1760,7 +1775,7 @@ $("chatGroupAddByUsername").addEventListener("click",async()=>{
   if(chatActiveGroup?.id!==groupId)return;
   $("chatGroupAddUsername").value="";
   status.textContent=chatText("已添加 @","追加しました @","Added @")+person.username;
-  await groupShowMembers();
+  await groupShowMembers(false,true);
  }catch(error){status.textContent=error?.message||String(error)}
  finally{button.disabled=false}
 });
