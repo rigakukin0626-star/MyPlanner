@@ -349,6 +349,17 @@ let chatPeer=null,chatSubscription=null,chatRefreshBusy=false,chatLastSignature=
 let chatConfirmedCache=[],chatCachePeer=null;
 let chatReadBusy=false,chatReadLastId=null;
 let chatAutoScrollUntil=0;
+function chatSessionKey(peer){return "myplanner-chat-cache-"+currentUser.id+"-"+peer}
+function chatRestoreSnapshot(peer){
+ try{
+  const saved=JSON.parse(sessionStorage.getItem(chatSessionKey(peer))||"[]");
+  return Array.isArray(saved)?saved.filter(m=>m&&typeof m.id!=="undefined"&&typeof m.body==="string").slice(-80):[];
+ }catch{return []}
+}
+function chatSaveSnapshot(peer,items){
+ try{sessionStorage.setItem(chatSessionKey(peer),JSON.stringify(items.slice(-80)))}catch{}
+}
+
 function chatScrollToLatest(){const root=$("chatMessages");if(!root)return;root.scrollTop=root.scrollHeight;requestAnimationFrame(()=>{if(root.isConnected)root.scrollTop=root.scrollHeight})}
 let chatLastFetchAt=0;
 const chatPending=new Map();
@@ -418,9 +429,10 @@ function chatAppendRealtime(item){
 }
 async function openChat(id,name){
  chatStopRealtime();
- chatLastSignature="";chatConfirmedCache=[];chatCachePeer=id;chatReadLastId=null;chatPeer=id;chatAutoScrollUntil=Date.now()+8000;document.body.classList.add("chat-open");
+ chatLastSignature="";chatConfirmedCache=chatRestoreSnapshot(id);chatCachePeer=id;chatReadLastId=null;chatPeer=id;chatAutoScrollUntil=Date.now()+8000;document.body.classList.add("chat-open");
  $("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");
  $("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
+ chatRenderMessages();chatScrollToLatest();
  const userId=currentUser.id;
  chatSubscription=supabaseClient.channel("private-chat-"+userId+"-"+id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"recipient_id=eq."+userId},payload=>{if(chatPeer===payload.new.sender_id){chatAppendRealtime(payload.new);loadChatMessages()}})
@@ -440,7 +452,7 @@ function chatMessageContent(node,body){
  if(typeof body==="string"&&body.startsWith(CHAT_IMAGE_PREFIX)){
   const path=body.slice(CHAT_IMAGE_PREFIX.length);
   if(!/^([0-9a-f-]{36})\/([0-9a-f-]{36})\/([0-9a-f-]{36})\.(jpg|png|webp|gif)$/.test(path)){node.textContent="图片格式无效";return}
-  const img=document.createElement("img");img.className="chat-photo";img.alt=chatText("照片加载中…","写真を読み込み中…","Loading photo…");
+  const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.decoding="async";img.alt=chatText("照片加载中…","写真を読み込み中…","Loading photo…");
   node.append(img);
   const cached=chatImageUrlCache.get(path);
   if(cached&&cached.expires>Date.now()){img.src=cached.url;return}
@@ -506,6 +518,7 @@ async function loadChatMessages(){
  if(error){chatRefreshBusy=false;chatError(error.message);return}
  if(chatPeer!==requestedPeer){chatRefreshBusy=false;return}
  chatConfirmedCache=(data||[]).reverse();
+ chatSaveSnapshot(requestedPeer,chatConfirmedCache);
  chatLastFetchAt=Date.now();
  chatCachePeer=requestedPeer;
  chatRenderMessages();
