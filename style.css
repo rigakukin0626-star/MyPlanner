@@ -1025,3 +1025,49 @@ html[data-theme="dark"] #pageChat .chat-messages .chat-bubble.chat-with-avatar::
   transition-duration:.01ms!important;
  }
 }
+
+
+/* v143 visual refresh: cosmetic-only, preserve existing structure and functionality. */
+:root{--ui-round:20px;--ui-ease:cubic-bezier(.2,.75,.25,1)}
+.app-shell{max-width:1120px}
+.topbar h1{letter-spacing:-1.2px;line-height:1.12}
+.subtitle{line-height:1.5}
+.panel,.overview,#pageChat .chat-panel{
+ border-radius:var(--ui-round);
+}
+.panel,.overview{
+ box-shadow:0 7px 28px rgba(27,49,88,.055);
+}
+.section-heading h2{letter-spacing:-.35px;line-height:1.3}
+.button,.icon-button,.task-action,.calendar-day,.bottom-tabs .tab{
+ transition:background-color .16s var(--ui-ease),color .16s var(--ui-ease),box-shadow .16s var(--ui-ease),border-color .16s var(--ui-ease);
+}
+.button:active,.icon-button:active,.bottom-tabs .tab:active{transform:scale(.975)}
+.button-primary{box-shadow:0 5px 15px rgba(37,99,235,.17)}
+.task-item{transition:background-color .16s var(--ui-ease)}
+.task-item:focus-within{border-radius:10px;background:rgba(96,165,250,.055)}
+.task-form :is(input,select),.edit-dialog :is(input,select),#pageChat :is(input,textarea,select){
+ transition:border-color .16s var(--ui-ease),box-shadow .16s var(--ui-ease);
+}
+.task-form :is(input,select):focus,.edit-dialog :is(input,select):focus,#pageChat :is(input,textarea,select):focus{
+ border-color:#6c9cf4;
+ box-shadow:0 0 0 3px rgba(96,165,250,.13);
+}
+#pageChat .chat-bubble{line-height:1.48;letter-spacing:.005em}
+#pageChat .chat-bubble.chat-with-avatar::before{box-shadow:0 1px 4px rgba(0,0,0,.10)}
+.bottom-tabs{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.bottom-tabs .tab{border-radius:14px}
+.bottom-tabs .tab.active{font-weight:750}
+@media(max-width:700px){
+ .app-shell{padding-left:14px;padding-right:14px}
+ .topbar{margin-bottom:22px}
+ .panel,.overview{border-radius:22px}
+ .panel{padding:19px}
+ .section-heading{gap:10px}
+ .task-item{padding-top:15px;padding-bottom:15px}
+ .bottom-tabs .tab{min-height:52px}
+}
+@media(prefers-reduced-motion:reduce){
+ .button,.icon-button,.task-action,.calendar-day,.bottom-tabs .tab,.task-item{transition:none!important}
+ .button:active,.icon-button:active,.bottom-tabs .tab:active{transform:none!important}
+}
