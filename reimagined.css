@@ -1,0 +1,327 @@
+
+/* My Planner NOVA • complete reversible visual system, v167.
+   The old style.css remains untouched. Remove this file's link to revert this look. */
+:root{
+  --nova-bg:#f0f2ec;--nova-paper:#fff;--nova-ink:#18251d;
+  --nova-muted:#78867c;--nova-line:#e0e6df;--nova-forest:#183b2b;
+  --nova-forest-2:#254b37;--nova-lime:#d5fc84;
+  --nova-pale:#eaf1e4;--nova-chat:#edf1e9;--nova-glow:0 14px 40px rgba(27,54,38,.065);
+  --nova-curve:26px;
+}
+html{scroll-behavior:auto}
+body.nova-ui{
+  background:var(--nova-bg)!important;
+  color:var(--nova-ink)!important;
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans SC",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+body.nova-ui button,body.nova-ui input,body.nova-ui select,body.nova-ui textarea{font-family:inherit}
+body.nova-ui .app-shell{
+  max-width:1080px!important;
+  margin:0 auto!important;
+  padding:22px 22px 150px!important;
+}
+body.nova-ui .topbar{
+  display:flex!important;align-items:center!important;
+  justify-content:space-between!important;
+  padding:10px 0 24px!important;margin-bottom:16px!important;
+  border:0!important;background:transparent!important;
+  gap:16px!important;
+}
+body.nova-ui .nova-identity{display:flex;align-items:center;gap:14px;min-width:0}
+body.nova-ui .nova-emblem{
+  flex:none;width:58px;height:58px;
+  display:grid;place-items:center;
+  background:var(--nova-forest);
+  color:var(--nova-lime);
+  border-radius:19px;
+  font-size:38px;font-weight:700;
+  line-height:1;
+  transform:rotate(-6deg);
+  box-shadow:0 9px 22px rgba(19,57,38,.14);
+}
+body.nova-ui .nova-identity-copy{min-width:0}
+body.nova-ui .topbar .eyebrow{
+  color:#73927c!important;
+  font-weight:800!important;font-size:10px!important;letter-spacing:2.8px!important;
+  margin:0 0 2px!important;
+}
+body.nova-ui .topbar h1{
+  font-size:clamp(28px,4vw,41px)!important;
+  font-weight:830!important;line-height:1.05!important;
+  letter-spacing:-2.1px!important;margin:0!important;
+  color:var(--nova-ink)!important;
+}
+body.nova-ui .topbar .subtitle{
+  margin:6px 0 0!important;
+  color:var(--nova-muted)!important;
+  font-size:12px!important;font-weight:520;
+}
+body.nova-ui .header-actions{align-self:center!important}
+body.nova-ui .language-picker{
+  background:#fff!important;
+  border:1px solid var(--nova-line)!important;
+  border-radius:999px!important;
+  box-shadow:0 2px 10px rgba(24,47,34,.03)!important;
+  color:var(--nova-muted)!important;
+  padding:8px 12px!important;
+  min-height:40px!important;
+}
+body.nova-ui .language-picker select{
+  border:0!important;background:transparent!important;
+  color:var(--nova-ink)!important;
+  font-size:13px!important;font-weight:720!important;
+  outline:none!important;
+}
+body.nova-ui .app-page{animation:nova-arrive .20s ease-out both}
+@keyframes nova-arrive{from{opacity:.85;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+body.nova-ui .panel,
+body.nova-ui .countdown-panel{
+  border:1px solid var(--nova-line)!important;
+  border-radius:var(--nova-curve)!important;
+  box-shadow:var(--nova-glow)!important;
+  background:var(--nova-paper)!important;
+}
+body.nova-ui .eyebrow{
+  font-size:10px!important;
+  font-weight:800!important;
+  letter-spacing:2.5px!important;
+  color:#86998b!important;
+}
+body.nova-ui .section-heading h2{
+  color:var(--nova-ink)!important;
+  font-size:23px!important;
+  font-weight:790!important;
+  letter-spacing:-.8px!important;
+}
+body.nova-ui .button.button-primary,
+body.nova-ui button.button-primary{
+  color:#fff!important;
+  background:var(--nova-forest)!important;
+  border-color:var(--nova-forest)!important;
+  border-radius:13px!important;
+  box-shadow:none!important;
+}
+body.nova-ui .button.button-ghost{
+  background:#f3f6f0!important;
+  color:var(--nova-forest)!important;
+  border:1px solid var(--nova-line)!important;
+  border-radius:13px!important;
+}
+body.nova-ui button:active{filter:brightness(.96)}
+/* The dashboard is a hero rather than a white statistics table. */
+body.nova-ui #pageTasks>.overview,
+body.nova-ui .overview{
+  position:relative;
+  display:grid!important;
+  grid-template-columns:minmax(0,1.35fr) repeat(2,minmax(85px,.5fr))!important;
+  gap:18px 22px!important;
+  align-items:center!important;
+  background:linear-gradient(125deg,#142f25 0%,#204a32 62%,#315a3f 100%)!important;
+  color:#fff!important;
+  padding:28px 32px 30px!important;
+  border:0!important;border-radius:32px!important;
+  margin:0 0 22px!important;
+  min-height:218px;
+  box-shadow:0 16px 38px rgba(20,58,36,.16)!important;
+  overflow:hidden;
+}
+body.nova-ui .overview::before{
+  content:"";position:absolute;
+  width:270px;height:270px;border:1px solid rgba(217,250,154,.16);
+  border-radius:50%;right:-65px;top:-100px;
+  box-shadow:0 0 0 42px rgba(214,255,171,.035),0 0 0 93px rgba(214,255,171,.022);
+  pointer-events:none;
+}
+body.nova-ui .overview>*{position:relative;z-index:1}
+body.nova-ui .nova-hero-label{
+  grid-column:1/-1;
+  display:flex;align-items:center;gap:9px;
+  color:#c5dfa3!important;font-weight:790;font-size:10px;letter-spacing:2.4px;
+}
+body.nova-ui .nova-live-dot{
+  width:7px;height:7px;background:var(--nova-lime);
+  border-radius:100%;box-shadow:0 0 0 5px rgba(213,252,132,.13);
+}
+body.nova-ui .overview-date{border:0!important;padding:0!important}
+body.nova-ui .overview-date #todayLabel,
+body.nova-ui .overview-date>span{
+  color:#d2e8d1!important;
+  font-weight:660!important;font-size:12px!important;
+}
+body.nova-ui .overview-date strong{
+  color:#fff!important;
+  font-size:clamp(22px,4.5vw,34px)!important;
+  font-weight:800!important;
+  letter-spacing:-.75px!important;line-height:1.25!important;
+}
+body.nova-ui .overview .stat{
+  border-left:1px solid rgba(225,247,214,.22)!important;
+  padding-left:20px!important;margin:0!important;
+  display:flex;flex-direction:column;align-items:flex-start;
+}
+body.nova-ui .overview .stat strong{
+  color:var(--nova-lime)!important;
+  font-size:clamp(33px,6vw,48px)!important;
+  letter-spacing:-2px!important;
+  font-weight:790!important;line-height:1.05!important;
+}
+body.nova-ui .overview .stat span{
+  color:#d5e9d8!important;
+  font-size:12px!important;font-weight:620!important;
+}
+body.nova-ui .overview .progress-wrap{grid-column:1/-1!important;margin:0!important}
+body.nova-ui .overview .progress-copy{
+  display:flex!important;align-items:center;justify-content:space-between;
+  margin-bottom:8px;color:#dbece0!important;font-size:11px;font-weight:680;
+}
+body.nova-ui .overview .progress-copy strong{
+  color:var(--nova-lime)!important;font-size:14px!important;
+}
+body.nova-ui .overview .progress-track{
+  height:8px!important;
+  border-radius:999px!important;
+  background:rgba(246,255,231,.19)!important;
+  overflow:hidden;
+}
+body.nova-ui .overview .progress-bar{
+  height:100%;background:var(--nova-lime)!important;
+  border-radius:999px;
+}
+body.nova-ui .main-grid{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.35fr) minmax(0,.95fr)!important;
+  align-items:start!important;gap:20px!important;
+}
+body.nova-ui .main-grid .tasks-panel{order:1}
+body.nova-ui .main-grid .calendar-panel{order:2}
+body.nova-ui #pageTasks .tasks-panel,
+body.nova-ui #pageCalendar .calendar-panel,
+body.nova-ui #pageLongTerm .tasks-panel{
+  padding:24px!important;
+  border-radius:29px!important;
+}
+body.nova-ui .tasks-panel .task-form{
+  background:#f3f6ef!important;
+  border-radius:19px!important;
+  border:1px solid #e6ebe1!important;
+  padding:12px!important;
+  gap:10px!important;
+}
+body.nova-ui .task-form input,
+body.nova-ui .task-form select,
+body.nova-ui .edit-dialog input{
+  background:#fff!important;
+  color:var(--nova-ink)!important;
+  border:1px solid #dee6dc!important;
+  border-radius:13px!important;
+  font-size:16px!important;
+  box-shadow:none!important;
+}
+body.nova-ui .task-form button[type=submit]{
+  background:var(--nova-forest)!important;
+  color:var(--nova-lime)!important;
+  border-radius:14px!important;
+  font-weight:780!important;
+}
+body.nova-ui .task-toolbar{margin-top:22px!important}
+body.nova-ui #taskTabs{
+  background:#f2f5ef!important;
+  padding:4px!important;border-radius:14px!important;
+}
+body.nova-ui #taskTabs .tab{
+  border-radius:11px!important;
+  background:transparent!important;
+  color:#718074!important;font-weight:680!important;
+}
+body.nova-ui #taskTabs .tab.active{
+  background:#fff!important;
+  color:var(--nova-forest)!important;
+  box-shadow:0 2px 8px rgba(24,54,33,.08)!important;
+}
+body.nova-ui .task-item{
+  padding:15px 6px!important;
+  border-bottom:1px solid #ebefe9!important;
+  min-height:60px!important;
+  gap:12px!important;
+}
+body.nova-ui .task-check{width:23px!important;height:23px!important;flex:0 0 23px!important;border-radius:8px!important;border-color:#a7bcad!important}
+body.nova-ui .task-item.completed .task-check,
+body.nova-ui .task-check:checked{background:var(--nova-forest)!important;border-color:var(--nova-forest)!important}
+body.nova-ui .task-text{font-size:14px!important;color:var(--nova-ink)!important;font-weight:580!important}
+body.nova-ui .task-action{
+  border-radius:11px!important;
+  color:#5e7467!important;
+  background:#f2f6f0!important;
+}
+body.nova-ui .calendar-panel .section-heading{gap:14px}
+body.nova-ui .calendar-grid{gap:6px!important}
+body.nova-ui .calendar-day{
+  color:#415448!important;font-weight:600!important;
+  border-radius:13px!important;
+  min-height:40px;max-height:none!important;
+}
+body.nova-ui .calendar-day.selected{
+  background:var(--nova-forest)!important;
+  color:var(--nova-lime)!important;
+  box-shadow:none!important;
+}
+body.nova-ui .calendar-day.today:not(.selected){
+  background:#eaf3e3!important;color:#214c32!important;
+  box-shadow:none!important;
+}
+body.nova-ui .calendar-day.has-tasks:after{background:#85ae77!important}
+/* Long-term: bold matching cover instead of another ordinary white card. */
+body.nova-ui #pageLongTerm .countdown-panel{
+  padding:28px!important;
+  background:linear-gradient(135deg,#1b392d,#335945)!important;
+  border:0!important;
+  box-shadow:0 12px 28px rgba(24,67,40,.13)!important;
+}
+body.nova-ui #pageLongTerm .countdown-heading h2,
+body.nova-ui #pageLongTerm .countdown-heading .eyebrow{color:#fff!important}
+body.nova-ui #pageLongTerm .countdown-capacity{
+  background:rgba(215,251,146,.17)!important;
+  color:var(--nova-lime)!important;
+  border-radius:999px!important;
+  padding:8px 13px!important;
+}
+/* Settings is a deliberate preferences screen */
+body.nova-ui .nova-settings-heading{margin:8px 0 25px}
+body.nova-ui .nova-settings-heading>span{
+  color:#669072;font-size:11px;letter-spacing:2.5px;font-weight:800;
+}
+body.nova-ui .nova-settings-heading .settings-title{
+  font-size:clamp(32px,5vw,45px)!important;
+  color:var(--nova-ink)!important;
+  letter-spacing:-1.6px!important;line-height:1.1;
+  font-weight:830!important;margin:7px 0 0!important;
+}
+body.nova-ui #pageSettings .appearance-panel,
+body.nova-ui #pageSettings .auth-panel{
+  border-radius:28px!important;padding:27px!important;
+}
+body.nova-ui #pageSettings .appearance-copy h3{
+  color:var(--nova-ink)!important;font-size:21px;font-weight:780;
+}
+body.nova-ui #pageSettings .appearance-options{
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px!important;
+}
+body.nova-ui #pageSettings .appearance-options button{
+  background:#f1f5ef!important;color:#53675a!important;
+  border:1px solid transparent!important;
+  min-height:50px!important;
+  border-radius:14px!important;
+  box-shadow:none!important;
+}
+body.nova-ui #pageSettings .appearance-options button[aria-pressed="true"]{
+  background:var(--nova-forest)!important;
+  color:var(--nova-lime)!important;
+  border-color:var(--nova-forest)!important;
+}
+body.nova-ui #pageSettings input{
+  background:#f9fbf7!important;color:var(--nova-ink)!important;
+  border:1px solid var(--nova-line)!important;border-radius:13px!important;
+}
+body.nova-ui #pageSettings .account-username-section{border-radius:19px!important;border-color:var(--nova-line)!important}
+body.nova-ui .storage-note,body.nova-ui footer{color:#899a8d!important}
