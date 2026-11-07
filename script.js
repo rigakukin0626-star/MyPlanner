@@ -532,7 +532,7 @@ function chatShowCachedFriends(){
  }catch(error){console.warn("Cached friends unavailable",error)}
 }
 async function loadChatFriends(){
- if(chatPeer||chatFriendsLoading)return;
+ if(chatPeer||chatMode==="group"||chatActiveGroup||chatFriendsLoading)return;
  chatFriendsLoading=true;
  const requestId=++chatFriendsRequestId;
  try{
@@ -703,19 +703,22 @@ async function chatMarkRead(){
 }
 async function loadChatMessages(){
  if(!currentUser||!chatPeer)return;
- if(chatRefreshBusy)return
+ if(chatRefreshBusy){chatReloadQueued=true;return}
  chatRefreshBusy=true;
  const requestedPeer=chatPeer;
- const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at,read_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+chatPeer+"),and(sender_id.eq."+chatPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:false}).limit(200);
- if(error){chatRefreshBusy=false;chatError(error.message);return}
- if(chatPeer!==requestedPeer){chatRefreshBusy=false;return}
+ try{
+ const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at,read_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+requestedPeer+"),and(sender_id.eq."+requestedPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:false}).limit(200);
+ if(error)throw error;
+ if(chatPeer!==requestedPeer)return;
  chatConfirmedCache=(data||[]).reverse();
  chatSaveSnapshot(requestedPeer,chatConfirmedCache);
  chatLastFetchAt=Date.now();
  chatCachePeer=requestedPeer;
  chatRenderMessages();
  chatMarkRead();
- chatRefreshBusy=false;
+ }catch(error){if(chatPeer===requestedPeer)chatError(error?.message||String(error))}
+ finally{chatRefreshBusy=false;if(chatReloadQueued){chatReloadQueued=false;if(chatPeer)queueMicrotask(()=>loadChatMessages())}}
+
 
 }
 let chatUsernameLoadedFor=null;
@@ -854,7 +857,7 @@ setInterval(()=>{
  if(chatPeer){if(Date.now()-chatLastFetchAt>6500)loadChatMessages()}else if(chatMode==="private"&&Date.now()-chatFriendsLastLoaded>20000)loadChatFriends();
 },3000);
 document.addEventListener("visibilitychange",()=>{
- if(!document.hidden&&document.body.dataset.activePage==="chat"&&currentUser){if(chatActiveGroup)groupLoadMessages();else if(chatPeer)loadChatMessages();else if(chatMode==="group")groupLoadList();else loadChatFriends()}
+ if(!document.hidden&&document.body.dataset.activePage==="chat"&&currentUser){if(chatActiveGroup)groupLoadMessages();else if(chatPeer)loadChatMessages();else if(chatMode==="group")groupLoadList(true);else loadChatFriends()}
 });
 
 
@@ -953,7 +956,7 @@ function groupRenderMessages(items){
  const root=$("chatGroupMessages"),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<140;
  const fragment=document.createDocumentFragment();
  for(const item of items){
-  const bubble=document.createElement("div");bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
+  const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
   const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):item.sender_id.slice(0,8);
   const body=document.createElement("span");
   if(item.body.startsWith("[myplanner-group-image]:")){
@@ -969,7 +972,11 @@ function groupRenderMessages(items){
   const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
   bubble.append(sender,body,time);fragment.append(bubble);
  }
- root.replaceChildren(fragment);if(nearBottom||!root.dataset.loaded)root.scrollTop=root.scrollHeight;root.dataset.loaded="1";
+ const oldNodes=[...root.children],newNodes=[...fragment.children];
+ let appendOnly=oldNodes.length>0&&newNodes.length>=oldNodes.length;
+ if(appendOnly){for(let i=0;i<oldNodes.length;i++){if(!oldNodes[i].dataset.groupMessageId||oldNodes[i].dataset.groupMessageId!==newNodes[i].dataset.groupMessageId){appendOnly=false;break}}}
+ if(appendOnly){for(let i=oldNodes.length;i<newNodes.length;i++)root.append(newNodes[i])}else root.replaceChildren(fragment);
+ if(nearBottom||!root.dataset.loaded)root.scrollTop=root.scrollHeight;root.dataset.loaded="1";
 }
 async function groupLoadMessages(){
  if(groupPolling||!chatActiveGroup||!currentUser)return;
@@ -983,7 +990,7 @@ async function groupLoadMessages(){
   groupLastSignature=signature;
   groupRenderMessages(items);
   try{sessionStorage.setItem("myplanner-group-msg-"+currentUser.id+"-"+groupId,JSON.stringify({items:items.slice(-100)}))}catch{}
- }catch(error){groupError(error)}
+ }catch(error){groupError(error);groupMessageLastFetched=0}
  finally{groupPolling=false}
 }
 $("chatPrivateMode").addEventListener("click",()=>groupMode("private"));
