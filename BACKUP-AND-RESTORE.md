@@ -40,3 +40,11 @@ Supabase SQL Editor. It was NOT automatically applied.
 - No database schema, message row, Supabase Storage object, or localStorage key was intentionally changed by this UI redesign.
 - Git tracks code only. The Supabase database, Storage and device-local data must be backed up separately for complete disaster recovery.
 - For a visual rollback, restore the backup branch's code using GitHub history; do not delete Supabase data or clear browser site storage.
+
+## Sky-blue UI and iOS keyboard fix — 2026-11-07
+
+- Pre-fix main commit: `582b22c492f33422899071fa1fcb4b99a279cbe4`
+- Stable code rollback branch: `backup-before-chat-ui-fix-2026-11-07`
+- Work branch: `fix-chat-keyboard-skyblue-2026-11-07`
+- Only UI, chat presentation, in-browser keyboard handling, and PWA versioning were changed; Supabase data and policies were not touched.
+- This backup is code only. It does not export device-local data, Supabase SQL tables, or Supabase Storage files.
