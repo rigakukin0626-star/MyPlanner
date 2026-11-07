@@ -1649,7 +1649,7 @@ async function groupShowMembers(){
    const active=chatActiveGroup;if(!active||active.created_by!==currentUser?.id)return;
    const input=prompt(chatText("输入新的群名称","新しいグループ名","New group name"),active.name);
    if(input===null)return;
-   const name=input.trim().slice(0,40);if(!name||name===active.name)return;
+   const name=input.trim().slice(0,40);if(name.length<2){alert(chatText("群名称至少需要2个字符","グループ名は2文字以上必要です","Group name must contain at least 2 characters"));return}if(name===active.name)return;
    renameButton.disabled=true;
    const result=await supabaseClient.from("chat_groups").update({name}).eq("id",active.id).eq("created_by",currentUser.id).select("id,name");
    renameButton.disabled=false;
