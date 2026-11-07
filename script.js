@@ -139,9 +139,54 @@ async function refreshAuthUI(){
   $("authPanel").classList.toggle("is-signed-in",!!currentUser);
   $("enableNotificationsBtn").hidden = !currentUser;
   $("resetNotificationsBtn").hidden = !currentUser;
+  showWelcomeAuth();
   if(currentUser){if(document.body.dataset.activePage==="chat")chatShowList();try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}}
   else{cloudReady=false;setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."))}
 }
+let welcomeMode="login";
+function showWelcomeAuth(){
+ const visible=!currentUser;
+ $("welcomeAuth").hidden=!visible;
+ document.body.classList.toggle("auth-required",visible);
+}
+function setWelcomeMode(mode){
+ welcomeMode=mode;
+ const register=mode==="register";
+ $("welcomeUsernameWrap").hidden=!register;
+ $("welcomeUsername").required=register;
+ $("welcomePassword").autocomplete=register?"new-password":"current-password";
+ $("welcomeLoginMode").classList.toggle("active",!register);
+ $("welcomeRegisterMode").classList.toggle("active",register);
+ $("welcomeSubmit").textContent=register?"注册账号":"登录";
+ $("welcomeStatus").textContent="";
+}
+$("welcomeLoginMode").addEventListener("click",()=>setWelcomeMode("login"));
+$("welcomeRegisterMode").addEventListener("click",()=>setWelcomeMode("register"));
+$("welcomeAuthForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const email=$("welcomeEmail").value.trim(),password=$("welcomePassword").value;
+ const username=$("welcomeUsername").value.trim().toLowerCase();
+ if(welcomeMode==="register"&&!/^[a-z0-9_]{3,20}$/.test(username)){$("welcomeStatus").textContent="用户名需要3–20位小写字母、数字或下划线";return}
+ const btn=$("welcomeSubmit");btn.disabled=true;
+ $("welcomeStatus").textContent=welcomeMode==="register"?"正在注册…":"正在登录…";
+ try{
+  if(welcomeMode==="register"){
+   const {data,error}=await supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname,data:{username}}});
+   if(error)throw error;
+   if(data.session){
+    currentUser=data.session.user;
+    const {error:nameError}=await supabaseClient.rpc("chat_set_username",{new_username:username});
+    if(nameError)$("welcomeStatus").textContent="账号已创建，但用户名保存失败，请在聊天页面设置："+nameError.message;
+    await refreshAuthUI();
+   }else $("welcomeStatus").textContent="注册申请已提交，请检查邮箱中的验证邮件，然后返回登录。";
+  }else{
+   const {error}=await supabaseClient.auth.signInWithPassword({email,password});
+   if(error)throw error;
+   await refreshAuthUI();
+  }
+ }catch(error){$("welcomeStatus").textContent=(welcomeMode==="register"?"注册失败：":"登录失败：")+error.message}
+ finally{btn.disabled=false}
+});
 $("authForm").addEventListener("submit",async e=>{
   e.preventDefault(); const email=$("authEmail").value.trim(),password=$("authPassword").value;
   $("signInBtn").disabled=true;setAuthStatus(tr("ログイン中…","正在登录…","Signing in…"));
@@ -156,7 +201,7 @@ $("signUpBtn").addEventListener("click",async()=>{
   catch(err){setAuthStatus(tr("登録失敗：","注册失败：","Sign up failed: ")+err.message)}finally{$("signUpBtn").disabled=false}
 });
 $("signOutBtn").addEventListener("click",async()=>{const {error}=await supabaseClient.auth.signOut();if(error)setAuthStatus(tr("ログアウト失敗：","退出失败：","Sign out failed: ")+error.message);else{currentUser=null;cloudReady=false;await refreshAuthUI()}});
-supabaseClient.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;if(!currentUser){cloudReady=false;setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."))}});
+supabaseClient.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;showWelcomeAuth();if(!currentUser){cloudReady=false;setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."))}});
 
 
 function urlBase64ToUint8Array(base64String){
@@ -328,6 +373,7 @@ function initPlannerPages(){
  switchPlannerPage("tasks");
 }
 initPlannerPages();
+showWelcomeAuth();
 
 /* v23: keep native iOS date picker functional, render centered text ourselves */
 function refreshReminderDisplay(){
