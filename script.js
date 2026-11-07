@@ -298,11 +298,37 @@ async function registerDeviceNotifications(forceReset = false){
       auth:data.keys.auth
     },{onConflict:"endpoint"});
     if(error)throw error;
-    status.textContent=forceReset?bilingual("通知を再登録しました。","已重新订阅设备通知！"):bilingual("通知が有効になりました。","设备通知已开启！");
+    status.textContent=forceReset?chatText("已重新订阅设备通知（服务器推送仍需配置）","端末通知を再登録しました（サーバー設定が必要）","Device push subscription renewed (server setup required)"):chatText("设备推送订阅成功（服务器推送仍需配置）","端末のプッシュ通知を登録しました（サーバー設定が必要）","Device push subscribed (server delivery setup required)");
   }catch(error){console.error(error);status.textContent="开启失败："+error.message}
 }
 $("enableNotificationsBtn").addEventListener("click",()=>registerDeviceNotifications(false));
 $("resetNotificationsBtn").addEventListener("click",()=>registerDeviceNotifications(true));
+function updatePushSupportHint(){
+ const status=$("notificationStatus");if(!status)return;
+ if(!("Notification" in window)||!("PushManager" in window)||!("serviceWorker" in navigator)){
+  status.textContent=chatText("此浏览器不支持后台推送。iPhone 请使用 Safari 添加到主屏幕后打开。","バックグラウンド通知にはホーム画面に追加したアプリが必要です。","Background push requires a supported browser; on iPhone, add the app to Home Screen.");
+ }else if(Notification.permission==="denied"){
+  status.textContent=chatText("通知已被系统拒绝，请在设备设置中允许通知。","通知が拒否されています。端末の設定で許可してください。","Notifications are blocked. Enable them in device settings.");
+ }else if(Notification.permission==="granted"){
+  status.textContent=chatText("通知权限已开启。请确认服务器已配置聊天消息推送。","通知が許可されています。サーバー側のチャット通知設定も必要です。","Permission granted. Server-side chat push delivery must also be configured.");
+ }
+}
+navigator.serviceWorker?.addEventListener("message",event=>{
+ if(event.data?.type!=="MYPLANNER_PUSH_RECEIVED")return;
+ if(document.body.dataset.activePage!=="chat"||!currentUser)return;
+ if(chatActiveGroup)groupScheduleRefresh();
+ else if(chatPeer)loadChatMessages();
+ else if(chatMode==="group")groupLoadList(true);
+ else loadChatFriends();
+});
+window.addEventListener("pageshow",()=>{
+ if(location.hash==="#chat"){
+  switchPlannerPage("chat");
+  if(currentUser)chatRefreshAfterReconnect();
+ }
+ updatePushSupportHint();
+});
+
 
 function toLocalDateTimeInput(value){const d=new Date(value);if(Number.isNaN(d.getTime()))return "";const local=new Date(d.getTime()-d.getTimezoneOffset()*60000);return local.toISOString().slice(0,16)}
 function repeatName(rule){return ({daily:tr("毎日","每天","Daily"),weekly:tr("毎週","每周","Weekly"),monthly:tr("毎月","每月","Monthly")})[rule]||""}
