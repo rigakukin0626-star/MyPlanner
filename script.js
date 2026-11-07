@@ -728,7 +728,7 @@ function chatAppendRealtime(item){
 }
 async function openChat(id,name){
  chatStopRealtime();
- chatReplyTarget=null;chatUpdateReplyPreview();chatLastSignature="";chatConfirmedCache=chatRestoreSnapshot(id);chatCachePeer=id;chatReadLastId=null;chatPeer=id;chatAutoScrollUntil=Date.now()+8000;document.body.classList.add("chat-open");
+ chatReplyTarget=null;chatUpdateReplyPreview();chatShowBuildVersion();chatLastSignature="";chatConfirmedCache=chatRestoreSnapshot(id);chatCachePeer=id;chatReadLastId=null;chatPeer=id;chatAutoScrollUntil=Date.now()+8000;document.body.classList.add("chat-open");
  $("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");
  $("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
  chatRenderMessages();chatScrollToLatest();
@@ -790,6 +790,13 @@ function chatOpenPhotoPreview(url){
 
 const CHAT_REPLY_PREFIX="[myplanner-reply]:";
 let chatReplyTarget=null;
+function chatShowBuildVersion(){
+ const header=document.querySelector(".chat-conversation-header");
+ if(!header)return;
+ let version=document.getElementById("chatBuildVersion");
+ if(!version){version=document.createElement("small");version.id="chatBuildVersion";version.className="chat-build-version";header.append(version)}
+ version.textContent="v127";
+}
 function chatParseReply(body){
  if(typeof body!=="string")return null;
  if(body.startsWith(CHAT_REPLY_PREFIX)){
