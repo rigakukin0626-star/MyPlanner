@@ -23,6 +23,7 @@ function tr(ja,zh,en){return uiLanguage==="zh"?zh:uiLanguage==="en"?(en||uiEngli
 function applyLanguage(){
  document.documentElement.lang=uiLanguage==="zh"?"zh-CN":uiLanguage;
  const picker=$("languageSelect");if(picker)picker.value=uiLanguage;
+ const auth=$("authStatus");if(auth?.dataset.statusKey==="synced"&&currentUser)auth.textContent=tr("同期済み","已同步","Synced")+" · "+currentUser.email;
  document.querySelectorAll(".bilingual").forEach(el=>{
   if(!el.dataset.ja)return;
   el.textContent=tr(el.dataset.ja,el.dataset.zh);
@@ -81,7 +82,7 @@ function queueCloudUpsert() {
     setAuthStatus(bilingual("タスクを同期中…","正在同步任务…"));
     const {error}=await supabaseClient.from("tasks").upsert(snapshot,{onConflict:"id"});
     if(error) throw error;
-    setAuthStatus(bilingual("同期済み","已同步")+" · "+currentUser.email);
+    setAuthStatus(tr("同期済み","已同步","Synced")+" · "+currentUser.email,"synced");
   }).catch(error=>{console.error(error);setAuthStatus(tr("同期失敗：","同步失败：","Sync failed: ")+error.message);});
 }
 async function loadCloudTasks() {
@@ -96,7 +97,7 @@ async function loadCloudTasks() {
   await queueCloudUpsert();
 }
 function bilingual(ja,zh){return tr(ja,zh);}
-function setAuthStatus(message){const el=$("authStatus");if(el)el.textContent=message;}
+function setAuthStatus(message,statusKey=""){const el=$("authStatus");if(el){el.dataset.statusKey=statusKey;el.textContent=message;}}
 async function refreshAuthUI(){
   const {data:{session}}=await supabaseClient.auth.getSession(); currentUser=session?.user||null;
   $("authEmail").hidden=!!currentUser; $("authPassword").hidden=!!currentUser;
