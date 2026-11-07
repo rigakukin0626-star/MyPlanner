@@ -8,7 +8,7 @@
   <title>My Planner</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=29">
+  <link rel="stylesheet" href="style.css?v=30">
 </head>
 <body>
   <div class="app-shell">
@@ -122,8 +122,8 @@
       <div class="section-heading"><div><p class="eyebrow">EDIT TASK</p><h2><span class="bilingual">タスクを編集<small>编辑任务</small></span></h2></div><button id="closeDialog" class="icon-button" type="button" aria-label="关闭">×</button></div>
       <input id="editText" maxlength="160" required aria-label="任务内容">
       <div class="dialog-fields">
-        <label><span class="bilingual">日付<small>日期</small></span><input id="editDate" type="date"></label>
-        <label><span class="bilingual">通知日時<small>提醒时间</small></span><input id="editReminder" type="datetime-local"></label>
+        <label><span class="bilingual">日付<small>日期</small></span><span class="edit-date-picker"><span id="editDateDisplay" class="edit-date-display" aria-hidden="true"></span><input id="editDate" type="date" aria-label="日期"></span></label>
+        <label><span class="bilingual">通知日時<small>提醒时间</small></span><span class="edit-date-picker"><span id="editReminderDisplay" class="edit-date-display" aria-hidden="true"></span><input id="editReminder" type="datetime-local" aria-label="提醒时间"></span></label>
         <label><span class="bilingual">繰り返し通知<small>重复提醒</small></span><select id="editRepeat"><option value="none">繰り返さない / 不重复</option><option value="daily">毎日 / 每天</option><option value="weekly">毎週 / 每周</option><option value="monthly">毎月 / 每月</option></select></label>
         <label><span class="bilingual">優先度<small>优先级</small></span><select id="editPriority"><option value="high">高 / 高</option><option value="medium">中 / 中</option><option value="low">低 / 低</option></select></label>
       </div>
@@ -141,6 +141,6 @@
     </div>
   </dialog>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=23"></script>
+  <script src="script.js?v=24"></script>
 </body>
 </html>
