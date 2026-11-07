@@ -498,10 +498,10 @@ async function loadChatMessages(){
  if(chatRefreshBusy){chatReloadQueued=true;return}
  chatRefreshBusy=true;
  const requestedPeer=chatPeer;
- const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at,read_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+chatPeer+"),and(sender_id.eq."+chatPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:true}).limit(200);
+ const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at,read_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+chatPeer+"),and(sender_id.eq."+chatPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:false}).limit(200);
  if(error){chatRefreshBusy=false;chatError(error.message);return}
  if(chatPeer!==requestedPeer){chatRefreshBusy=false;return}
- chatConfirmedCache=data||[];
+ chatConfirmedCache=(data||[]).reverse();
  chatLastFetchAt=Date.now();
  chatCachePeer=requestedPeer;
  chatRenderMessages();
