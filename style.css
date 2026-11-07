@@ -412,3 +412,7 @@ body.auth-required{overflow:hidden}
 
 /* v67: back label is localized by updateChatLanguage instead of hard-coded Chinese */
 #pageChat .chat-conversation-header #chatBack::after{content:var(--chat-back-label,"戻る")!important}
+
+/* v68: prevent accidental double-tap zoom on iOS while preserving pinch-to-zoom and scrolling */
+html,body{touch-action:manipulation}
+button,a,input,textarea,select,[role="button"],.bottom-tabs{touch-action:manipulation}
