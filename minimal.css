@@ -660,3 +660,63 @@ html[data-theme="dark"] #pageChat .line-group-menu{
 
 #pageChat .line-action-error{color:var(--danger);font-size:12px;margin:10px 0;line-height:1.6}
 #pageChat .line-action-error:empty{display:none}
+
+
+/* v171 — Private conversation actions, tactile polish and iOS double-tap protection.
+   touch-action:manipulation disables double-tap zoom, but retains pinch zoom.
+*/
+html,body,.app-shell,.app-page,.panel,
+#pageChat,.chat-panel,.chat-conversation,.chat-conversation-header,
+.chat-messages,.chat-bubble,.chat-friend,.chat-send,
+button,input,textarea,select{
+ touch-action:manipulation;
+}
+#pageChat #chatConversation .chat-conversation-header{
+ position:relative;z-index:13;overflow:visible;isolation:isolate;
+}
+#pageChat #linePrivateMore{
+ display:grid;place-items:center;flex:none;width:39px;height:39px;
+ padding:0;border:0;border-radius:50%;
+ background:var(--field);color:var(--accent-ink);
+}
+#pageChat #linePrivateMore svg{width:21px;height:21px}
+#pageChat #linePrivateMore[aria-expanded="true"]{background:var(--mine)}
+#pageChat #linePrivateMenu{
+ top:calc(100% - 2px);right:12px;
+ width:min(280px,calc(100vw - 28px));
+ z-index:150;
+}
+#pageChat #linePrivateMenu .line-destructive{color:var(--danger)}
+#pageChat #linePrivateMenu .line-destructive .line-menu-icon{
+ color:var(--danger);background:var(--subtle)
+}
+#pageChat #linePrivateMenu .line-menu-chevron{opacity:.65}
+#pageChat .chat-conversation-header .chat-peer-meta strong{font-weight:680}
+#pageChat .chat-conversation-header .chat-peer-meta small{font-size:12px}
+#pageChat .chat-media-frame{
+ display:flex;flex-direction:column;align-items:stretch;
+ width:min(240px,62vw);max-width:100%;gap:7px;
+}
+#pageChat .chat-media-frame .chat-photo{
+ display:block;max-width:100%;max-height:min(360px,52vh);
+ object-fit:contain;border-radius:10px;
+}
+#pageChat .chat-photo-retry{
+ min-height:66px;background:var(--field);
+ border:1px solid var(--line);color:var(--accent-ink);
+ border-radius:10px;font-size:12px;font-weight:600;
+ padding:11px 14px;line-height:1.5;text-align:center;
+ white-space:normal;
+}
+#pageChat .chat-photo-retry:active{background:var(--mine)}
+#pageChat .chat-bubble:not(.mine){
+ box-shadow:none;
+}
+@media(max-width:719px){
+ #pageChat #chatConversation .chat-conversation-header{
+   min-height:58px;padding:8px 11px;
+ }
+ #pageChat #linePrivateMore{width:36px;height:36px}
+ #pageChat #linePrivateMenu{right:10px}
+ #pageChat .chat-media-frame{width:min(232px,64vw)}
+}
