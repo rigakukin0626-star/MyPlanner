@@ -66,3 +66,13 @@ Supabase SQL Editor. It was NOT automatically applied.
 - Before delete-friend and incoming photo access can work when RLS policies are missing, an authorized Supabase admin must run `supabase/chat-access-permissions-v171.sql` in Supabase SQL Editor (once). GitHub publishing alone **does not run SQL migrations**.
 - Photo retrieval now attempts signed URLs first and falls back to private authenticated downloads. It never makes the Storage bucket public.
 - No existing Supabase data or Storage objects were changed by these GitHub commits.
+
+## v176 — Group read receipts, message layout, and smoother rendering
+
+- Backup branch before these changes: `backup-before-group-read-ui-v176` (commit `78d70daac26bb1262a41e555b63833e8f6c00a1e`).
+- Development branch: `feat-group-read-ui-v176`.
+- Chat UI: 16px content text, timestamps inside text bubbles, more balanced conversation rows and denser chats list.
+- Group performance: unchanged message bubbles and existing photo elements are not re-created when new messages append; read labels update in place and are polled at a low rate.
+- Group member read totals rely on the PostgreSQL table `chat_group_read_receipts`. **GitHub Pages cannot install this table.** Run `supabase/group-read-receipts-v176.sql` manually from the Supabase SQL Editor, then reopen the group from each participant's device.
+- The read feature does not display counts if the table or its RLS privileges are missing. Only a group participant can read the count data, and each member can update only their own timestamp; server trigger assigns the timestamp.
+- These GitHub commits leave the existing Supabase database, files, messages, group membership and local user data unchanged.
