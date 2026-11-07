@@ -159,7 +159,7 @@ async function refreshAuthUI(){
   $("resetNotificationsBtn").hidden = !currentUser;
   showWelcomeAuth();
   updateCloudSyncSummary();
-  if(currentUser){if(document.body.dataset.activePage==="chat")chatShowList();try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}}
+  if(currentUser){if(document.body.dataset.activePage==="chat"){chatShowList();chatShowCachedFriends();loadChatFriends().catch(console.error)}try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}}
   else{cloudReady=false;setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."))}
 }
 const welcomeTranslations={
@@ -483,6 +483,32 @@ function chatStopRealtime(){if(chatSubscription){supabaseClient.removeChannel(ch
 let chatFriendsRequestId=0;
 let chatFriendsLoading=false;
 let chatFriendsLastLoaded=0;
+const CHAT_FRIEND_CACHE_KEY="myplanner-friends-v1";
+function chatShowCachedFriends(){
+ if(!currentUser||chatPeer)return;
+ try{
+  const raw=localStorage.getItem(CHAT_FRIEND_CACHE_KEY);
+  if(!raw)return;
+  const saved=JSON.parse(raw);
+  if(saved.userId!==currentUser.id||!Array.isArray(saved.friends))return;
+  const root=$("chatFriends");
+  if(root.children.length)return;
+  const fragment=document.createDocumentFragment();
+  for(const friend of saved.friends){
+   if(typeof friend.id!=="string"||typeof friend.name!=="string")continue;
+   const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
+   const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=(friend.name.trim()[0]||"?").toUpperCase();
+   const content=document.createElement("span");content.className="chat-friend-info";
+   const title=document.createElement("strong");title.textContent=friend.name;
+   const subtitle=document.createElement("small");subtitle.textContent=friend.preview||chatText("开始聊天","チャットを始める","Start chatting");
+   content.append(title,subtitle);
+   const meta=document.createElement("span");meta.className="chat-friend-meta";
+   if(friend.time){const when=document.createElement("small");when.textContent=friend.time;meta.append(when)}
+   btn.append(avatar,content,meta);btn.addEventListener("click",()=>openChat(friend.id,friend.name));fragment.append(btn);
+  }
+  if(!chatPeer)root.replaceChildren(fragment);
+ }catch(error){console.warn("Cached friends unavailable",error)}
+}
 async function loadChatFriends(){
  if(chatPeer||chatFriendsLoading)return;
  chatFriendsLoading=true;
@@ -491,6 +517,7 @@ async function loadChatFriends(){
  // Reuse the authenticated session already loaded by the app; avoid an extra network request on every chat visit.
  const verifiedUser=currentUser;
  updateChatLanguage();
+ if(verifiedUser)chatShowCachedFriends();
  if(!currentUser){$("chatIdentity").textContent=chatText("请先到设置登录账号。","設定からログインしてください。","Sign in from Settings first.");$("chatFriends").replaceChildren();$("chatAddFriend").disabled=true;return}
  $("chatAddFriend").disabled=false;
  $("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;
@@ -499,7 +526,7 @@ async function loadChatFriends(){
  const ids=[...new Set((data||[]).map(f=>f.user_a===currentUser.id?f.user_b:f.user_a))];
  chatStatus(chatText("好友列表已同步（"+ids.length+"）","友達一覧を同期しました（"+ids.length+"）","Friends synced ("+ids.length+")"));
  const root=$("chatFriends");const fragment=document.createDocumentFragment();
- if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");fragment.append(empty);if(requestId===chatFriendsRequestId&&!chatPeer)root.replaceChildren(fragment);return}
+ if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");fragment.append(empty);if(requestId===chatFriendsRequestId&&!chatPeer)root.replaceChildren(fragment);try{localStorage.setItem(CHAT_FRIEND_CACHE_KEY,JSON.stringify({userId:currentUser.id,friends:[]}))}catch(error){}return}
  const {data:profiles}=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name]));
  const {data:recent}=await supabaseClient.from("chat_messages").select("sender_id,recipient_id,body,created_at,read_at").or("sender_id.eq."+currentUser.id+",recipient_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(200);
@@ -511,6 +538,7 @@ async function loadChatFriends(){
   if(m.recipient_id===currentUser.id&&!m.read_at)unread.set(other,(unread.get(other)||0)+1);
  }
  const sorted=[...ids].sort((a,b)=>(last.get(b)?.created_at||"").localeCompare(last.get(a)?.created_at||""));
+ const cachedFriends=[];
  for(const id of sorted){
   const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
   const name=names.get(id)||id.slice(0,8);
@@ -524,8 +552,10 @@ async function loadChatFriends(){
   if(m){const when=document.createElement("small");when.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});meta.append(when)}
   if(unread.get(id)){const count=document.createElement("b");count.className="chat-unread";count.textContent=unread.get(id)>99?"99+":String(unread.get(id));meta.append(count)}
   btn.append(avatar,content,meta);btn.addEventListener("click",()=>openChat(id,name));fragment.append(btn);
+  cachedFriends.push({id,name,preview:subtitle.textContent,time:m?new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""});
  }
  if(requestId===chatFriendsRequestId&&!chatPeer)root.replaceChildren(fragment);
+ try{localStorage.setItem(CHAT_FRIEND_CACHE_KEY,JSON.stringify({userId:currentUser.id,friends:cachedFriends}))}catch(error){console.warn("Friend cache write failed",error)}
  }finally{chatFriendsLoading=false;chatFriendsLastLoaded=Date.now()}
 }
 function chatAppendRealtime(item){
