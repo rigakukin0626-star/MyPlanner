@@ -508,3 +508,7 @@ body.chat-open #pageChat #chatConversation[hidden],body.chat-open #pageChat #cha
 #pageChat .chat-group-form input{width:0;min-width:0;flex:1 1 0;box-sizing:border-box}
 #pageChat .chat-group-form button{flex:0 0 auto;white-space:nowrap;padding:10px 13px;font-size:14px}
 #pageChat .chat-mode-switch{padding:9px 12px}
+
+/* v85: group creation feedback stays visible */
+#pageChat #chatGroupStatus{display:block;min-height:18px;margin:7px 2px 3px;color:#4262a3;font-size:13px;line-height:1.5}
+#pageChat #chatCreateGroup:disabled{opacity:.65;cursor:wait}
