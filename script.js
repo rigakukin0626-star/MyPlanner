@@ -1014,15 +1014,25 @@ function chatSetReply(item){
  chatUpdateReplyPreview();
  $("chatMessageInput").focus();
 }
+function chatMarkReplyBubble(bubble){
+ bubble.classList.add("chat-reply-bubble");
+ const critical={display:"block",height:"auto",minHeight:"0px",maxHeight:"none",width:"min(280px, calc(100% - 92px))",boxSizing:"border-box",overflow:"visible"};
+ for(const [key,value] of Object.entries(critical))
+  bubble.style.setProperty(key.replace(/[A-Z]/g,x=>"-"+x.toLowerCase()),value,"important");
+}
+function chatBuildReplyBody(node,reply){
+ node.classList.add("chat-reply-stack");
+ const quote=document.createElement("div");quote.className="chat-quoted-message";
+ const title=document.createElement("strong");title.textContent=chatText("回复消息","返信","Reply");
+ const summary=document.createElement("span");summary.textContent=reply.quote;
+ quote.append(title,summary);
+ const message=document.createElement("div");message.className="chat-reply-text";message.textContent=reply.text;
+ node.append(quote,message);
+}
 function chatDisplayBody(node,body){
  const reply=chatParseReply(body);
- if(reply){
-  const quoted=document.createElement("div");quoted.className="chat-quoted-message";
-  const label=document.createElement("strong");label.textContent=chatText("回复消息","返信","Reply");
-  const content=document.createElement("span");content.textContent=reply.quote;
-  quoted.append(label,content);node.append(quoted);
-  const message=document.createElement("div");message.className="chat-reply-text";message.textContent=reply.text;node.append(message);
- }else chatMessageContent(node,body);
+ if(reply)chatBuildReplyBody(node,reply);
+ else chatMessageContent(node,body);
 }
 function chatMessageContent(node,body){
  if(typeof body==="string"&&body.startsWith(CHAT_IMAGE_PREFIX)){
@@ -1086,6 +1096,36 @@ let chatMenuNode=null;
 function chatCloseMessageMenu(){
  if(chatMenuNode){chatMenuNode.remove();chatMenuNode=null}
 }
+function chatPlaceMessageMenu(menu,bubble){
+ // Place the compact action menu near the selected message, not at the bottom
+ // of the document. Fixed positioning is essential on iPhone Safari.
+ menu.classList.add("chat-message-popover");
+ menu.style.setProperty("position","fixed","important");
+ menu.style.setProperty("z-index","100100","important");
+ menu.style.setProperty("left","0px","important");
+ menu.style.setProperty("top","0px","important");
+ const vv=window.visualViewport;
+ const topOffset=Math.max(0,vv?.offsetTop||0);
+ const viewportHeight=Math.max(240,vv?.height||window.innerHeight);
+ const viewportBottom=topOffset+viewportHeight;
+ const viewportWidth=vv?.width||window.innerWidth;
+ const header=document.querySelector(".chat-conversation:not([hidden]) .chat-conversation-header");
+ const composer=document.querySelector(".chat-conversation:not([hidden]) .chat-send");
+ const ceiling=Math.max(topOffset+12,(header?.getBoundingClientRect().bottom||topOffset)+8);
+ const floor=Math.max(ceiling+100,Math.min(viewportBottom-12,(composer?.getBoundingClientRect().top||viewportBottom)-8));
+ const height=menu.getBoundingClientRect().height;
+ const width=menu.getBoundingClientRect().width;
+ const rect=bubble.getBoundingClientRect();
+ let top;
+ if(rect.top-height-9>=ceiling)top=rect.top-height-9;
+ else if(rect.bottom+9+height<=floor)top=rect.bottom+9;
+ else top=ceiling+(Math.max(0,floor-ceiling-height)/2);
+ top=Math.max(ceiling,Math.min(top,Math.max(ceiling,floor-height)));
+ const ideal=bubble.classList.contains("mine")?rect.right-width:rect.left;
+ const left=Math.max(12,Math.min(viewportWidth-width-12,ideal));
+ menu.style.setProperty("top",Math.round(top)+"px","important");
+ menu.style.setProperty("left",Math.round(left)+"px","important");
+}
 function chatOpenMessageMenu(item,bubble){
  chatCloseMessageMenu();
  const menu=document.createElement("div");menu.className="chat-context-menu";menu.setAttribute("role","menu");
@@ -1105,12 +1145,14 @@ function chatOpenMessageMenu(item,bubble){
  if(item.sender_id===currentUser.id)add(chatText("撤回","送信取消","Recall"),()=>chatRemoveMessage(item,true),"danger");
  add(chatText("仅为我删除","自分のみ削除","Delete for me"),()=>chatRemoveMessage(item,false),"danger");
  document.body.append(menu);chatMenuNode=menu;
- const rect=bubble.getBoundingClientRect();const width=menu.offsetWidth,height=menu.offsetHeight;
- menu.style.left=Math.max(8,Math.min(window.innerWidth-width-8,rect.left))+"px";
- menu.style.top=Math.max(8,Math.min(window.innerHeight-height-8,rect.top-height-8))+"px";
+ chatPlaceMessageMenu(menu,bubble);
  setTimeout(()=>document.addEventListener("pointerdown",chatDismissMessageMenu,{once:true}),0);
 }
 function chatDismissMessageMenu(e){if(chatMenuNode&&!chatMenuNode.contains(e.target))chatCloseMessageMenu()}
+// If the conversation scrolls, dismiss a detached contextual menu.
+for(const id of ["chatMessages","chatGroupMessages"]){
+ $(id)?.addEventListener("scroll",()=>{if(chatMenuNode)chatCloseMessageMenu()},{passive:true});
+}
 function chatMessageActions(bubble,item){
  let timer=null,startX=0,startY=0,longPressed=false;
  const cancel=()=>{if(timer!==null){clearTimeout(timer);timer=null}};
@@ -1178,13 +1220,21 @@ function chatRenderMessages(){
  const fragment=document.createDocumentFragment();
  for(const item of confirmed){
   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);chatBubbleAvatar(div,item.sender_id);
-  const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else{if(chatParseReply(item.body))div.classList.add("chat-reply-bubble");chatDisplayBody(body,item.body);}
+  const replying=!item.photoUrl&&Boolean(chatParseReply(item.body));
+  const body=document.createElement(replying?"div":"span");
+  if(replying)chatMarkReplyBubble(div);
+  if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}
+  else chatDisplayBody(body,item.body);
   const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
   div.append(body,time);chatMessageActions(div,item);fragment.append(div);
  }
  for(const [key,item] of pending){
   const div=document.createElement("div");div.className="chat-bubble mine";div.dataset.pendingKey=key;chatBubbleAvatar(div,currentUser.id);
-  const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else{if(chatParseReply(item.body))div.classList.add("chat-reply-bubble");chatDisplayBody(body,item.body);}
+  const replying=!item.photoUrl&&Boolean(chatParseReply(item.body));
+  const body=document.createElement(replying?"div":"span");
+  if(replying)chatMarkReplyBubble(div);
+  if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}
+  else chatDisplayBody(body,item.body);
   const time=document.createElement("small");
   const sentAt=new Date(item.createdAt).toLocaleString();
   const state=item.status==="failed"?chatText("发送失败","送信失敗","Failed"):item.status==="uncertain"?chatText("发送超时·待确认","送信確認中","Delivery unconfirmed"):item.status==="sent"?"":chatText("发送中…","送信中…","Sending...");
@@ -1774,9 +1824,7 @@ function groupMessageActions(bubble,item){
   if(item.sender_id===currentUser?.id)add(chatText("撤回","送信取消","Recall"),()=>groupRecallMessage(item),"danger");
   add(chatText("仅为我删除","自分のみ削除","Delete for me"),()=>groupHideForMe(item),"danger");
   document.body.append(menu);chatMenuNode=menu;
-  const rect=bubble.getBoundingClientRect(),width=menu.offsetWidth,height=menu.offsetHeight;
-  menu.style.left=Math.max(8,Math.min(innerWidth-width-8,rect.left))+"px";
-  menu.style.top=Math.max(8,Math.min(innerHeight-height-8,rect.top-height-8))+"px";
+  chatPlaceMessageMenu(menu,bubble);
   setTimeout(()=>document.addEventListener("pointerdown",chatDismissMessageMenu,{once:true}),0);
  };
  bubble.addEventListener("pointerdown",e=>{if(e.button!==0||e.target.closest("button,a,img"))return;x=e.clientX;y=e.clientY;opened=false;cancel();timer=setTimeout(open,480)});
@@ -1861,7 +1909,9 @@ function groupRenderMessages(items){
  for(const item of incoming){
   const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.dataset.groupMessageCreated=item.created_at;bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");chatBubbleAvatar(bubble,item.sender_id,true);
   const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):(chatRemarkFor(item.sender_id)||item.sender_id.slice(0,8));
-  const body=document.createElement("span");
+  const parsedReply=!item.body.startsWith("[myplanner-group-image]:")?groupParseReply(item.body):null;
+  const body=document.createElement(parsedReply?"div":"span");
+  if(parsedReply)chatMarkReplyBubble(bubble);
   if(item.body.startsWith("[myplanner-group-image]:")){
    const path=item.body.slice("[myplanner-group-image]:".length);
    if(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp|gif)$/i.test(path)){
@@ -1869,8 +1919,7 @@ function groupRenderMessages(items){
 
    }else body.textContent=chatText("照片无效","無効な画像","Invalid photo");
   }else{
-   const reply=groupParseReply(item.body);
-   if(reply){bubble.classList.add("chat-reply-bubble");const quote=document.createElement("div");quote.className="chat-quoted-message";const label=document.createElement("strong");label.textContent=chatText("回复消息","返信","Reply");const content=document.createElement("span");content.textContent=reply.quote;quote.append(label,content);body.append(quote);const text=document.createElement("div");text.className="chat-reply-text";text.textContent=reply.text;body.append(text)}
+   if(parsedReply)chatBuildReplyBody(body,parsedReply);
    else body.textContent=item.body;
   }
   const time=document.createElement("small");time.className="chat-clock";time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});time.dataset.baseClock=time.textContent;
