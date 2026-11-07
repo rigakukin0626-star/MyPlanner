@@ -1421,7 +1421,7 @@ function groupRenderList(groups){
   info.append(name,hint);btn.append(avatar,info);
   const side=document.createElement("span");side.style.cssText="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:auto;flex-shrink:0";
   if(group.previewTime){const time=document.createElement("small");time.textContent=new Date(group.previewTime).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});side.append(time)}
-  if(group.unread>0){const badge=document.createElement("span");badge.textContent=group.unread>99?"99+":String(group.unread);badge.setAttribute("aria-label",chatText("未读消息","未読メッセージ","Unread messages"));badge.style.cssText="background:#2563eb;color:white;border-radius:999px;min-width:22px;height:22px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700";side.append(badge)}
+  if(group.unread>0){const badge=document.createElement("span");badge.textContent=group.unread>99?"99+":String(group.unread);badge.setAttribute("aria-label",chatText("未读消息","未読メッセージ","Unread messages"));badge.style.cssText="background:var(--accent);color:var(--on-accent);border-radius:999px;min-width:22px;height:22px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700";side.append(badge)}
   btn.append(side);btn.addEventListener("click",()=>groupOpen(group));fragment.append(btn);
  }
  root.replaceChildren(fragment);
