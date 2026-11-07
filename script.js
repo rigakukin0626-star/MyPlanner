@@ -274,6 +274,7 @@ function switchPlannerPage(page){
  document.querySelectorAll(".app-page").forEach(el=>el.classList.toggle("active",el.dataset.page===page));
  document.querySelectorAll(".bottom-tabs .tab").forEach(el=>el.classList.toggle("active",el.dataset.target===page));
  document.body.dataset.activePage=page;
+ document.body.classList.toggle("chat-open",page==="chat"&&!!chatPeer);
  if(page==="longterm"||page==="tasks"){
   showLongTerm=page==="longterm";
   const panel=document.querySelector(".tasks-panel");
@@ -337,7 +338,7 @@ function updateChatLanguage(){
 }
 function chatStatus(message){$("chatStatus").textContent=message}
 function chatError(error){chatStatus(error?.message||String(error))}
-function chatShowList(){chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
+function chatShowList(){document.body.classList.remove("chat-open");chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
 function chatStopRealtime(){if(chatSubscription){supabaseClient.removeChannel(chatSubscription);chatSubscription=null}}
 async function loadChatFriends(){
  if(chatPeer)return;
@@ -359,7 +360,7 @@ async function loadChatFriends(){
  for(const id of ids){const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";const name=names.get(id)||id.slice(0,8);const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=(name.trim()[0]||"?").toUpperCase();const content=document.createElement("span");content.className="chat-friend-info";const title=document.createElement("strong");title.textContent=name;const subtitle=document.createElement("small");subtitle.textContent=chatText("点击开始聊天","タップしてチャット","Tap to chat");content.append(title,subtitle);const arrow=document.createElement("span");arrow.className="chat-friend-chevron";arrow.textContent="›";btn.append(avatar,content,arrow);btn.addEventListener("click",()=>openChat(id,name));root.append(btn)}
 }
 async function openChat(id,name){
- chatLastSignature="";chatPeer=id;$("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");$("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
+ chatLastSignature="";chatPeer=id;document.body.classList.add("chat-open");$("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");$("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
  await loadChatMessages();chatStopRealtime();
  chatSubscription=supabaseClient.channel("private-chat-"+currentUser.id+"-"+id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"recipient_id=eq."+currentUser.id},payload=>{if(chatPeer===payload.new.sender_id)loadChatMessages()})
