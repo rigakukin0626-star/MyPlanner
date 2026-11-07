@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,38 +16,38 @@
       <div>
         <p class="eyebrow">YOUR PERSONAL SPACE</p>
         <h1>My Planner</h1>
-        <p class="subtitle">把想做的事，一件一件完成。</p>
+        <p class="subtitle"><span class="bilingual">やりたいことを、一つずつ。<small>把想做的事，一件一件完成。</small></span></p>
       </div>
-      <button id="todayBtn" class="button button-ghost" type="button">回到今天</button>
+      <button id="todayBtn" class="button button-ghost" type="button"><span class="bilingual">今日に戻る<small>回到今天</small></span></button>
     </header>
 
     <main>
-      <section class="panel auth-panel" aria-label="云端同步账号">
-        <div class="auth-copy"><p class="eyebrow">CLOUD SYNC</p><h2>跨设备同步</h2><p id="authStatus" class="auth-status">登录后即可在电脑和 iPhone 之间同步任务。</p></div>
+      <section class="panel auth-panel" aria-label="クラウド同期">
+        <div class="auth-copy"><p class="eyebrow">CLOUD SYNC</p><h2><span class="bilingual">クラウド同期<small>跨设备同步</small></span></h2><p id="authStatus" class="auth-status"><span class="bilingual">ログインすると、PCとiPhoneでタスクを同期できます。<small>登录后即可在电脑和 iPhone 之间同步任务。</small></span></p></div>
         <form id="authForm" class="auth-form">
-          <input id="authEmail" type="email" placeholder="邮箱地址" autocomplete="email" required>
-          <input id="authPassword" type="password" placeholder="密码（至少 6 位）" autocomplete="current-password" minlength="6" required>
-          <div class="auth-buttons"><button id="signInBtn" class="button button-primary" type="submit">登录并同步</button><button id="signUpBtn" class="button button-ghost" type="button">注册账号</button><button id="signOutBtn" class="button button-ghost" type="button" hidden>退出登录</button></div>
+          <input id="authEmail" type="email" placeholder="メールアドレス / 邮箱地址" autocomplete="email" required>
+          <input id="authPassword" type="password" placeholder="パスワード（6文字以上）/ 密码" autocomplete="current-password" minlength="6" required>
+          <div class="auth-buttons"><button id="signInBtn" class="button button-primary" type="submit"><span class="bilingual">ログイン・同期<small>登录并同步</small></span></button><button id="signUpBtn" class="button button-ghost" type="button"><span class="bilingual">新規登録<small>注册账号</small></span></button><button id="signOutBtn" class="button button-ghost" type="button" hidden><span class="bilingual">ログアウト<small>退出登录</small></span></button></div>
         </form>
-        <button id="enableNotificationsBtn" class="button button-ghost" type="button" hidden>开启设备通知</button>
-        <button id="resetNotificationsBtn" class="button button-ghost" type="button" hidden>重新订阅设备通知</button>
+        <button id="enableNotificationsBtn" class="button button-ghost" type="button" hidden><span class="bilingual">通知を有効にする<small>开启设备通知</small></span></button>
+        <button id="resetNotificationsBtn" class="button button-ghost" type="button" hidden><span class="bilingual">通知を再登録<small>重新订阅设备通知</small></span></button>
         <p id="notificationStatus" class="auth-status" aria-live="polite"></p>
       </section>
       <section class="overview">
         <div class="overview-date">
-          <span id="todayLabel">今天</span>
+          <span id="todayLabel"><span class="bilingual">今日<small>今天</small></span></span>
           <strong id="todayDate">----</strong>
         </div>
         <div class="stat">
           <strong id="totalCount">0</strong>
-          <span>今日任务</span>
+          <span><span class="bilingual">今日のタスク<small>今日任务</small></span></span>
         </div>
         <div class="stat">
           <strong id="doneCount">0</strong>
-          <span>已完成</span>
+          <span><span class="bilingual">完了<small>已完成</small></span></span>
         </div>
         <div class="progress-wrap">
-          <div class="progress-copy"><span>今日进度</span><strong id="progressText">0%</strong></div>
+          <div class="progress-copy"><span><span class="bilingual">今日の進捗<small>今日进度</small></span></span><strong id="progressText">0%</strong></div>
           <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
         </div>
       </section>
@@ -55,7 +55,7 @@
       <section class="main-grid">
         <aside class="panel calendar-panel">
           <div class="section-heading">
-            <div><p class="eyebrow">CALENDAR</p><h2>日历</h2></div>
+            <div><p class="eyebrow">CALENDAR</p><h2><span class="bilingual">カレンダー<small>日历</small></span></h2></div>
             <div class="calendar-nav">
               <button id="prevMonth" class="icon-button" aria-label="上个月">‹</button>
               <strong id="monthLabel"></strong>
@@ -71,36 +71,36 @@
 
         <section class="panel tasks-panel">
           <div class="section-heading task-heading">
-            <div><p class="eyebrow">TASK MANAGER</p><h2 id="selectedDateTitle">今日任务</h2></div>
-            <button id="longTermBtn" class="button button-ghost" type="button">长期任务</button>
+            <div><p class="eyebrow">TASK MANAGER</p><h2 id="selectedDateTitle"><span class="bilingual">今日のタスク<small>今日任务</small></span></h2></div>
+            <button id="longTermBtn" class="button button-ghost" type="button"><span class="bilingual">長期タスク<small>长期任务</small></span></button>
           </div>
 
           <form id="taskForm" class="task-form">
             <label class="sr-only" for="taskInput">任务内容</label>
-            <input id="taskInput" maxlength="160" placeholder="添加一件要做的事…" autocomplete="off" required>
+            <input id="taskInput" maxlength="160" placeholder="タスクを入力… / 添加任务" autocomplete="off" required>
             <input id="reminderInput" type="datetime-local" aria-label="提醒时间" title="提醒时间（可选）">
-            <select id="repeatInput" aria-label="重复提醒" title="重复提醒"><option value="none">不重复</option><option value="daily">每天</option><option value="weekly">每周</option><option value="monthly">每月</option></select>
+            <select id="repeatInput" aria-label="重复提醒" title="重复提醒"><option value="none"><span class="bilingual">繰り返さない<small>不重复</small></span></option><option value="daily"><span class="bilingual">毎日<small>每天</small></span></option><option value="weekly"><span class="bilingual">毎週<small>每周</small></span></option><option value="monthly"><span class="bilingual">毎月<small>每月</small></span></option></select>
             <select id="priorityInput" aria-label="优先级">
-              <option value="medium">中优先级</option>
-              <option value="high">高优先级</option>
-              <option value="low">低优先级</option>
+              <option value="medium"><span class="bilingual">優先度：中<small>中优先级</small></span></option>
+              <option value="high"><span class="bilingual">優先度：高<small>高优先级</small></span></option>
+              <option value="low"><span class="bilingual">優先度：低<small>低优先级</small></span></option>
             </select>
-            <button class="button button-primary" type="submit">＋ 添加</button>
+            <button class="button button-primary" type="submit"><span class="bilingual">＋ 追加<small>添加</small></span></button>
           </form>
 
           <div class="task-toolbar">
             <div id="taskTabs" class="tabs">
-              <button class="tab active" data-filter="all" type="button">全部</button>
-              <button class="tab" data-filter="active" type="button">未完成</button>
-              <button class="tab" data-filter="completed" type="button">已完成</button>
+              <button class="tab active" data-filter="all" type="button"><span class="bilingual">すべて<small>全部</small></span></button>
+              <button class="tab" data-filter="active" type="button"><span class="bilingual">未完了<small>未完成</small></span></button>
+              <button class="tab" data-filter="completed" type="button"><span class="bilingual">完了<small>已完成</small></span></button>
             </div>
             <span id="taskCountLabel" class="muted"></span>
           </div>
           <ul id="taskList" class="task-list"></ul>
           <div id="emptyState" class="empty-state">
             <div class="empty-icon">✦</div>
-            <strong>这里还很空</strong>
-            <p>添加一项任务，开始安排今天吧。</p>
+            <strong><span class="bilingual">タスクはまだありません<small>这里还很空</small></span></strong>
+            <p><span class="bilingual">タスクを追加して、今日の予定を立てましょう。<small>添加一项任务，开始安排今天吧。</small></span></p>
           </div>
         </section>
       </section>
@@ -111,15 +111,15 @@
 
   <dialog id="editDialog" class="edit-dialog">
     <form id="editForm" method="dialog">
-      <div class="section-heading"><div><p class="eyebrow">EDIT TASK</p><h2>编辑任务</h2></div><button id="closeDialog" class="icon-button" type="button" aria-label="关闭">×</button></div>
+      <div class="section-heading"><div><p class="eyebrow">EDIT TASK</p><h2><span class="bilingual">タスクを編集<small>编辑任务</small></span></h2></div><button id="closeDialog" class="icon-button" type="button" aria-label="关闭">×</button></div>
       <input id="editText" maxlength="160" required aria-label="任务内容">
       <div class="dialog-fields">
-        <label>日期<input id="editDate" type="date"></label>
-        <label>提醒时间<input id="editReminder" type="datetime-local"></label>
-        <label>重复提醒<select id="editRepeat"><option value="none">不重复</option><option value="daily">每天</option><option value="weekly">每周</option><option value="monthly">每月</option></select></label>
-        <label>优先级<select id="editPriority"><option value="high">高</option><option value="medium">中</option><option value="low">低</option></select></label>
+        <label><span class="bilingual">日付<small>日期</small></span><input id="editDate" type="date"></label>
+        <label><span class="bilingual">通知日時<small>提醒时间</small></span><input id="editReminder" type="datetime-local"></label>
+        <label><span class="bilingual">繰り返し通知<small>重复提醒</small></span><select id="editRepeat"><option value="none"><span class="bilingual">繰り返さない<small>不重复</small></span></option><option value="daily"><span class="bilingual">毎日<small>每天</small></span></option><option value="weekly"><span class="bilingual">毎週<small>每周</small></span></option><option value="monthly"><span class="bilingual">毎月<small>每月</small></span></option></select></label>
+        <label><span class="bilingual">優先度<small>优先级</small></span><select id="editPriority"><option value="high"><span class="bilingual">高<small>高</small></span></option><option value="medium"><span class="bilingual">中<small>中</small></span></option><option value="low"><span class="bilingual">低<small>低</small></span></option></select></label>
       </div>
-      <div class="dialog-actions"><button id="cancelEdit" class="button button-ghost" type="button">取消</button><button class="button button-primary" type="submit">保存修改</button></div>
+      <div class="dialog-actions"><button id="cancelEdit" class="button button-ghost" type="button"><span class="bilingual">キャンセル<small>取消</small></span></button><button class="button button-primary" type="submit"><span class="bilingual">変更を保存<small>保存修改</small></span></button></div>
     </form>
   </dialog>
 
