@@ -564,7 +564,7 @@ function updateChatLanguage(){
   if(list?.children.length){
    list.querySelectorAll(".chat-friend").forEach(btn=>{
     const hint=btn.querySelector(".chat-friend-info small");
-    if(hint)hint.textContent=chatText("点击进入群聊","タップしてグループを開く","Open group chat");
+    if(hint&&["暂无消息","メッセージなし","No messages yet","点击进入群聊","タップしてグループを開く","Open group chat"].includes(hint.textContent.trim()))hint.textContent=chatText("暂无消息","メッセージなし","No messages yet");
     const avatar=btn.querySelector(".chat-list-avatar");
     if(avatar)avatar.textContent=chatText("群","グ","G");
    });
