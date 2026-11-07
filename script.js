@@ -325,7 +325,7 @@ document.querySelector("#taskForm")?.addEventListener("submit",()=>queueMicrotas
 refreshReminderDisplay();
 
 /* My Planner Chat V1. Requires the chat database SQL before use. */
-let chatPeer=null,chatSubscription=null,chatRefreshBusy=false;
+let chatPeer=null,chatSubscription=null,chatRefreshBusy=false,chatLastSignature="",chatReloadQueued=false;
 function chatText(zh,ja,en){return tr(ja,zh,en)}
 function updateChatLanguage(){
  const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"],chatBack:["戻る","返回","Back"]};
@@ -336,7 +336,7 @@ function updateChatLanguage(){
 }
 function chatStatus(message){$("chatStatus").textContent=message}
 function chatError(error){chatStatus(error?.message||String(error))}
-function chatShowList(){chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
+function chatShowList(){chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
 function chatStopRealtime(){if(chatSubscription){supabaseClient.removeChannel(chatSubscription);chatSubscription=null}}
 async function loadChatFriends(){
  if(chatPeer)return;
@@ -358,19 +358,29 @@ async function loadChatFriends(){
  for(const id of ids){const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";const name=names.get(id)||id.slice(0,8);btn.textContent="●  "+name;btn.addEventListener("click",()=>openChat(id,name));root.append(btn)}
 }
 async function openChat(id,name){
- chatPeer=id;$("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
+ chatLastSignature="";chatPeer=id;$("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
  await loadChatMessages();chatStopRealtime();
- chatSubscription=supabaseClient.channel("private-chat-"+currentUser.id+"-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages"},payload=>{if(chatPeer&&(payload.new.sender_id===chatPeer||payload.new.sender_id===currentUser.id))loadChatMessages()}).subscribe();
+ chatSubscription=supabaseClient.channel("private-chat-"+currentUser.id+"-"+id)
+ .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"recipient_id=eq."+currentUser.id},payload=>{if(chatPeer===payload.new.sender_id)loadChatMessages()})
+ .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"sender_id=eq."+currentUser.id},payload=>{if(chatPeer===payload.new.recipient_id)loadChatMessages()})
+ .subscribe();
 }
 async function loadChatMessages(){
- if(!currentUser||!chatPeer||chatRefreshBusy)return;
+ if(!currentUser||!chatPeer)return;
+ if(chatRefreshBusy){chatReloadQueued=true;return}
  chatRefreshBusy=true;
+ const requestedPeer=chatPeer;
  const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+chatPeer+"),and(sender_id.eq."+chatPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:true}).limit(200);
  if(error){chatRefreshBusy=false;chatError(error.message);return}
+ if(chatPeer!==requestedPeer){chatRefreshBusy=false;return}
+ const signature=(data||[]).map(m=>m.id).join(",");
+ if(signature===chatLastSignature){chatRefreshBusy=false;if(chatReloadQueued){chatReloadQueued=false;queueMicrotask(loadChatMessages)}return}
+ chatLastSignature=signature;
  const root=$("chatMessages");root.replaceChildren();
  for(const item of data||[]){const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");const body=document.createElement("span");body.textContent=item.body;const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();div.append(body,time);root.append(div)}
  root.scrollTop=root.scrollHeight;
  chatRefreshBusy=false;
+ if(chatReloadQueued){chatReloadQueued=false;queueMicrotask(loadChatMessages)}
 }
 $("chatAddFriend").addEventListener("click",async()=>{
  if(!currentUser)return;
@@ -395,7 +405,7 @@ $("chatSendForm").addEventListener("submit",async e=>{
 setInterval(()=>{
  if(document.hidden||document.body.dataset.activePage!=="chat"||!currentUser)return;
  if(chatPeer)loadChatMessages();else loadChatFriends();
-},4000);
+},2000);
 document.addEventListener("visibilitychange",()=>{
  if(!document.hidden&&document.body.dataset.activePage==="chat"&&currentUser){if(chatPeer)loadChatMessages();else loadChatFriends()}
 });
