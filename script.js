@@ -379,7 +379,29 @@ async function loadChatFriends(){
  if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");root.append(empty);return}
  const {data:profiles}=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name]));
- for(const id of ids){const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";const name=names.get(id)||id.slice(0,8);const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=(name.trim()[0]||"?").toUpperCase();const content=document.createElement("span");content.className="chat-friend-info";const title=document.createElement("strong");title.textContent=name;const subtitle=document.createElement("small");subtitle.textContent=chatText("点击开始聊天","タップしてチャット","Tap to chat");content.append(title,subtitle);const arrow=document.createElement("span");arrow.className="chat-friend-chevron";arrow.textContent="›";btn.append(avatar,content,arrow);btn.addEventListener("click",()=>openChat(id,name));root.append(btn)}
+ const {data:recent}=await supabaseClient.from("chat_messages").select("sender_id,recipient_id,body,created_at,read_at").or("sender_id.eq."+currentUser.id+",recipient_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(200);
+ const last=new Map(),unread=new Map();
+ for(const m of recent||[]){
+  const other=m.sender_id===currentUser.id?m.recipient_id:m.sender_id;
+  if(!ids.includes(other))continue;
+  if(!last.has(other))last.set(other,m);
+  if(m.recipient_id===currentUser.id&&!m.read_at)unread.set(other,(unread.get(other)||0)+1);
+ }
+ const sorted=[...ids].sort((a,b)=>(last.get(b)?.created_at||"").localeCompare(last.get(a)?.created_at||""));
+ for(const id of sorted){
+  const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
+  const name=names.get(id)||id.slice(0,8);
+  const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=(name.trim()[0]||"?").toUpperCase();
+  const content=document.createElement("span");content.className="chat-friend-info";
+  const title=document.createElement("strong");title.textContent=name;
+  const subtitle=document.createElement("small");const m=last.get(id);
+  subtitle.textContent=m?(m.sender_id===currentUser.id?chatText("我：","私：","Me: "):"")+(m.body.startsWith(CHAT_IMAGE_PREFIX)?chatText("📷 照片","📷 写真","📷 Photo"):m.body):chatText("开始聊天","チャットを始める","Start chatting");
+  content.append(title,subtitle);
+  const meta=document.createElement("span");meta.className="chat-friend-meta";
+  if(m){const when=document.createElement("small");when.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});meta.append(when)}
+  if(unread.get(id)){const count=document.createElement("b");count.className="chat-unread";count.textContent=unread.get(id)>99?"99+":String(unread.get(id));meta.append(count)}
+  btn.append(avatar,content,meta);btn.addEventListener("click",()=>openChat(id,name));root.append(btn);
+ }
 }
 function chatAppendRealtime(item){
  if(!currentUser||!chatPeer||!item||!(item.sender_id===chatPeer&&item.recipient_id===currentUser.id||item.sender_id===currentUser.id&&item.recipient_id===chatPeer))return;
