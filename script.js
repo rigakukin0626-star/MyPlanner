@@ -77,7 +77,7 @@ let filter = "all", showLongTerm = false, editingId = null, tasks = loadTasks();
 // Supabase Project URL + Publishable key（可安全放在前端；不要使用 Secret key）
 const SUPABASE_URL = "https://nushjnpeftksloyzojgd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_bDN-tQp_ZUu77LxcAVpjgQ_fM9f3-c9";
-const VAPID_PUBLIC_KEY = "BKHHrBNwurKrucCP0CsLKtLZnaqQXS0QeKtg8h08OwTjcgLmEG4azIVCd3yyrwK6J5udn7wM24mI606qKOJtwKw";
+const VAPID_PUBLIC_KEY = "BBCa_k5YKCe72B2hn3oioo90yiDHQi1L6dcfH11Vxwuffyk7l7VwAVtX73UnvCZklb9fNfoMkQ3pTp6xYUZzh60";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 let currentUser = null, cloudReady = false, syncQueue = Promise.resolve();
 
