@@ -1249,3 +1249,35 @@ html[data-theme="dark"] #pageChat #chatGroupMembersPanel{
 @media(prefers-reduced-motion:reduce){
  #pageChat #chatGroupInvitePanel,#pageChat #chatGroupMembersPanel{animation:none!important}
 }
+
+
+/* v149: larger, balanced avatars in private and group conversations */
+#pageChat .chat-messages .chat-bubble.chat-with-avatar{
+ margin-left:49px!important;
+ max-width:calc(78% - 24px);
+}
+#pageChat .chat-messages .chat-bubble.chat-with-avatar.mine{
+ margin-left:0!important;
+ margin-right:49px!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-with-avatar::before,
+#pageChat #chatGroupMessages .chat-bubble.chat-with-avatar::before{
+ width:40px!important;
+ height:40px!important;
+ left:-49px!important;
+ bottom:0!important;
+ font-size:15px!important;
+ font-weight:650!important;
+ border-radius:50%!important;
+ box-shadow:0 2px 7px rgba(30,52,90,.10)!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-with-avatar.mine::before,
+#pageChat #chatGroupMessages .chat-bubble.chat-with-avatar.mine::before{
+ left:auto!important;
+ right:-49px!important;
+}
+#pageChat #chatGroupMessages .chat-bubble .group-message-sender{
+ left:-49px!important;
+ bottom:calc(100% + 3px)!important;
+ font-size:11px!important;
+}
