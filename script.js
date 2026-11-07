@@ -203,6 +203,16 @@ function longTermCountdown(reminderAt,completed){
  if(days===0)return tr("予定は今日","预定就在今天","Plan is today");
  return tr(`予定日から${-days}日経過`,`已超过预定 ${-days} 天`,`${-days} day${days===-1?"":"s"} past planned date`);
 }
+function longTermMidnight(value){if(!value)return null;const day=value.slice(0,10);return new Date(day+"T00:00:00").toISOString()}
+function updateLongTermFormMode(){
+ const isLong=showLongTerm;
+ const panel=document.querySelector(".tasks-panel");if(panel)panel.classList.toggle("longterm-mode",isLong);
+ const input=$("reminderInput");if(input){input.type=isLong?"date":"datetime-local";input.setAttribute("aria-label",isLong?tr("予定日","预定日期","Plan date"):tr("通知時刻","提醒时间","Reminder time"));}
+ const repeat=$("repeatInput");if(repeat&&isLong)repeat.value="none";
+ const field=document.querySelector(".task-field-reminder .task-field-label");if(field)field.textContent=isLong?tr("予定日（当日0時に通知）","预定日期（当天0点提醒）","Plan date (notify at midnight)"):tr("通知時刻","提醒时间","Reminder time");
+ const name=taskInput;if(name)name.placeholder=isLong?tr("長期予定を入力…","添加长期预定…","Add a long-term plan..."):tr("タスクを入力…","添加一件要做的事…","Add a task...");
+ if(typeof refreshReminderDisplay==="function")refreshReminderDisplay();
+}
 function renderLongTermCountdowns(){
  const root=$("countdownRows");if(!root)return;
  const all=tasks.filter(t=>t.date===null&&!t.completed).sort((a,b)=>(a.reminderAt?new Date(a.reminderAt).getTime():Infinity)-(b.reminderAt?new Date(b.reminderAt).getTime():Infinity));
@@ -218,7 +228,7 @@ function renderLongTermCountdowns(){
  const hint=$("longTermHint");if(hint)hint.textContent=all.length>5?tr(`近い予定を5件表示中（全${all.length}件）`,`按时间显示最近5项（共${all.length}项）`,`Showing the nearest 5 of ${all.length} plans`):tr("予定をタップして編集できます。","点击倒计时项目即可编辑。","Tap a countdown to edit its plan.");
 }
 function renderTasks(){const source=tasks.filter(t=>showLongTerm?t.date===null:t.date===selectedDate),visible=source.filter(t=>filter==="all"||(filter==="active"?!t.completed:t.completed));selectedDateTitle.textContent=showLongTerm?tr("長期予定","长期预定","Long-term Plans"):tr("予定","预定","Plans");$("taskCountLabel").textContent=tr(`${visible.length} 件`,`${visible.length} 项`,`${visible.length} tasks`);taskList.innerHTML="";emptyState.hidden=visible.length>0;if(!visible.length){emptyState.querySelector("strong").textContent=filter==="all"?tr("タスクはまだありません","这里还很空","No tasks yet"):tr("該当するタスクはありません","没有符合条件的任务","No matching tasks");emptyState.querySelector("p").textContent=filter==="all"?tr("タスクを追加してみましょう","添加一项任务，开始安排吧。","Add a task to get started"):tr("フィルターを変更してください","试试切换筛选条件。","Try another filter")}const rank={high:0,medium:1,low:2};visible.sort((a,b)=>Number(a.completed)-Number(b.completed)||rank[a.priority]-rank[b.priority]);visible.forEach(task=>{const li=document.createElement("li");li.className="task-item"+(task.completed?" completed":"");const check=document.createElement("input");check.type="checkbox";check.className="task-check";check.checked=task.completed;check.setAttribute("aria-label","标记完成");check.addEventListener("change",()=>{task.completed=check.checked;saveTasks();render()});const text=document.createElement("span");text.className="task-text";text.textContent=task.text;const badge=document.createElement("span");badge.className=`priority priority-${task.priority}`;badge.textContent=priorityName(task.priority);const reminder=document.createElement("span");reminder.className="task-reminder";reminder.textContent=task.reminderAt?"⏰ "+new Intl.DateTimeFormat(uiLanguage==="en"?"en-US":uiLanguage==="ja"?"ja-JP":"zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(task.reminderAt))+(task.repeat&&task.repeat!=="none"?" · "+repeatName(task.repeat):""):"";const actions=document.createElement("div");actions.className="task-actions";const edit=document.createElement("button");edit.type="button";edit.className="task-action";edit.textContent=tr("編集","编辑","Edit");edit.addEventListener("click",()=>openEdit(task.id));const del=document.createElement("button");del.type="button";del.className="task-action";del.textContent=tr("削除","删除","Delete");del.addEventListener("click",()=>deleteTask(task.id));actions.append(edit,del);li.append(check,text,badge);if(showLongTerm&&task.reminderAt){const countdown=document.createElement("span");countdown.className="task-countdown";countdown.textContent=longTermCountdown(task.reminderAt,task.completed);li.append(countdown)}if(task.reminderAt)li.append(reminder);li.append(actions);taskList.appendChild(li)})}
-taskForm.addEventListener("submit",e=>{e.preventDefault();const text=taskInput.value.trim();if(!text)return;if($("repeatInput").value!=="none"&&!$("reminderInput").value){alert(tr("繰り返し通知には日時が必要です。","重复提醒必须设置提醒时间","Choose a reminder time for recurring tasks."));return;}tasks.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),text,date:showLongTerm?null:selectedDate,completed:false,priority:priorityInput.value,reminderAt:$("reminderInput").value?new Date($("reminderInput").value).toISOString():null,repeat:$("repeatInput").value});saveTasks();taskInput.value="";priorityInput.value="medium";$("reminderInput").value="";$("repeatInput").value="none";taskInput.focus();render()});
+taskForm.addEventListener("submit",e=>{e.preventDefault();const text=taskInput.value.trim();if(!text)return;if(showLongTerm&&!$("reminderInput").value){alert(tr("予定日を選択してください。","请选择预定日期。","Choose a plan date."));return;}if($("repeatInput").value!=="none"&&!$("reminderInput").value){alert(tr("繰り返し通知には日時が必要です。","重复提醒必须设置提醒时间","Choose a reminder time for recurring tasks."));return;}tasks.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),text,date:showLongTerm?null:selectedDate,completed:false,priority:priorityInput.value,reminderAt:$("reminderInput").value?(showLongTerm?longTermMidnight($("reminderInput").value):new Date($("reminderInput").value).toISOString()):null,repeat:$("repeatInput").value});saveTasks();taskInput.value="";priorityInput.value="medium";$("reminderInput").value="";$("repeatInput").value="none";taskInput.focus();render();updateLongTermFormMode()});
 function confirmDeleteDialog(){
  return new Promise(resolve=>{
   const dialog=$("deleteDialog");
@@ -243,8 +253,8 @@ $("editDate").addEventListener("input",refreshEditDateDisplays);
 $("editDate").addEventListener("change",refreshEditDateDisplays);
 $("editReminder").addEventListener("input",refreshEditDateDisplays);
 $("editReminder").addEventListener("change",refreshEditDateDisplays);
-function openEdit(id){const task=tasks.find(t=>t.id===id);if(!task)return;editingId=id;$("editText").value=task.text;$("editDate").value=task.date||"";$("editPriority").value=task.priority;$("editReminder").value=task.reminderAt?toLocalDateTimeInput(task.reminderAt):"";$("editRepeat").value=task.repeat||"none";refreshEditDateDisplays();editDialog.showModal()}
-$("editForm").addEventListener("submit",e=>{e.preventDefault();const task=tasks.find(t=>t.id===editingId);if(!task)return;if($("editRepeat").value!=="none"&&!$("editReminder").value){alert(tr("繰り返し通知には日時が必要です。","重复提醒必须设置提醒时间","Choose a reminder time for recurring tasks."));return;}task.text=$("editText").value.trim();task.date=$("editDate").value||null;task.priority=$("editPriority").value;task.reminderAt=$("editReminder").value?new Date($("editReminder").value).toISOString():null;task.repeat=$("editRepeat").value;saveTasks();editDialog.close();showLongTerm=task.date===null;if(task.date)selectedDate=task.date;render()});
+function openEdit(id){const task=tasks.find(t=>t.id===id);if(!task)return;editingId=id;const isLong=task.date===null;editDialog.classList.toggle("longterm-edit",isLong);$("editReminder").type=isLong?"date":"datetime-local";$("editText").value=task.text;$("editDate").value=task.date||"";$("editPriority").value=task.priority;$("editReminder").value=task.reminderAt?(isLong?toLocalDateTimeInput(task.reminderAt).slice(0,10):toLocalDateTimeInput(task.reminderAt)):"";$("editRepeat").value=task.repeat||"none";refreshEditDateDisplays();const lbl=document.querySelector('label:has(#editReminder) > span:first-child');if(lbl)lbl.textContent=isLong?tr("予定日（当日0時に通知）","预定日期（当天0点提醒）","Plan date (midnight notification)"):tr("通知日時","提醒时间","Reminder date & time");editDialog.showModal()}
+$("editForm").addEventListener("submit",e=>{e.preventDefault();const task=tasks.find(t=>t.id===editingId);if(!task)return;if($("editRepeat").value!=="none"&&!$("editReminder").value){alert(tr("繰り返し通知には日時が必要です。","重复提醒必须设置提醒时间","Choose a reminder time for recurring tasks."));return;}task.text=$("editText").value.trim();task.date=$("editDate").value||null;task.priority=$("editPriority").value;task.reminderAt=$("editReminder").value?(task.date===null?longTermMidnight($("editReminder").value):new Date($("editReminder").value).toISOString()):null;task.repeat=$("editRepeat").value;saveTasks();editDialog.close();showLongTerm=task.date===null;if(task.date)selectedDate=task.date;render();updateLongTermFormMode()});
 function closeEdit(){editDialog.close();editingId=null}$("closeDialog").addEventListener("click",closeEdit);$("cancelEdit").addEventListener("click",closeEdit);
 $("prevMonth").addEventListener("click",()=>{viewMonth.setMonth(viewMonth.getMonth()-1);renderCalendar()});$("nextMonth").addEventListener("click",()=>{viewMonth.setMonth(viewMonth.getMonth()+1);renderCalendar()});$("taskTabs").addEventListener("click",e=>{const btn=e.target.closest("[data-filter]");if(!btn)return;filter=btn.dataset.filter;updateTabs();renderTasks()});function updateTabs(){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.filter===filter))}
 if("serviceWorker"in navigator&&location.protocol!=="file:")window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(console.error));
@@ -270,6 +280,7 @@ function switchPlannerPage(page){
   const destination=$(page==="longterm"?"pageLongTerm":"pageTasks");
   if(panel&&destination)destination.append(panel);
   filter="all";updateTabs();renderTasks();renderLongTermCountdowns();
+  updateLongTermFormMode();
  }
  if(page==="calendar")renderCalendar();
  window.scrollTo({top:0,behavior:"instant"});
@@ -299,11 +310,11 @@ initPlannerPages();
 /* v23: keep native iOS date picker functional, render centered text ourselves */
 function refreshReminderDisplay(){
  const input=$("reminderInput"),label=$("reminderDisplay");if(!input||!label)return;
- if(!input.value){label.textContent=tr("日時を選択","选择提醒时间","Select date & time");return}
- const d=new Date(input.value);
+ if(!input.value){label.textContent=showLongTerm?tr("予定日を選択","选择预定日期","Select plan date"):tr("日時を選択","选择提醒时间","Select date & time");return}
+ const d=new Date(input.type==="date"?input.value+"T00:00:00":input.value);
  if(Number.isNaN(d.getTime())){label.textContent=input.value;return}
  const locale=uiLanguage==="ja"?"ja-JP":uiLanguage==="zh"?"zh-CN":"en-US";
- label.textContent=new Intl.DateTimeFormat(locale,{year:"numeric",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(d);
+ label.textContent=new Intl.DateTimeFormat(locale,showLongTerm?{year:"numeric",month:"numeric",day:"numeric"}:{year:"numeric",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(d);
 }
 $("reminderInput")?.addEventListener("input",refreshReminderDisplay);
 $("reminderInput")?.addEventListener("change",refreshReminderDisplay);
