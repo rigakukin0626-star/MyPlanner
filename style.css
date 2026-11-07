@@ -816,3 +816,12 @@ html[data-theme="dark"] .appearance-options button[data-appearance="dark"].activ
 html[data-theme="dark"] .appearance-options button[data-appearance="dark"][aria-pressed="true"]{
  background:#25272d!important;border-color:#41444c!important;color:#60a5fa!important;box-shadow:none!important;
 }
+
+/* V112: user-requested blue typography throughout dark mode */
+html[data-theme="dark"] body,
+html[data-theme="dark"] body :is(h1,h2,h3,h4,h5,h6,p,span,small,strong,b,label,legend,summary,li,dt,dd,time,button,a,input,textarea,select,option,output,figcaption,th,td),
+html[data-theme="dark"] body :is(input,textarea)::placeholder {
+ color:#60a5fa!important;
+}
+html[data-theme="dark"] body :is(button,input,textarea,select) { caret-color:#60a5fa; }
+html[data-theme="dark"] body svg:not([fill="none"]) { color:#60a5fa; }
