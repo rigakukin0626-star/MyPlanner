@@ -1447,14 +1447,14 @@ function groupMarkSeen(groupId,when){
    One row per member per group, written only by the reading user.
 */
 let groupReceiptState={
- groupId:null,readers:new Map(),members:[],ready:false,
+ groupId:null,readers:new Map(),members:[],ready:false,messagesReady:false,lastRecordedMessageId:null,
  lastPoll:0,lastWrite:0,polling:false,writing:false
 };
 let groupReceiptTimer=null;
 function groupReceiptReset(groupId=null){
  if(groupReceiptTimer){clearInterval(groupReceiptTimer);groupReceiptTimer=null}
  groupReceiptState={
-  groupId,readers:new Map(),members:[],ready:false,
+  groupId,readers:new Map(),members:[],ready:false,messagesReady:false,lastRecordedMessageId:null,
   lastPoll:0,lastWrite:0,polling:false,writing:false
  };
 }
@@ -1498,9 +1498,13 @@ function groupReceiptPaint(){
 async function groupReceiptMarkRead(){
  const state=groupReceiptState;
  const groupId=chatActiveGroup?.id,userId=currentUser?.id;
- if(!state.ready||!groupReceiptIsActive(groupId)||state.groupId!==groupId
+ if(!state.ready||!state.messagesReady||!groupReceiptIsActive(groupId)||state.groupId!==groupId
     ||!groupReceiptNearBottom()||state.writing
     ||Date.now()-state.lastWrite<6000)return;
+ const root=$("chatGroupMessages");
+ const latest=root?.querySelector(".chat-bubble[data-group-message-id]:last-child");
+ const latestId=latest?.dataset.groupMessageId;
+ if(!latestId||state.lastRecordedMessageId===latestId)return;
  state.lastWrite=Date.now();
  state.writing=true;
  try{
@@ -1511,6 +1515,7 @@ async function groupReceiptMarkRead(){
   if(error)throw error;
   if(groupReceiptState!==state||!groupReceiptIsActive(groupId))return;
   if(data?.last_read_at)state.readers.set(userId,data.last_read_at);
+  state.lastRecordedMessageId=latestId;
   groupReceiptPaint();
  }catch(error){
   if(groupReceiptState===state)state.lastWrite=Date.now();
@@ -1876,9 +1881,10 @@ async function groupLoadMessages(){
   if(error)throw error;
   if(!chatActiveGroup||chatActiveGroup.id!==groupId||currentUser?.id!==userId)return;
   const items=(data||[]).reverse(),signature=uiLanguage+"|"+items.map(m=>m.id+":"+chatRemarkFor(m.sender_id)).join(",");
-  if(signature===groupLastSignature){void groupReceiptMarkRead();return;}
+  if(signature===groupLastSignature){if(groupReceiptState.groupId===groupId)groupReceiptState.messagesReady=true;void groupReceiptMarkRead();return;}
   groupLastSignature=signature;
   groupRenderMessages(items);
+  if(groupReceiptState.groupId===groupId)groupReceiptState.messagesReady=true;
   groupMarkSeen(groupId,items[items.length-1]?.created_at);
   void groupReceiptMarkRead();
   try{const key="myplanner-group-msg-"+currentUser.id+"-"+groupId;const payload=JSON.stringify({items:items.slice(-60)});sessionStorage.setItem(key,payload);localStorage.setItem(key,payload)}catch{}
