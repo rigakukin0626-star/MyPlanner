@@ -367,7 +367,11 @@ function chatText(zh,ja,en){return tr(ja,zh,en)}
 function updateChatLanguage(){
  const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"],chatBack:["戻る","返回","Back"]};
  for(const [id,values] of Object.entries(labels)){const el=$(id);if(el)el.textContent=values[uiLanguage==="ja"?0:uiLanguage==="zh"?1:2]}
- $("chatFriendCode").placeholder=chatText("输入好友邀请码","友達の招待コード","Friend invite code");
+ $("chatFriendCode").placeholder=chatText("粘贴好友的邀请码","友達のコードを貼り付け","Paste friend code");
+ $("chatCopyCode").textContent=chatText("复制我的邀请码","自分のコードをコピー","Copy my code");
+ $("chatShareCode").textContent=chatText("分享","共有","Share");
+ $("chatPasteCode").textContent=chatText("粘贴","貼り付け","Paste");
+ $("chatInviteSection").querySelector(".chat-invite-heading").textContent=chatText("添加好友","友達を追加","Add friend");
  $("chatMessageInput").placeholder=chatText("输入消息…","メッセージを入力…","Type a message...");
  $("chatSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
 }
@@ -534,6 +538,22 @@ async function loadChatMessages(){
  chatRefreshBusy=false;
  if(chatReloadQueued){chatReloadQueued=false;queueMicrotask(loadChatMessages)}
 }
+$("chatCopyCode").addEventListener("click",async()=>{
+ if(!currentUser)return;
+ try{await navigator.clipboard.writeText(currentUser.id);chatStatus(chatText("邀请码已复制","コードをコピーしました","Code copied"))}
+ catch{const identity=$("chatIdentity");identity.hidden=false;identity.textContent=currentUser.id;chatStatus(chatText("长按邀请码复制","コードを長押ししてコピー","Long press the code to copy"))}
+});
+$("chatShareCode").addEventListener("click",async()=>{
+ if(!currentUser)return;
+ const code=currentUser.id;
+ if(navigator.share){try{await navigator.share({title:"My Planner",text:chatText("在 My Planner 添加我为好友：","My Planner で友達に追加：","Add me on My Planner: ")+code});return}catch(error){if(error.name==="AbortError")return}}
+ try{await navigator.clipboard.writeText(code);chatStatus(chatText("邀请码已复制，可以发送给好友","コードをコピーしました","Code copied; send it to your friend"))}
+ catch{const identity=$("chatIdentity");identity.hidden=false;identity.textContent=code}
+});
+$("chatPasteCode").addEventListener("click",async()=>{
+ try{$("chatFriendCode").value=(await navigator.clipboard.readText()).trim();$("chatFriendCode").focus()}
+ catch{$("chatFriendCode").focus();chatStatus(chatText("请长按输入框粘贴","入力欄を長押しして貼り付け","Long press the field to paste"))}
+});
 $("chatAddFriend").addEventListener("click",async()=>{
  if(!currentUser)return;
  const code=$("chatFriendCode").value.trim().toLowerCase();
