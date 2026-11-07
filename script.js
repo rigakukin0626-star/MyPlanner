@@ -440,6 +440,7 @@ applyLanguage();refreshAuthUI();
 
 /* v21: multi-page shell. Existing task/auth nodes are moved, never recreated. */
 function switchPlannerPage(page){
+ if(document.body.dataset.activePage===page)return;
  if(!["tasks","longterm","calendar","chat","settings"].includes(page))page="tasks";
  document.querySelectorAll(".app-page").forEach(el=>el.classList.toggle("active",el.dataset.page===page));
  document.querySelectorAll(".bottom-tabs .tab").forEach(el=>el.classList.toggle("active",el.dataset.target===page));
@@ -455,7 +456,7 @@ function switchPlannerPage(page){
  }
  if(page==="calendar")renderCalendar();
  if(page==="settings"&&currentUser)chatLoadMyUsername();
- if(page==="chat"){if(chatActiveGroup){if(Date.now()-groupMessageLastFetched>2500)groupLoadMessages()}else if(chatPeer){loadChatMessages();chatMarkRead()}else if(chatMode==="group")groupLoadList(true);else loadChatFriends();}
+ if(page==="chat"){if(!chatPeer&&!chatActiveGroup){if(chatMode==="group")groupShowCachedList();else chatShowCachedFriends()}if(chatActiveGroup){if(Date.now()-groupMessageLastFetched>2500)groupLoadMessages()}else if(chatPeer){loadChatMessages();chatMarkRead()}else if(chatMode==="group")groupLoadList(true);else loadChatFriends();}
  window.scrollTo({top:0,behavior:"instant"});
 }
 function updatePlannerTabLanguage(){
@@ -1497,7 +1498,7 @@ function groupScheduleRefresh(){
 }
 function groupShowCachedMessages(groupId){
  if(!currentUser)return;
- try{const cache=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+groupId)||"null");if(Array.isArray(cache?.items)&&chatActiveGroup?.id===groupId){groupRenderMessages(cache.items);groupLastSignature=uiLanguage+"|"+cache.items.map(m=>m.id+":"+chatRemarkFor(m.sender_id)).join(",")}}catch{}
+ try{const key="myplanner-group-msg-"+currentUser.id+"-"+groupId;const cache=JSON.parse(sessionStorage.getItem(key)||localStorage.getItem(key)||"null");if(Array.isArray(cache?.items)&&chatActiveGroup?.id===groupId){groupRenderMessages(cache.items);groupLastSignature=uiLanguage+"|"+cache.items.map(m=>m.id+":"+chatRemarkFor(m.sender_id)).join(",")}}catch{}
 }
 function groupRenderMessages(items){
  const root=$("chatGroupMessages"),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<140;
@@ -1542,7 +1543,7 @@ async function groupLoadMessages(){
   groupLastSignature=signature;
   groupRenderMessages(items);
   groupMarkSeen(groupId,items[items.length-1]?.created_at);
-  try{sessionStorage.setItem("myplanner-group-msg-"+currentUser.id+"-"+groupId,JSON.stringify({items:items.slice(-100)}))}catch{}
+  try{const key="myplanner-group-msg-"+currentUser.id+"-"+groupId;const payload=JSON.stringify({items:items.slice(-60)});sessionStorage.setItem(key,payload);localStorage.setItem(key,payload)}catch{}
  }catch(error){if(chatActiveGroup?.id===groupId&&currentUser?.id===userId)groupError(error);groupMessageLastFetched=0}
  finally{groupPolling=false}
 }
