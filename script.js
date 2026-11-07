@@ -348,6 +348,8 @@ refreshReminderDisplay();
 let chatPeer=null,chatSubscription=null,chatRefreshBusy=false,chatLastSignature="",chatReloadQueued=false;
 let chatConfirmedCache=[],chatCachePeer=null;
 let chatReadBusy=false,chatReadLastId=null;
+let chatAutoScrollUntil=0;
+function chatScrollToLatest(){const root=$("chatMessages");if(!root)return;root.scrollTop=root.scrollHeight;requestAnimationFrame(()=>{if(root.isConnected)root.scrollTop=root.scrollHeight})}
 let chatLastFetchAt=0;
 const chatPending=new Map();
 function chatText(zh,ja,en){return tr(ja,zh,en)}
@@ -416,7 +418,7 @@ function chatAppendRealtime(item){
 }
 async function openChat(id,name){
  chatStopRealtime();
- chatLastSignature="";chatConfirmedCache=[];chatCachePeer=id;chatReadLastId=null;chatPeer=id;document.body.classList.add("chat-open");
+ chatLastSignature="";chatConfirmedCache=[];chatCachePeer=id;chatReadLastId=null;chatPeer=id;chatAutoScrollUntil=Date.now()+8000;document.body.classList.add("chat-open");
  $("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");
  $("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
  const userId=currentUser.id;
@@ -429,6 +431,8 @@ async function openChat(id,name){
   if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")chatStatus(chatText("实时连接中断，正在使用备用同步","リアルタイム接続が中断しました","Realtime unavailable; using backup sync"));
  });
  await loadChatMessages();
+ chatScrollToLatest();
+ setTimeout(()=>{if(chatPeer===id&&Date.now()<chatAutoScrollUntil)chatScrollToLatest()},600);
 }
 const CHAT_IMAGE_PREFIX="[myplanner-image]:";
 const chatImageUrlCache=new Map();
@@ -444,7 +448,7 @@ function chatMessageContent(node,body){
    if(!error&&data?.signedUrl){img.src=data.signedUrl;chatImageUrlCache.set(path,{url:data.signedUrl,expires:Date.now()+3300000})}
    else if(error)node.append(document.createTextNode(chatText("照片加载失败","写真を読み込めません","Photo unavailable")));
   });
-  img.addEventListener("load",()=>{img.alt=chatText("聊天照片","チャット写真","Chat photo")});
+  img.addEventListener("load",()=>{img.alt=chatText("聊天照片","チャット写真","Chat photo");if(Date.now()<chatAutoScrollUntil)chatScrollToLatest()});
   img.addEventListener("error",()=>{img.alt=chatText("照片加载失败","写真を読み込めません","Photo failed to load")});
   img.addEventListener("click",()=>{if(img.src)window.open(img.src,"_blank","noopener")});
  }else node.textContent=body;
@@ -473,9 +477,9 @@ function chatRenderMessages(){
   const time=document.createElement("small");time.textContent=item.status==="failed"?chatText("发送失败","送信失敗","Failed"):item.status==="uncertain"?chatText("发送超时·待确认","送信確認中","Delivery unconfirmed"):item.status==="sent"?chatText("已发送","送信済み","Sent"):chatText("发送中…","送信中…","Sending...");
   div.append(body,time);fragment.append(div);
  }
+ const wasNearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<130;
  root.replaceChildren(fragment);
- root.scrollTop=root.scrollHeight;
- requestAnimationFrame(()=>{if(chatPeer&&root.isConnected)root.scrollTop=root.scrollHeight});
+ if(wasNearBottom||Date.now()<chatAutoScrollUntil)chatScrollToLatest();
 }
 async function chatMarkRead(){
  if(chatReadBusy||!currentUser||!chatPeer||document.hidden||document.body.dataset.activePage!=="chat")return;
