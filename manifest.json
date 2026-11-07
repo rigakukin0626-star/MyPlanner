@@ -1,11 +1,11 @@
 {
   "name": "My Planner",
   "short_name": "My Planner",
-  "description": "个人日程与待办管理",
+  "description": "Tasks, Calendar & Messages",
   "start_url": "/MyPlanner/",
   "display": "standalone",
-  "background_color": "#f4f6fb",
-  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "icon.svg",
