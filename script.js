@@ -1186,8 +1186,47 @@ window.addEventListener("online",chatRefreshAfterReconnect);
 let chatMode="private",chatActiveGroup=null,groupPolling=false,groupLastSignature="",groupChannel=null;
 let groupListLoading=false,groupListLastLoaded=0,groupListSignature="",groupMessageRefreshTimer=null,groupMessageLastFetched=0;
 const groupListCacheKey="myplanner-groups-v1";
+const groupReadKey="myplanner-group-read-v1";
+function groupReadTimes(){
+ try{const all=JSON.parse(localStorage.getItem(groupReadKey)||"{}");return all[currentUser?.id]||{}}catch{return {}}
+}
+function groupMarkSeen(groupId,when){
+ if(!currentUser||!groupId)return;
+ try{
+  const all=JSON.parse(localStorage.getItem(groupReadKey)||"{}");
+  const times=all[currentUser.id]||{};
+  const value=when||new Date().toISOString();
+  if(!times[groupId]||times[groupId]<value)times[groupId]=value;
+  all[currentUser.id]=times;localStorage.setItem(groupReadKey,JSON.stringify(all));
+ }catch{}
+}
+let groupListRequestId=0;
+async function groupFetchPreviews(groups){
+ if(!currentUser||!groups.length)return groups;
+ const userId=currentUser.id,readTimes=groupReadTimes();
+ return Promise.all(groups.map(async group=>{
+  try{
+   const latest=await supabaseClient.from("chat_group_messages").select("id,body,created_at,sender_id").eq("group_id",group.id).order("created_at",{ascending:false}).limit(1);
+   if(latest.error)throw latest.error;
+   const message=latest.data?.[0];
+   if(!message)return {...group,preview:"",previewTime:"",unread:0};
+   let unread=0;
+   const since=readTimes[group.id];
+   if(since){
+    const result=await supabaseClient.from("chat_group_messages").select("id",{count:"exact",head:true}).eq("group_id",group.id).gt("created_at",since).neq("sender_id",userId);
+    if(!result.error)unread=result.count||0;
+   }else{
+    // Existing groups start without a historical unread backlog.
+    groupMarkSeen(group.id,message.created_at);
+   }
+   const body=message.body||"";
+   const preview=body.startsWith("[myplanner-group-image]:")?chatText("📷 图片","📷 写真","📷 Photo"):body;
+   return {...group,preview,previewTime:message.created_at,unread};
+  }catch{return group}
+ }));
+}
 function groupRenderList(groups){
- const signature=uiLanguage+"|"+JSON.stringify(groups.map(g=>[g.id,g.name,g.created_by]));
+ const signature=uiLanguage+"|"+JSON.stringify(groups.map(g=>[g.id,g.name,g.created_by,g.preview,g.previewTime,g.unread]));
  if(signature===groupListSignature&&$("chatGroups").children.length)return;
  groupListSignature=signature;
  const root=$("chatGroups"),fragment=document.createDocumentFragment();
@@ -1197,8 +1236,13 @@ function groupRenderList(groups){
   const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=chatText("群","グ","G");
   const info=document.createElement("span");info.className="chat-friend-info";
   const name=document.createElement("strong");name.textContent=group.name;
-  const hint=document.createElement("small");hint.textContent=chatText("点击进入群聊","タップしてグループを開く","Open group chat");
-  info.append(name,hint);btn.append(avatar,info);btn.addEventListener("click",()=>groupOpen(group));fragment.append(btn);
+  const hint=document.createElement("small");hint.textContent=group.preview||chatText("暂无消息","メッセージなし","No messages yet");
+  hint.style.cssText="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:58vw";
+  info.append(name,hint);btn.append(avatar,info);
+  const side=document.createElement("span");side.style.cssText="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:auto;flex-shrink:0";
+  if(group.previewTime){const time=document.createElement("small");time.textContent=new Date(group.previewTime).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});side.append(time)}
+  if(group.unread>0){const badge=document.createElement("span");badge.textContent=group.unread>99?"99+":String(group.unread);badge.setAttribute("aria-label",chatText("未读消息","未読メッセージ","Unread messages"));badge.style.cssText="background:#2563eb;color:white;border-radius:999px;min-width:22px;height:22px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700";side.append(badge)}
+  btn.append(side);btn.addEventListener("click",()=>groupOpen(group));fragment.append(btn);
  }
  root.replaceChildren(fragment);
 }
@@ -1250,7 +1294,9 @@ async function groupLoadList(force=false){
   if(ids.length){const result=await supabaseClient.from("chat_groups").select("id,name,created_by").in("id",ids);if(result.error)throw result.error;groups=result.data||[]}
   if(currentUser?.id!==userId||chatMode!=="group"||chatActiveGroup)return;
   groupListLastLoaded=Date.now();
-  groupRenderList(groups);
+  const enriched=await groupFetchPreviews(groups);
+  if(currentUser?.id!==userId||chatMode!=="group"||chatActiveGroup)return;
+  groupRenderList(enriched);
   const validGroups=new Set(groups.map(g=>g.id));
   try{
    for(let i=sessionStorage.length-1;i>=0;i--){
@@ -1259,7 +1305,7 @@ async function groupLoadList(force=false){
     if(key?.startsWith(prefix)&&!validGroups.has(key.slice(prefix.length)))sessionStorage.removeItem(key);
    }
   }catch{}
-  try{localStorage.setItem(groupListCacheKey,JSON.stringify({userId,groups}))}catch{}
+  try{localStorage.setItem(groupListCacheKey,JSON.stringify({userId,groups:enriched}))}catch{}
  }catch(error){groupError(error)}
  finally{groupListLoading=false}
 }
@@ -1277,6 +1323,7 @@ async function groupOpen(group){
  if(groupMessageRefreshTimer){clearTimeout(groupMessageRefreshTimer);groupMessageRefreshTimer=null}
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
  chatActiveGroup=group;groupLastSignature="";groupMessageLastFetched=0;
+ groupMarkSeen(group.id);
  $("chatGroupTitle").textContent=group.name;
  $("chatGroups").hidden=true;$("chatGroupTools").hidden=true;$("chatModeSwitch").hidden=true;
  $("chatGroupConversation").hidden=false;document.body.classList.add("chat-open");
@@ -1331,6 +1378,7 @@ async function groupLoadMessages(){
   if(signature===groupLastSignature)return;
   groupLastSignature=signature;
   groupRenderMessages(items);
+  groupMarkSeen(groupId,items[items.length-1]?.created_at);
   try{sessionStorage.setItem("myplanner-group-msg-"+currentUser.id+"-"+groupId,JSON.stringify({items:items.slice(-100)}))}catch{}
  }catch(error){if(chatActiveGroup?.id===groupId&&currentUser?.id===userId)groupError(error);groupMessageLastFetched=0}
  finally{groupPolling=false}
