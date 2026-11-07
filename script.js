@@ -480,6 +480,9 @@ function updateChatLanguage(){
  $("chatGroupJoinCode").placeholder=chatText("群邀请码","招待コード","Group invite code");
  $("chatJoinGroup").textContent=chatText("加入群聊","参加","Join");
  $("chatGroupInvite").textContent=chatText("邀请","招待","Invite");
+ $("chatGroupManage").textContent=chatText("成员","メンバー","Members");
+ $("chatGroupMembersTitle").textContent=chatText("群成员","グループメンバー","Group members");
+ $("chatGroupLeave").textContent=chatText("退出群聊","グループを退出","Leave group");
  $("chatGroupMessageInput").placeholder=chatText("输入群消息…","グループメッセージ…","Group message...");
  $("chatGroupSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
  $("chatMessageInput").placeholder=chatText("输入消息…","メッセージを入力…","Type a message...");
@@ -881,6 +884,7 @@ async function groupLoadList(){
  }
 }
 function groupClose(){
+ $("chatGroupMembersPanel").hidden=true;
  chatActiveGroup=null;groupLastSignature="";
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
  $("chatGroupConversation").hidden=true;$("chatModeSwitch").hidden=false;
@@ -893,7 +897,7 @@ async function groupOpen(group){
  $("chatGroupTitle").textContent=group.name;
  $("chatGroups").hidden=true;$("chatGroupTools").hidden=true;$("chatModeSwitch").hidden=true;
  $("chatGroupConversation").hidden=false;document.body.classList.add("chat-open");
- $("chatGroupMessages").replaceChildren();
+ $("chatGroupMessages").replaceChildren();$("chatGroupMembersPanel").hidden=true;
  groupChannel=supabaseClient.channel("group-"+group.id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+group.id},()=>groupLoadMessages())
  .subscribe();
@@ -914,7 +918,17 @@ async function groupLoadMessages(){
   for(const item of items){
    const bubble=document.createElement("div");bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
    const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):item.sender_id.slice(0,8);
-   const body=document.createElement("span");body.textContent=item.body;
+   const body=document.createElement("span");
+   if(item.body.startsWith("[myplanner-group-image]:")){
+    const path=item.body.slice("[myplanner-group-image]:".length);
+    if(/^([0-9a-f-]{36})\/([0-9a-f-]{36})\/([0-9a-f-]{36})\.(jpg|png|webp|gif)$/.test(path)){
+     const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.alt=chatText("群照片","グループ写真","Group photo");body.append(img);
+     const cached=chatImageUrlCache.get(path);
+     if(cached&&cached.expires>Date.now())img.src=cached.url;
+     else supabaseClient.storage.from("chat-photos").createSignedUrl(path,3600).then(({data,error})=>{if(!error&&data?.signedUrl){img.src=data.signedUrl;chatImageUrlCache.set(path,{url:data.signedUrl,expires:Date.now()+3300000})}});
+     img.addEventListener("click",()=>chatOpenPhotoPreview(img.src));
+    }else body.textContent=chatText("照片无效","無効な画像","Invalid photo");
+   }else body.textContent=item.body;
    const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
    bubble.append(sender,body,time);fragment.append(bubble);
   }
@@ -943,6 +957,64 @@ $("chatGroupInvite").addEventListener("click",async()=>{
  const code=chatActiveGroup.id;
  try{await navigator.clipboard.writeText(code);groupStatus(chatText("群邀请码已复制","招待コードをコピーしました","Group invite code copied"))}
  catch{window.prompt(chatText("复制群邀请码","招待コードをコピー","Copy group invite code"),code)}
+});
+async function groupShowMembers(){
+ if(!chatActiveGroup)return;
+ const groupId=chatActiveGroup.id;
+ const {data,error}=await supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId).order("joined_at");
+ if(error){groupError(error);return}
+ if(!chatActiveGroup||chatActiveGroup.id!==groupId)return;
+ const panel=$("chatGroupMembersPanel"),root=$("chatGroupMembersList");root.replaceChildren();
+ const ids=(data||[]).map(x=>x.user_id);
+ let profiles=[];
+ if(ids.length){const res=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);if(!res.error)profiles=res.data||[]}
+ const names=new Map(profiles.map(p=>[p.id,p.display_name]));
+ for(const member of data||[]){
+  const row=document.createElement("div");row.className="chat-group-member";
+  const label=document.createElement("span");label.textContent=(names.get(member.user_id)||member.user_id.slice(0,8))+(member.user_id===chatActiveGroup.created_by?" ★":"");
+  row.append(label);
+  if(chatActiveGroup.created_by===currentUser.id&&member.user_id!==currentUser.id){
+   const kick=document.createElement("button");kick.type="button";kick.textContent=chatText("移除","削除","Remove");
+   kick.addEventListener("click",async()=>{
+    if(!confirm(chatText("确定移除此成员？","このメンバーを削除しますか？","Remove this member?")))return;
+    const {error}=await supabaseClient.rpc("chat_remove_group_member",{target_group:groupId,target_user:member.user_id});
+    if(error)groupError(error);else groupShowMembers();
+   });row.append(kick);
+  }
+  root.append(row);
+ }
+ panel.hidden=false;
+}
+$("chatGroupManage").addEventListener("click",groupShowMembers);
+$("chatGroupMembersClose").addEventListener("click",()=>{$("chatGroupMembersPanel").hidden=true});
+$("chatGroupLeave").addEventListener("click",async()=>{
+ if(!chatActiveGroup||!currentUser)return;
+ if(!confirm(chatText("确定退出群聊？","グループを退出しますか？","Leave this group?")))return;
+ const {error}=await supabaseClient.rpc("chat_leave_group",{target_group:chatActiveGroup.id});
+ if(error){groupError(error);return}
+ groupClose();
+});
+$("chatGroupPhotoInput").addEventListener("change",async event=>{
+ const file=event.target.files?.[0];event.target.value="";
+ if(!file||!currentUser||!chatActiveGroup)return;
+ if(!file.type.startsWith("image/")||file.size>8*1024*1024){groupError(chatText("请选择8MB以内的照片","8MB以下の写真を選択","Choose a photo under 8MB"));return}
+ const groupId=chatActiveGroup.id,btn=$("chatGroupPhotoInput");
+ btn.disabled=true;
+ const preview=document.createElement("div");preview.className="chat-bubble mine";
+ const img=document.createElement("img");img.className="chat-photo";img.src=URL.createObjectURL(file);
+ const status=document.createElement("small");status.textContent=chatText("照片发送中…","写真を送信中…","Sending photo...");
+ preview.append(img,status);$("chatGroupMessages").append(preview);$("chatGroupMessages").scrollTop=$("chatGroupMessages").scrollHeight;
+ try{
+  const type=file.type==="image/png"?"png":file.type==="image/webp"?"webp":file.type==="image/gif"?"gif":"jpg";
+  const path=currentUser.id+"/"+groupId+"/"+crypto.randomUUID()+"."+type;
+  const {error:uploadError}=await supabaseClient.storage.from("chat-photos").upload(path,file,{contentType:file.type,upsert:false});
+  if(uploadError)throw uploadError;
+  const {error}=await supabaseClient.from("chat_group_messages").insert({group_id:groupId,sender_id:currentUser.id,body:"[myplanner-group-image]:"+path});
+  if(error)throw error;
+  status.textContent=new Date().toLocaleString();
+  groupLastSignature="";await groupLoadMessages();
+ }catch(error){status.textContent=chatText("发送失败","送信失敗","Failed");groupError(error)}
+ finally{btn.disabled=false;setTimeout(()=>URL.revokeObjectURL(img.src),30000)}
 });
 $("chatGroupSendForm").addEventListener("submit",async event=>{
  event.preventDefault();if(!currentUser||!chatActiveGroup)return;
