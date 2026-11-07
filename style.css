@@ -1281,3 +1281,30 @@ html[data-theme="dark"] #pageChat #chatGroupMembersPanel{
  bottom:calc(100% + 3px)!important;
  font-size:11px!important;
 }
+
+
+/* v150: avatars visually match the height of a typical one-line message bubble */
+#pageChat .chat-messages .chat-bubble.chat-with-avatar{
+ margin-left:66px!important;
+ max-width:calc(78% - 32px)!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-with-avatar.mine{
+ margin-left:0!important;
+ margin-right:66px!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-with-avatar::before,
+#pageChat #chatGroupMessages .chat-bubble.chat-with-avatar::before{
+ width:56px!important;
+ height:56px!important;
+ left:-66px!important;
+ bottom:0!important;
+ font-size:19px!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-with-avatar.mine::before,
+#pageChat #chatGroupMessages .chat-bubble.chat-with-avatar.mine::before{
+ left:auto!important;
+ right:-66px!important;
+}
+#pageChat #chatGroupMessages .chat-bubble .group-message-sender{
+ left:-66px!important;
+}
