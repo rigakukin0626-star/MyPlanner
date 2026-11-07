@@ -522,3 +522,8 @@ body.chat-open #pageChat #chatConversation[hidden],body.chat-open #pageChat #cha
 .chat-group-invite-panel button{border:1px solid #dce6f6;background:#f3f7ff;color:#245bd8;border-radius:10px;padding:10px;font-weight:650}
 .chat-group-invite-panel #chatGroupShareInvite{background:#2d63e9;color:white}
 .chat-group-member span{overflow-wrap:anywhere;min-width:0}
+
+/* v87 owner-only destructive group action */
+#chatGroupDisband[hidden]{display:none!important}
+.chat-group-members .chat-group-disband{display:block;width:100%;margin-top:10px;padding:12px;background:#c92b3a;color:white;border:1px solid #c92b3a;border-radius:10px;font-weight:700}
+.chat-group-members .chat-group-disband:disabled{opacity:.6}
