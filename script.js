@@ -411,7 +411,7 @@ function initPlannerPages(){
  document.querySelectorAll(".bottom-tabs .tab").forEach(btn=>btn.addEventListener("click",()=>switchPlannerPage(btn.dataset.target)));
  const picker=$("languageSelect");if(picker)picker.addEventListener("change",()=>queueMicrotask(updatePlannerTabLanguage));
  updatePlannerTabLanguage();
- switchPlannerPage("tasks");
+ switchPlannerPage("chat");
 }
 // Initialize the page shell after chat state and event handlers have been declared.
 
