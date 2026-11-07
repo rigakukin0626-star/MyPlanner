@@ -1341,3 +1341,42 @@ showWelcomeAuth();
   else if(media.addListener)media.addListener(()=>{if(selected==="auto")apply()});
   apply();
 })();
+
+// V103: fast local conversation search; does not send search terms to the server.
+(function initChatListSearch(){
+  const input=document.getElementById("chatListSearchInput");
+  const clear=document.getElementById("chatListSearchClear");
+  const empty=document.getElementById("chatListSearchEmpty");
+  const wrap=document.getElementById("chatListSearch");
+  const friends=document.getElementById("chatFriends");
+  const groups=document.getElementById("chatGroups");
+  if(!input||!clear||!empty||!wrap||!friends||!groups)return;
+  const filter=()=>{
+    const isGroup=document.getElementById("chatGroupMode")?.classList.contains("active");
+    const active=isGroup?groups:friends;
+    const term=input.value.trim().toLocaleLowerCase();
+    clear.hidden=!term;
+    let total=0,visible=0;
+    for(const root of [friends,groups]){
+      for(const item of root.querySelectorAll(".chat-friend")){
+        if(root===active){
+          total++;
+          const name=item.querySelector(".chat-friend-info strong")?.textContent||"";
+          const match=!term||name.toLocaleLowerCase().includes(term);
+          item.hidden=!match;
+          if(match)visible++;
+        }else item.hidden=false;
+      }
+    }
+    empty.hidden=!term||total===0||visible!==0;
+    wrap.hidden=Boolean(document.body.classList.contains("chat-open"));
+  };
+  input.addEventListener("input",filter);
+  clear.addEventListener("click",()=>{input.value="";filter();input.focus()});
+  for(const root of [friends,groups])new MutationObserver(filter).observe(root,{childList:true});
+  new MutationObserver(filter).observe(document.body,{attributes:true,attributeFilter:["class"]});
+  for(const id of ["chatPrivateMode","chatGroupMode","chatGroupBack","chatBack"]){
+    document.getElementById(id)?.addEventListener("click",()=>queueMicrotask(filter));
+  }
+  filter();
+})();
