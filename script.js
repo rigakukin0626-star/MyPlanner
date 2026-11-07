@@ -143,10 +143,30 @@ async function refreshAuthUI(){
   if(currentUser){if(document.body.dataset.activePage==="chat")chatShowList();try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}}
   else{cloudReady=false;setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."))}
 }
+const welcomeTranslations={
+ zh:{subtitle:"登录后开始聊天和管理日程",login:"登录",register:"注册",username:"用户名",usernameHint:"3–20位英文字母、数字或下划线",email:"邮箱",emailHint:"邮箱地址",password:"密码",passwordHint:"至少6位密码",submitRegister:"注册账号",footnote:"注册后可能需要先通过邮箱验证账号",invalid:welcomeText("invalid"),registering:"正在注册…",signingIn:"正在登录…",nameFailed:"账号已创建，但用户名保存失败，请在聊天页面设置：",checkEmail:welcomeText("checkEmail"),registerFailed:"注册失败：",loginFailed:"登录失败："},
+ ja:{subtitle:"ログインしてチャットと予定を管理",login:"ログイン",register:"新規登録",username:"ユーザー名",usernameHint:"英小文字・数字・_（3〜20文字）",email:"メールアドレス",emailHint:"メールアドレス",password:"パスワード",passwordHint:"6文字以上",submitRegister:"アカウント登録",footnote:"登録後、メール認証が必要な場合があります",invalid:"ユーザー名は英小文字・数字・_ の3〜20文字にしてください",registering:"登録中…",signingIn:"ログイン中…",nameFailed:"アカウントは作成されましたが、ユーザー名を保存できませんでした：",checkEmail:"登録を受け付けました。確認メールを開いてからログインしてください。",registerFailed:"登録失敗：",loginFailed:"ログイン失敗："},
+ en:{subtitle:"Sign in to chat and manage your plans",login:"Sign in",register:"Sign up",username:"Username",usernameHint:"3–20 lowercase letters, numbers or underscores",email:"Email",emailHint:"Email address",password:"Password",passwordHint:"At least 6 characters",submitRegister:"Create account",footnote:"You may need to verify your email after signing up",invalid:"Use 3–20 lowercase letters, numbers or underscores",registering:"Creating account…",signingIn:"Signing in…",nameFailed:"Account created, but username could not be saved: ",checkEmail:"Registration submitted. Check your email to verify your account, then sign in.",registerFailed:"Sign-up failed: ",loginFailed:"Sign-in failed: "}
+};
+function welcomeText(key){return (welcomeTranslations[detectBrowserLanguage()]||welcomeTranslations.en)[key]}
+function updateWelcomeLanguage(){
+ const t=welcomeText;
+ document.querySelector(".welcome-subtitle").textContent=t("subtitle");
+ $("welcomeLoginMode").textContent=t("login");$("welcomeRegisterMode").textContent=t("register");
+ $("welcomeUsernameWrap").firstChild.textContent=t("username");
+ $("welcomeUsername").placeholder=t("usernameHint");
+ $("welcomeAuthForm").querySelector('label:has(#welcomeEmail)').firstChild.textContent=t("email");
+ $("welcomeEmail").placeholder=t("emailHint");
+ $("welcomeAuthForm").querySelector('label:has(#welcomePassword)').firstChild.textContent=t("password");
+ $("welcomePassword").placeholder=t("passwordHint");
+ document.querySelector(".welcome-footnote").textContent=t("footnote");
+ $("welcomeSubmit").textContent=welcomeMode==="register"?t("submitRegister"):t("login");
+}
 let welcomeMode="login";
 function showWelcomeAuth(){
  const visible=!currentUser;
  $("welcomeAuth").hidden=!visible;
+ if(visible)updateWelcomeLanguage();
  document.body.classList.toggle("auth-required",visible);
 }
 function setWelcomeMode(mode){
@@ -157,7 +177,7 @@ function setWelcomeMode(mode){
  $("welcomePassword").autocomplete=register?"new-password":"current-password";
  $("welcomeLoginMode").classList.toggle("active",!register);
  $("welcomeRegisterMode").classList.toggle("active",register);
- $("welcomeSubmit").textContent=register?"注册账号":"登录";
+ $("welcomeSubmit").textContent=register?welcomeText("submitRegister"):welcomeText("login");
  $("welcomeStatus").textContent="";
 }
 $("welcomeLoginMode").addEventListener("click",()=>setWelcomeMode("login"));
@@ -168,7 +188,7 @@ $("welcomeAuthForm").addEventListener("submit",async e=>{
  const username=$("welcomeUsername").value.trim().toLowerCase();
  if(welcomeMode==="register"&&!/^[a-z0-9_]{3,20}$/.test(username)){$("welcomeStatus").textContent="用户名需要3–20位小写字母、数字或下划线";return}
  const btn=$("welcomeSubmit");btn.disabled=true;
- $("welcomeStatus").textContent=welcomeMode==="register"?"正在注册…":"正在登录…";
+ $("welcomeStatus").textContent=welcomeMode==="register"?welcomeText("registering"):welcomeText("signingIn");
  try{
   if(welcomeMode==="register"){
    const {data,error}=await supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname,data:{username}}});
@@ -176,7 +196,7 @@ $("welcomeAuthForm").addEventListener("submit",async e=>{
    if(data.session){
     currentUser=data.session.user;
     const {error:nameError}=await supabaseClient.rpc("chat_set_username",{new_username:username});
-    if(nameError)$("welcomeStatus").textContent="账号已创建，但用户名保存失败，请在聊天页面设置："+nameError.message;
+    if(nameError)$("welcomeStatus").textContent=welcomeText("nameFailed")+nameError.message;
     await refreshAuthUI();
    }else $("welcomeStatus").textContent="注册申请已提交，请检查邮箱中的验证邮件，然后返回登录。";
   }else{
@@ -184,7 +204,7 @@ $("welcomeAuthForm").addEventListener("submit",async e=>{
    if(error)throw error;
    await refreshAuthUI();
   }
- }catch(error){$("welcomeStatus").textContent=(welcomeMode==="register"?"注册失败：":"登录失败：")+error.message}
+ }catch(error){$("welcomeStatus").textContent=(welcomeMode==="register"?welcomeText("registerFailed"):welcomeText("loginFailed"))+error.message}
  finally{btn.disabled=false}
 });
 $("authForm").addEventListener("submit",async e=>{
