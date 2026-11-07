@@ -139,3 +139,13 @@
 /* v27: reminder typography matching adjacent select */
 .task-form>.task-field-reminder .reminder-display{font-size:14px!important;font-weight:400!important;letter-spacing:0;}
 @media(max-width:760px){.task-form>.task-field-reminder .reminder-display{font-size:14px!important;}}
+
+/* v28: prevent edit dialog date/time control from overlapping repeat select */
+.edit-dialog .dialog-fields{grid-template-columns:repeat(2,minmax(0,1fr));}
+.edit-dialog .dialog-fields label{min-width:0;max-width:100%;}
+.edit-dialog .dialog-fields input,.edit-dialog .dialog-fields select{display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;}
+@media(max-width:760px){
+ .edit-dialog .dialog-fields{grid-template-columns:minmax(0,1fr);}
+ .edit-dialog .dialog-fields label{grid-column:1/-1;}
+ .edit-dialog .dialog-fields input[type="datetime-local"]{font-size:14px;}
+}
