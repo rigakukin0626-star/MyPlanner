@@ -925,3 +925,47 @@ html[data-theme="dark"] .chat-pin-button[aria-pressed="true"]{background:#2b3444
 .chat-reply-text{white-space:pre-wrap;overflow-wrap:anywhere;}
 
 .chat-build-version{margin-left:auto;font-size:11px;color:#8290a7;flex-shrink:0;font-weight:500;}
+
+
+/* v141: LINE-style sender avatars beside both private and group bubbles. */
+#pageChat .chat-messages .chat-bubble.chat-with-avatar{
+ position:relative;
+ max-width:calc(78% - 18px);
+ margin-left:39px;
+ overflow:visible;
+}
+#pageChat .chat-messages .chat-bubble.chat-with-avatar.mine{
+ margin-left:0;
+ margin-right:39px;
+}
+#pageChat .chat-messages .chat-bubble.chat-with-avatar::before{
+ content:attr(data-avatar);
+ position:absolute;
+ left:-39px;
+ bottom:0;
+ width:30px;
+ height:30px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ border-radius:50%;
+ background:#dce8ff;
+ color:#2563eb;
+ border:1px solid #c5d7f5;
+ font-size:12px;
+ font-weight:700;
+ line-height:1;
+ box-sizing:border-box;
+ pointer-events:none;
+}
+#pageChat .chat-messages .chat-bubble.chat-with-avatar.mine::before{
+ left:auto;
+ right:-39px;
+ background:#d7e3f8;
+ color:#2454a2;
+}
+html[data-theme="dark"] #pageChat .chat-messages .chat-bubble.chat-with-avatar::before{
+ background:#343943;
+ border-color:#525968;
+ color:#f4f6fb;
+}
