@@ -389,7 +389,7 @@ function switchPlannerPage(page){
  }
  if(page==="calendar")renderCalendar();
  if(page==="settings"&&currentUser)chatLoadMyUsername();
- if(page==="chat"){if(chatActiveGroup)groupLoadMessages();else if(chatPeer){loadChatMessages();chatMarkRead()}else if(chatMode==="group")groupLoadList();else loadChatFriends();}
+ if(page==="chat"){if(chatActiveGroup)groupLoadMessages();else if(chatPeer){loadChatMessages();chatMarkRead()}else if(chatMode==="group")groupLoadList(true);else loadChatFriends();}
  window.scrollTo({top:0,behavior:"instant"});
 }
 function updatePlannerTabLanguage(){
@@ -850,15 +850,36 @@ function scheduleChatReconcile(){
 /* v39: mobile Safari may suspend Realtime sockets; periodically reconcile from DB while chat is visible. */
 setInterval(()=>{
  if(document.hidden||document.body.dataset.activePage!=="chat"||!currentUser)return;
- if(chatPeer){if(Date.now()-chatLastFetchAt>6500)loadChatMessages()}else if(Date.now()-chatFriendsLastLoaded>20000)loadChatFriends();
+ if(chatActiveGroup)return;
+ if(chatPeer){if(Date.now()-chatLastFetchAt>6500)loadChatMessages()}else if(chatMode==="private"&&Date.now()-chatFriendsLastLoaded>20000)loadChatFriends();
 },3000);
 document.addEventListener("visibilitychange",()=>{
- if(!document.hidden&&document.body.dataset.activePage==="chat"&&currentUser){if(chatPeer)loadChatMessages();else loadChatFriends()}
+ if(!document.hidden&&document.body.dataset.activePage==="chat"&&currentUser){if(chatActiveGroup)groupLoadMessages();else if(chatPeer)loadChatMessages();else if(chatMode==="group")groupLoadList();else loadChatFriends()}
 });
 
 
 /* v80: group chats are separate from private chats and require the group SQL setup. */
 let chatMode="private",chatActiveGroup=null,groupPolling=false,groupLastSignature="",groupChannel=null;
+let groupListLoading=false,groupListLastLoaded=0;
+const groupListCacheKey="myplanner-groups-v1";
+function groupRenderList(groups){
+ const root=$("chatGroups"),fragment=document.createDocumentFragment();
+ if(!groups.length){const empty=document.createElement("p");empty.className="chat-group-empty";empty.textContent=chatText("还没有群聊，创建或加入一个吧","グループはまだありません。作成または参加してください","No groups yet. Create or join one.");fragment.append(empty)}
+ for(const group of groups){
+  const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
+  const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent="群";
+  const info=document.createElement("span");info.className="chat-friend-info";
+  const name=document.createElement("strong");name.textContent=group.name;
+  const hint=document.createElement("small");hint.textContent=chatText("点击进入群聊","タップしてグループを開く","Open group chat");
+  info.append(name,hint);btn.append(avatar,info);btn.addEventListener("click",()=>groupOpen(group));fragment.append(btn);
+ }
+ root.replaceChildren(fragment);
+}
+function groupShowCachedList(){
+ if(!currentUser||chatActiveGroup)return;
+ try{const cache=JSON.parse(localStorage.getItem(groupListCacheKey)||"null");if(cache?.userId===currentUser.id&&Array.isArray(cache.groups))groupRenderList(cache.groups)}catch{}
+}
+
 function groupStatus(message){$("chatGroupStatus").textContent=message}
 function groupError(error){groupStatus(error?.message||String(error))}
 function groupMode(mode){
@@ -874,25 +895,24 @@ function groupMode(mode){
  $("chatInviteSection").hidden=true;
  $("chatStatus").hidden=mode==="group";
  $("chatTitle").textContent=mode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
- if(mode==="group")groupLoadList();else loadChatFriends();
+ if(mode==="group"){groupShowCachedList();groupLoadList()}else loadChatFriends();
 }
-async function groupLoadList(){
- if(!currentUser||chatMode!=="group"||chatActiveGroup)return;
- const {data:membership,error}=await supabaseClient.from("chat_group_members").select("group_id").eq("user_id",currentUser.id);
- if(error){groupError(error);return}
- const ids=(membership||[]).map(m=>m.group_id);
- const root=$("chatGroups");root.replaceChildren();
- if(!ids.length){const empty=document.createElement("p");empty.className="chat-group-empty";empty.textContent=chatText("还没有群聊，创建或加入一个吧","グループはまだありません。作成または参加してください","No groups yet. Create or join one.");root.append(empty);return}
- const {data:groups,error:groupsError}=await supabaseClient.from("chat_groups").select("id,name,created_by").in("id",ids);
- if(groupsError){groupError(groupsError);return}
- for(const group of groups||[]){
-  const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
-  const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent="群";
-  const info=document.createElement("span");info.className="chat-friend-info";
-  const name=document.createElement("strong");name.textContent=group.name;
-  const hint=document.createElement("small");hint.textContent=chatText("点击进入群聊","タップしてグループを開く","Open group chat");
-  info.append(name,hint);btn.append(avatar,info);btn.addEventListener("click",()=>groupOpen(group));root.append(btn);
- }
+async function groupLoadList(force=false){
+ if(!currentUser||chatMode!=="group"||chatActiveGroup||groupListLoading)return;
+ if(!force&&Date.now()-groupListLastLoaded<12000)return;
+ groupListLoading=true;const userId=currentUser.id;
+ try{
+  const {data:membership,error}=await supabaseClient.from("chat_group_members").select("group_id").eq("user_id",userId);
+  if(error)throw error;
+  const ids=[...new Set((membership||[]).map(m=>m.group_id))];
+  let groups=[];
+  if(ids.length){const result=await supabaseClient.from("chat_groups").select("id,name,created_by").in("id",ids);if(result.error)throw result.error;groups=result.data||[]}
+  if(currentUser?.id!==userId||chatMode!=="group"||chatActiveGroup)return;
+  groupListLastLoaded=Date.now();
+  groupRenderList(groups);
+  try{localStorage.setItem(groupListCacheKey,JSON.stringify({userId,groups}))}catch{}
+ }catch(error){groupError(error)}
+ finally{groupListLoading=false}
 }
 function groupClose(){
  $("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
@@ -909,10 +929,37 @@ async function groupOpen(group){
  $("chatGroups").hidden=true;$("chatGroupTools").hidden=true;$("chatModeSwitch").hidden=true;
  $("chatGroupConversation").hidden=false;document.body.classList.add("chat-open");
  $("chatGroupMessages").replaceChildren();$("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
+ groupShowCachedMessages(group.id);
  groupChannel=supabaseClient.channel("group-"+group.id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+group.id},()=>groupLoadMessages())
  .subscribe();
  await groupLoadMessages();
+}
+function groupShowCachedMessages(groupId){
+ if(!currentUser)return;
+ try{const cache=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+groupId)||"null");if(Array.isArray(cache?.items)&&chatActiveGroup?.id===groupId)groupRenderMessages(cache.items)}catch{}
+}
+function groupRenderMessages(items){
+ const root=$("chatGroupMessages"),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<140;
+ const fragment=document.createDocumentFragment();
+ for(const item of items){
+  const bubble=document.createElement("div");bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
+  const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):item.sender_id.slice(0,8);
+  const body=document.createElement("span");
+  if(item.body.startsWith("[myplanner-group-image]:")){
+   const path=item.body.slice("[myplanner-group-image]:".length);
+   if(/^([0-9a-f-]{36})\\/([0-9a-f-]{36})\\/([0-9a-f-]{36})\\.(jpg|png|webp|gif)$/.test(path)){
+    const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.alt=chatText("群照片","グループ写真","Group photo");body.append(img);
+    const cached=chatImageUrlCache.get(path);
+    if(cached&&cached.expires>Date.now())img.src=cached.url;
+    else supabaseClient.storage.from("chat-photos").createSignedUrl(path,3600).then(({data,error})=>{if(!error&&data?.signedUrl){img.src=data.signedUrl;chatImageUrlCache.set(path,{url:data.signedUrl,expires:Date.now()+3300000})}});
+    img.addEventListener("click",()=>chatOpenPhotoPreview(img.src));
+   }else body.textContent=chatText("照片无效","無効な画像","Invalid photo");
+  }else body.textContent=item.body;
+  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
+  bubble.append(sender,body,time);fragment.append(bubble);
+ }
+ root.replaceChildren(fragment);if(nearBottom||!root.dataset.loaded)root.scrollTop=root.scrollHeight;root.dataset.loaded="1";
 }
 async function groupLoadMessages(){
  if(groupPolling||!chatActiveGroup||!currentUser)return;
@@ -924,26 +971,8 @@ async function groupLoadMessages(){
   const items=(data||[]).reverse(),signature=items.map(m=>m.id).join(",");
   if(signature===groupLastSignature)return;
   groupLastSignature=signature;
-  const root=$("chatGroupMessages"),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<140;
-  const fragment=document.createDocumentFragment();
-  for(const item of items){
-   const bubble=document.createElement("div");bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
-   const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):item.sender_id.slice(0,8);
-   const body=document.createElement("span");
-   if(item.body.startsWith("[myplanner-group-image]:")){
-    const path=item.body.slice("[myplanner-group-image]:".length);
-    if(/^([0-9a-f-]{36})\/([0-9a-f-]{36})\/([0-9a-f-]{36})\.(jpg|png|webp|gif)$/.test(path)){
-     const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.alt=chatText("群照片","グループ写真","Group photo");body.append(img);
-     const cached=chatImageUrlCache.get(path);
-     if(cached&&cached.expires>Date.now())img.src=cached.url;
-     else supabaseClient.storage.from("chat-photos").createSignedUrl(path,3600).then(({data,error})=>{if(!error&&data?.signedUrl){img.src=data.signedUrl;chatImageUrlCache.set(path,{url:data.signedUrl,expires:Date.now()+3300000})}});
-     img.addEventListener("click",()=>chatOpenPhotoPreview(img.src));
-    }else body.textContent=chatText("照片无效","無効な画像","Invalid photo");
-   }else body.textContent=item.body;
-   const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
-   bubble.append(sender,body,time);fragment.append(bubble);
-  }
-  root.replaceChildren(fragment);if(nearBottom||!root.dataset.loaded)root.scrollTop=root.scrollHeight;root.dataset.loaded="1";
+  groupRenderMessages(items);
+  try{sessionStorage.setItem("myplanner-group-msg-"+currentUser.id+"-"+groupId,JSON.stringify({items:items.slice(-100)}))}catch{}
  }catch(error){groupError(error)}
  finally{groupPolling=false}
 }
@@ -964,7 +993,7 @@ $("chatCreateGroup").addEventListener("click",async()=>{
   if(typeof groupId==="string"&&/^[0-9a-f-]{36}$/i.test(groupId)){
    await groupOpen({id:groupId,name,created_by:currentUser.id});
   }else{
-   await groupLoadList();
+   await groupLoadList(true);
    groupStatus(chatText("群聊已创建，请在下方列表中打开","グループを作成しました","Group created; open it below"));
   }
  }catch(error){
@@ -977,7 +1006,7 @@ $("chatJoinGroup").addEventListener("click",async()=>{
  const code=$("chatGroupJoinCode").value.trim();
  if(!/^[0-9a-f-]{36}$/i.test(code)){groupStatus(chatText("请输入有效的群邀请码","有効な招待コードを入力","Enter a valid group invite code"));return}
  const btn=$("chatJoinGroup");btn.disabled=true;
- try{const {error}=await supabaseClient.rpc("chat_join_group",{invite_code:code});if(error)throw error;$("chatGroupJoinCode").value="";groupStatus(chatText("已加入群聊","グループに参加しました","Joined group"));await groupLoadList()}catch(error){groupError(error)}finally{btn.disabled=false}
+ try{const {error}=await supabaseClient.rpc("chat_join_group",{invite_code:code});if(error)throw error;$("chatGroupJoinCode").value="";groupStatus(chatText("已加入群聊","グループに参加しました","Joined group"));await groupLoadList(true)}catch(error){groupError(error)}finally{btn.disabled=false}
 });
 $("chatGroupInvite").addEventListener("click",()=>{
  if(!chatActiveGroup)return;
