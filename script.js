@@ -148,8 +148,20 @@ function updateCloudSyncSummary(){
  details.classList.toggle("sync-error",failed);
  summary.textContent=failed?tr("同期エラー","同步异常","Sync error"):!currentUser?tr("未ログイン","未登录","Not signed in"):status.dataset.statusKey==="synced"?tr("同期済み","已同步","Synced"):tr("自動同期","自动同步","Auto sync");
 }
+let authUiRefreshSequence=0;
 async function refreshAuthUI(){
-  const {data:{session}}=await supabaseClient.auth.getSession(); currentUser=session?.user||null;
+  const sequence=++authUiRefreshSequence;
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(sequence!==authUiRefreshSequence)return;
+  const previousUserId=currentUser?.id;
+  currentUser=session?.user||null;
+  if(previousUserId!==currentUser?.id){
+   chatConfirmedCache=[];chatPending.clear();chatLastSignature="";
+   chatImageUrlCache.clear();chatImageUrlRequests.clear();
+   groupListSignature="";groupListLastLoaded=0;groupLastSignature="";
+   if(chatActiveGroup)groupClose();
+   if(chatPeer)chatShowList();
+  }
   $("authEmail").hidden=!!currentUser; $("authPassword").hidden=!!currentUser;
   $("signInBtn").hidden=!!currentUser; $("signUpBtn").hidden=!!currentUser; $("signOutBtn").hidden=!currentUser;
   $("authForm").classList.toggle("signed-in",!!currentUser);
@@ -160,7 +172,7 @@ async function refreshAuthUI(){
   $("resetNotificationsBtn").hidden = !currentUser;
   showWelcomeAuth();
   updateCloudSyncSummary();
-  if(currentUser){if(document.body.dataset.activePage==="chat"){chatShowList();chatShowCachedFriends();loadChatFriends().catch(console.error)}try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}}
+  if(currentUser){if(document.body.dataset.activePage==="chat"){if(chatMode==="group"){groupShowCachedList();groupLoadList(true).catch(console.error)}else{chatShowCachedFriends();loadChatFriends().catch(console.error)}}try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}}
   else{cloudReady=false;setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."))}
 }
 const welcomeTranslations={
@@ -551,7 +563,7 @@ function chatShowCachedFriends(){
  }catch(error){console.warn("Cached friends unavailable",error)}
 }
 async function loadChatFriends(){
- if(chatPeer||chatMode==="group"||chatActiveGroup||chatFriendsLoading)return;
+ if(chatPeer||chatMode==="group"||chatActiveGroup||chatFriendsLoading||!currentUser)return;
  chatFriendsLoading=true;
  const requestId=++chatFriendsRequestId;
  try{
@@ -739,19 +751,19 @@ async function loadChatMessages(){
  if(!currentUser||!chatPeer)return;
  if(chatRefreshBusy){chatReloadQueued=true;return}
  chatRefreshBusy=true;
- const requestedPeer=chatPeer;
+ const requestedPeer=chatPeer,requestedUser=currentUser.id;
  try{
  const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at,read_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+requestedPeer+"),and(sender_id.eq."+requestedPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:false}).limit(200);
  if(error)throw error;
- if(chatPeer!==requestedPeer)return;
+ if(chatPeer!==requestedPeer||currentUser?.id!==requestedUser)return;
  chatConfirmedCache=(data||[]).reverse();
  chatSaveSnapshot(requestedPeer,chatConfirmedCache);
  chatLastFetchAt=Date.now();
  chatCachePeer=requestedPeer;
  chatRenderMessages();
  chatMarkRead();
- }catch(error){if(chatPeer===requestedPeer)chatError(error?.message||String(error))}
- finally{chatRefreshBusy=false;if(chatReloadQueued){chatReloadQueued=false;if(chatPeer)queueMicrotask(()=>loadChatMessages())}}
+ }catch(error){if(chatPeer===requestedPeer&&currentUser?.id===requestedUser)chatError(error?.message||String(error))}
+ finally{chatRefreshBusy=false;if(chatReloadQueued){chatReloadQueued=false;if(chatPeer&&currentUser?.id===requestedUser)queueMicrotask(()=>loadChatMessages())}}
 
 
 }
@@ -890,9 +902,15 @@ setInterval(()=>{
  if(chatActiveGroup){if(Date.now()-groupMessageLastFetched>12000)groupLoadMessages();return}
  if(chatPeer){if(Date.now()-chatLastFetchAt>6500)loadChatMessages()}else if(chatMode==="private"&&Date.now()-chatFriendsLastLoaded>20000)loadChatFriends();
 },3000);
-document.addEventListener("visibilitychange",()=>{
- if(!document.hidden&&document.body.dataset.activePage==="chat"&&currentUser){if(chatActiveGroup)groupLoadMessages();else if(chatPeer)loadChatMessages();else if(chatMode==="group")groupLoadList(true);else loadChatFriends()}
-});
+function chatRefreshAfterReconnect(){
+ if(document.hidden||document.body.dataset.activePage!=="chat"||!currentUser)return;
+ if(chatActiveGroup)groupScheduleRefresh();
+ else if(chatPeer)loadChatMessages();
+ else if(chatMode==="group")groupLoadList(true);
+ else loadChatFriends();
+}
+document.addEventListener("visibilitychange",chatRefreshAfterReconnect);
+window.addEventListener("online",chatRefreshAfterReconnect);
 
 
 /* v80: group chats are separate from private chats and require the group SQL setup. */
@@ -1035,17 +1053,17 @@ function groupRenderMessages(items){
 }
 async function groupLoadMessages(){
  if(groupPolling||!chatActiveGroup||!currentUser)return;
- groupPolling=true;const groupId=chatActiveGroup.id;groupMessageLastFetched=Date.now();
+ groupPolling=true;const groupId=chatActiveGroup.id,userId=currentUser.id;groupMessageLastFetched=Date.now();
  try{
   const {data,error}=await supabaseClient.from("chat_group_messages").select("id,sender_id,body,created_at").eq("group_id",groupId).order("created_at",{ascending:false}).limit(150);
   if(error)throw error;
-  if(!chatActiveGroup||chatActiveGroup.id!==groupId)return;
+  if(!chatActiveGroup||chatActiveGroup.id!==groupId||currentUser?.id!==userId)return;
   const items=(data||[]).reverse(),signature=uiLanguage+"|"+items.map(m=>m.id).join(",");
   if(signature===groupLastSignature)return;
   groupLastSignature=signature;
   groupRenderMessages(items);
   try{sessionStorage.setItem("myplanner-group-msg-"+currentUser.id+"-"+groupId,JSON.stringify({items:items.slice(-100)}))}catch{}
- }catch(error){groupError(error);groupMessageLastFetched=0}
+ }catch(error){if(chatActiveGroup?.id===groupId&&currentUser?.id===userId)groupError(error);groupMessageLastFetched=0}
  finally{groupPolling=false}
 }
 $("chatPrivateMode").addEventListener("click",()=>groupMode("private"));
