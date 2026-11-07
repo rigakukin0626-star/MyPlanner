@@ -831,9 +831,9 @@ function chatAttachStoredPhoto(node,path,isGroup=false){
   img.hidden=true;retry.hidden=false;
   if(error)console.warn("Chat photo access unavailable",error?.message||error);
  };
- const load=()=>{
+ const load=(force=false)=>{
   retry.hidden=true;img.hidden=false;
-  chatImageUrlCache.delete(path);
+  if(force)chatImageUrlCache.delete(path);
   chatGetSignedImageUrl(path).then(url=>{
    if(!wrap.isConnected)return;
    img.onerror=()=>failed(new Error("Image download or decoding failed"));
@@ -841,7 +841,7 @@ function chatAttachStoredPhoto(node,path,isGroup=false){
    img.src=url;
   }).catch(failed);
  };
- retry.addEventListener("click",event=>{event.stopPropagation();load()});
+ retry.addEventListener("click",event=>{event.stopPropagation();load(true)});
  img.addEventListener("click",event=>{event.stopPropagation();if(img.src)chatOpenPhotoPreview(img.src)});
  wrap.append(img,retry);node.append(wrap);
  // The render transaction attaches the node before this microtask.
@@ -1241,9 +1241,10 @@ $("chatPhotoInput").addEventListener("change",async e=>{
  chatPending.set(key,{peer,body:"",photoUrl:localUrl,status:"sending",serverId:null,createdAt:Date.now()});
  chatRenderMessages();
  try{
-  const type=file.type==="image/png"?"png":file.type==="image/webp"?"webp":file.type==="image/gif"?"gif":"jpg";
+  const preparedFile=await chatPrepareUploadFile(file);
+  const type=preparedFile.type==="image/png"?"png":preparedFile.type==="image/webp"?"webp":preparedFile.type==="image/gif"?"gif":"jpg";
   const path=currentUser.id+"/"+peer+"/"+crypto.randomUUID()+"."+type;
-  const {error:uploadError}=await supabaseClient.storage.from("chat-photos").upload(path,file,{contentType:file.type,upsert:false});
+  const {error:uploadError}=await supabaseClient.storage.from("chat-photos").upload(path,preparedFile,{contentType:preparedFile.type,upsert:false});
   if(uploadError)throw uploadError;
   const body=CHAT_IMAGE_PREFIX+path;
   const {data,error}=await supabaseClient.from("chat_messages").insert({sender_id:currentUser.id,recipient_id:peer,body}).select("id").single();
@@ -1901,9 +1902,10 @@ $("chatGroupPhotoInput").addEventListener("change",async event=>{
  const status=document.createElement("small");status.textContent=chatText("照片发送中…","写真を送信中…","Sending photo...");
  preview.append(img,status);$("chatGroupMessages").append(preview);$("chatGroupMessages").scrollTop=$("chatGroupMessages").scrollHeight;
  try{
-  const type=file.type==="image/png"?"png":file.type==="image/webp"?"webp":file.type==="image/gif"?"gif":"jpg";
+  const preparedFile=await chatPrepareUploadFile(file);
+  const type=preparedFile.type==="image/png"?"png":preparedFile.type==="image/webp"?"webp":preparedFile.type==="image/gif"?"gif":"jpg";
   const path=currentUser.id+"/"+groupId+"/"+crypto.randomUUID()+"."+type;
-  const {error:uploadError}=await supabaseClient.storage.from("chat-photos").upload(path,file,{contentType:file.type,upsert:false});
+  const {error:uploadError}=await supabaseClient.storage.from("chat-photos").upload(path,preparedFile,{contentType:preparedFile.type,upsert:false});
   if(uploadError)throw uploadError;
   const {error}=await supabaseClient.from("chat_group_messages").insert({group_id:groupId,sender_id:currentUser.id,body:"[myplanner-group-image]:"+path});
   if(error)throw error;
