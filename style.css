@@ -627,3 +627,16 @@ html[data-theme="dark"] .priority-high{background:#5c3038;color:#ffb9b0}
 html[data-theme="dark"] .priority-medium{background:#514226;color:#ffe19b}
 html[data-theme="dark"] .priority-low{background:#264e3f;color:#a3f0c2}
 @media(prefers-reduced-motion:no-preference){.appearance-options button{transition:background-color .18s,border-color .18s,color .18s}}
+
+/* V103: conversation search */
+#pageChat .chat-list-search{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-bottom:1px solid #e7edf7}
+#pageChat .chat-list-search>span{font-size:26px;color:#7c8da9;line-height:1}
+#pageChat .chat-list-search input{flex:1;min-width:0;background:#f3f6fc;border:1px solid transparent;border-radius:12px;padding:11px 12px;font-size:16px;color:#263852;outline:none}
+#pageChat .chat-list-search input:focus{border-color:#80a5f8;box-shadow:0 0 0 2px #3871ed1c}
+#pageChat .chat-list-search button{border:0;background:transparent;color:#7c8da9;font-size:23px;padding:5px 9px}
+#pageChat .chat-list-search-empty{margin:0;padding:18px 14px;text-align:center;font-size:13px;color:#8290a5}
+#pageChat .chat-friend[hidden],#pageChat .chat-list-search[hidden],#pageChat .chat-list-search-empty[hidden]{display:none!important}
+body.chat-open #pageChat .chat-list-search,body.chat-open #pageChat .chat-list-search-empty{display:none!important}
+html[data-theme="dark"] #pageChat .chat-list-search{background:#1b283b;border-color:#30415b}
+html[data-theme="dark"] #pageChat .chat-list-search input{background:#24334a;color:#e7eefc}
+html[data-theme="dark"] #pageChat .chat-list-search-empty{color:#a3b1c9}
