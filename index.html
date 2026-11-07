@@ -123,7 +123,16 @@
     </form>
   </dialog>
 
+  <dialog id="deleteDialog" class="delete-dialog" aria-labelledby="deleteDialogTitle">
+    <div class="delete-dialog-inner">
+      <h2 id="deleteDialogTitle"></h2>
+      <div class="delete-dialog-actions">
+        <button type="button" id="cancelDelete" class="button button-ghost"></button>
+        <button type="button" id="confirmDelete" class="button button-primary"></button>
+      </div>
+    </div>
+  </dialog>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=13"></script>
+  <script src="script.js?v=14"></script>
 </body>
 </html>
