@@ -772,3 +772,12 @@ button,input,textarea,select{
  #pageChat .chat-messages .chat-bubble .chat-avatar-action{left:-40px}
  #pageChat .chat-messages .chat-bubble.mine.chat-with-avatar::after{right:-40px}
 }
+
+/* v174: unclipped group menu; sender names outside bubbles via avatar only; edge-to-edge media. */
+#pageChat #lineGroupMenu{position:fixed!important;left:auto!important;z-index:9999!important;max-width:calc(100vw - 24px)}
+#pageChat .group-message-sender{display:none!important}
+#pageChat .chat-bubble:has(.chat-media-frame),#pageChat .chat-bubble:has(>span>.chat-photo){background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;gap:3px!important;min-width:0!important;max-width:min(76%,460px)!important}
+#pageChat .chat-bubble:has(.chat-media-frame)::before,#pageChat .chat-bubble:has(.chat-media-frame)::after{display:none!important}
+#pageChat .chat-bubble:has(.chat-media-frame) .chat-media-frame{width:min(300px,65vw)!important;max-width:100%!important;gap:0!important}
+#pageChat .chat-bubble:has(.chat-media-frame) .chat-photo,#pageChat .chat-bubble:has(>span>.chat-photo) .chat-photo{width:auto;max-width:100%;max-height:420px;object-fit:contain;border-radius:8px}
+#pageChat .chat-bubble:has(.chat-media-frame)>small,#pageChat .chat-bubble:has(>span>.chat-photo)>small{padding:2px 1px;background:transparent}
