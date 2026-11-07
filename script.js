@@ -835,7 +835,7 @@ function chatRenderMessages(){
   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);
   const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else chatMessageContent(body,item.body);
   const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString()+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
-  div.append(body,time);fragment.append(div);
+  div.append(body,time);chatMessageActions(div,item);fragment.append(div);
  }
  for(const [key,item] of pending){
   const div=document.createElement("div");div.className="chat-bubble mine";div.dataset.pendingKey=key;
