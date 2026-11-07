@@ -582,7 +582,7 @@ function updateChatLanguage(){
    if(empty)empty.textContent=chatText("还没有群聊，创建或加入一个吧","グループはまだありません。作成または参加してください","No groups yet. Create or join one.");
   }
  }
- const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"]};
+ const labels={chatTitle:["チャット","聊天","Chats"],chatAddFriend:["友達を追加","添加好友","Add Friend"]};
  for(const [id,values] of Object.entries(labels)){const el=$(id);if(el)el.textContent=values[uiLanguage==="ja"?0:uiLanguage==="zh"?1:2]}
  $("chatFriendCode").placeholder=chatText("粘贴好友的邀请码","友達のコードを貼り付け","Paste friend code");
  $("accountUsernameHeading").textContent=chatText("账号","アカウント","Account");
@@ -612,7 +612,7 @@ function updateChatLanguage(){
  if(listClear)listClear.setAttribute("aria-label",chatText("清除搜索","検索をクリア","Clear search"));
  const listEmpty=$("chatListSearchEmpty");
  if(listEmpty)listEmpty.textContent=chatText("没有匹配的聊天","一致するチャットはありません","No matching chats");
- $("chatPrivateMode").textContent=chatText("私聊","個人チャット","Private");
+ $("chatPrivateMode").textContent=chatText("好友","友だち","Friends");
  $("chatGroupMode").textContent=chatText("群聊","グループ","Groups");
  $("chatGroupName").placeholder=chatText("群名称","グループ名","Group name");
  $("chatCreateGroup").textContent=chatText("创建群聊","グループを作成","Create group");
@@ -633,10 +633,10 @@ function updateChatLanguage(){
  $("chatGroupDisband").textContent=chatText("解散群聊","グループを解散","Disband group");
  $("chatGroupMessageInput").placeholder=chatText("输入群消息…","グループメッセージ…","Group message...");
  $("chatGroupSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
- $("chatTitle").textContent=chatMode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
+ $("chatTitle").textContent=chatText("聊天","チャット","Chats");
  $("chatMessageInput").placeholder=chatText("输入消息…","メッセージを入力…","Type a message...");
  $("chatSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
- window.chatRefreshListHeader?.();
+ window.chatRefreshListHeader?.();window.refreshLineChatNavigation?.();
 }
 function chatStatus(message){$("chatStatus").textContent=message;if(!/^(好友列表已同步|友達一覧を同期しました|Friends synced)/.test(message))delete $("chatStatus").dataset.friendsSyncedCount}
 function chatError(error){chatStatus(error?.message||String(error))}
@@ -1258,7 +1258,7 @@ $("chatAddFriend").addEventListener("click",async()=>{
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(code)){chatStatus(chatText("请输入完整的好友邀请码。","正しい招待コードを入力してください。","Enter a complete invite code."));return}
  const {error}=await supabaseClient.rpc("chat_add_friend",{friend_code:code});
  if(error){chatError(error);return}
- $("chatFriendCode").value="";chatStatus(chatText("好友添加成功！","友達を追加しました。","Friend added."));await loadChatFriends();
+ $("chatFriendCode").value="";chatStatus(chatText("好友添加成功！","友達を追加しました。","Friend added."));window.closeChatActionScreen?.();await loadChatFriends();
 });
 $("chatBack").addEventListener("click",chatShowList);
 $("chatPhotoInput").addEventListener("change",async e=>{
@@ -1421,7 +1421,7 @@ function groupRenderList(groups){
   info.append(name,hint);btn.append(avatar,info);
   const side=document.createElement("span");side.style.cssText="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:auto;flex-shrink:0";
   if(group.previewTime){const time=document.createElement("small");time.textContent=new Date(group.previewTime).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});side.append(time)}
-  if(group.unread>0){const badge=document.createElement("span");badge.textContent=group.unread>99?"99+":String(group.unread);badge.setAttribute("aria-label",chatText("未读消息","未読メッセージ","Unread messages"));badge.style.cssText="background:#2563eb;color:white;border-radius:999px;min-width:22px;height:22px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700";side.append(badge)}
+  if(group.unread>0){const badge=document.createElement("span");badge.textContent=group.unread>99?"99+":String(group.unread);badge.setAttribute("aria-label",chatText("未读消息","未読メッセージ","Unread messages"));badge.style.cssText="background:var(--accent);color:var(--on-accent);border-radius:999px;min-width:22px;height:22px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700";side.append(badge)}
   btn.append(side);btn.addEventListener("click",()=>groupOpen(group));fragment.append(btn);
  }
  root.replaceChildren(fragment);
@@ -1462,7 +1462,7 @@ function groupMode(mode){
  $("chatToggleAdd").setAttribute("aria-label",mode==="group"?chatText("创建或加入群聊","グループを作成・参加","Create or join a group"):chatText("添加好友","友達を追加","Add friend"));
  $("chatStatus").hidden=mode==="group";
  if(mode==="private"&&$("chatStatus").dataset.friendsSyncedCount!==undefined)updateChatLanguage();
- $("chatTitle").textContent=mode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
+ $("chatTitle").textContent=chatText("聊天","チャット","Chats");
  if(mode==="group"){groupShowCachedList();groupLoadList()}else loadChatFriends();
 }
 async function groupLoadList(force=false){
@@ -1712,6 +1712,7 @@ $("chatCreateGroup").addEventListener("click",async()=>{
   btn.textContent=chatText("创建中…","作成中…","Creating...");
   const {data:groupId,error}=await supabaseClient.rpc("chat_create_group",{group_name:name});
   if(error)throw error;
+  window.closeChatActionScreen?.();
   $("chatGroupName").value="";
   groupStatus(chatText("群聊创建成功，正在打开…","作成しました。開いています…","Group created. Opening..."));
   if(typeof groupId==="string"&&/^[0-9a-f-]{36}$/i.test(groupId)){
@@ -1730,7 +1731,7 @@ $("chatJoinGroup").addEventListener("click",async()=>{
  const code=$("chatGroupJoinCode").value.trim();
  if(!/^[0-9a-f-]{36}$/i.test(code)){groupStatus(chatText("请输入有效的群邀请码","有効な招待コードを入力","Enter a valid group invite code"));return}
  const btn=$("chatJoinGroup");btn.disabled=true;
- try{const {error}=await supabaseClient.rpc("chat_join_group",{invite_code:code});if(error)throw error;$("chatGroupJoinCode").value="";groupStatus(chatText("已加入群聊","グループに参加しました","Joined group"));await groupLoadList(true)}catch(error){groupError(error)}finally{btn.disabled=false}
+ try{const {error}=await supabaseClient.rpc("chat_join_group",{invite_code:code});if(error)throw error;window.closeChatActionScreen?.();$("chatGroupJoinCode").value="";groupStatus(chatText("已加入群聊","グループに参加しました","Joined group"));await groupLoadList(true)}catch(error){groupError(error)}finally{btn.disabled=false}
 });
 $("chatGroupInvite").addEventListener("click",()=>{
  if(!chatActiveGroup)return;
