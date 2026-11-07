@@ -590,3 +590,40 @@ button:disabled{cursor:not-allowed;opacity:.65}
 #pageChat .chat-group-form input,#pageChat .chat-group-invite-row input{min-width:0}
 #pageChat button:disabled{opacity:.58;pointer-events:none}
 @media(max-width:700px){#pageChat input[type=text],#pageChat input:not([type]),#pageChat textarea{font-size:16px}}
+
+/* V102: appearance controls and accessible dark theme, layered after legacy styles. */
+.appearance-panel{display:flex;flex-direction:column;gap:16px;margin-bottom:18px}
+.appearance-copy h3{margin:0 0 6px;font-size:16px;color:inherit}
+.appearance-copy p{margin:0;color:#7b8aa1;font-size:13px;line-height:1.6}
+.appearance-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.appearance-options button{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;border:1px solid #dfe7f3;border-radius:13px;background:#f8faff;color:#52627e;min-height:48px;padding:10px 7px;font-weight:700;cursor:pointer}
+.appearance-options button small{font-size:10px;opacity:.8}
+.appearance-options button.active{background:#eaf1ff;border-color:#4778ef;color:#2457d5;box-shadow:inset 0 0 0 1px #4778ef}
+@media(max-width:390px){.appearance-options button{font-size:12px;gap:3px}.appearance-options button small{font-size:9px}}
+html[data-theme="dark"]{--ui-ink:#e7eefc;--ui-muted:#a3b1c9;--ui-border:#2c3b54;--ui-surface:#1b283b;background:#101827;color-scheme:dark}
+html[data-theme="dark"] body{background:#101827!important;color:#e7eefc}
+html[data-theme="dark"] .topbar h1,html[data-theme="dark"] .section-heading h2,html[data-theme="dark"] .overview-date strong,html[data-theme="dark"] .stat strong,html[data-theme="dark"] .task-text,html[data-theme="dark"] .settings-title{color:#e7eefc}
+html[data-theme="dark"] .panel,html[data-theme="dark"] .overview,html[data-theme="dark"] .edit-dialog,html[data-theme="dark"] .delete-dialog,html[data-theme="dark"] .welcome-auth-card,html[data-theme="dark"] .cloud-sync-details{background:#1b283b!important;border-color:#30415b!important;color:#e7eefc}
+html[data-theme="dark"] .overview,html[data-theme="dark"] .stat,html[data-theme="dark"] .task-item,html[data-theme="dark"] .chat-group-member{border-color:#30415b}
+html[data-theme="dark"] .subtitle,html[data-theme="dark"] .eyebrow,html[data-theme="dark"] .muted,html[data-theme="dark"] .storage-note,html[data-theme="dark"] .appearance-copy p{color:#a3b1c9}
+html[data-theme="dark"] input,html[data-theme="dark"] textarea,html[data-theme="dark"] select,html[data-theme="dark"] .button-ghost,html[data-theme="dark"] .icon-button,html[data-theme="dark"] .tabs{background:#24334a;color:#e7eefc;border-color:#40536d}
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:#a4b2c7}
+html[data-theme="dark"] .tab.active{background:#334966;color:#f1f5ff}
+html[data-theme="dark"] .calendar-day{color:#d2def0}
+html[data-theme="dark"] .calendar-day.muted-day{color:#7c8da8}
+html[data-theme="dark"] .calendar-day.selected{color:white}
+html[data-theme="dark"] .calendar-day:hover{background:#334966}
+html[data-theme="dark"] .appearance-options button{background:#24334a;color:#d6e2f5;border-color:#40536d}
+html[data-theme="dark"] .appearance-options button.active{background:#25457b;color:#fff;border-color:#80a9ff}
+html[data-theme="dark"] #pageChat #chatGroups,html[data-theme="dark"] #pageChat .chat-mode-switch,html[data-theme="dark"] #pageChat .chat-group-members,html[data-theme="dark"] .chat-group-invite-panel{background:#1b283b!important;color:#e7eefc;border-color:#30415b}
+html[data-theme="dark"] #pageChat .chat-group-tools,html[data-theme="dark"] #pageChat .chat-group-invite-panel,html[data-theme="dark"] #pageChat .chat-friend,html[data-theme="dark"] #pageChat .chat-group-empty{border-color:#30415b;color:#e7eefc}
+html[data-theme="dark"] #pageChat .chat-friend:active{background:#2b4060}
+html[data-theme="dark"] #pageChat .chat-mode-switch button:not(.active){color:#a8b8d2}
+html[data-theme="dark"] #pageChat .chat-group-form input,html[data-theme="dark"] #pageChat .chat-group-invite-row input{background:#24334a;color:#e7eefc;border-color:#40536d}
+html[data-theme="dark"] .bottom-tabs{background:#1b283b!important;border-color:#30415b!important}
+html[data-theme="dark"] .bottom-tabs .tab:not(.active){color:#a3b1c9}
+html[data-theme="dark"] .empty-state strong{color:#dce7f9}
+html[data-theme="dark"] .priority-high{background:#5c3038;color:#ffb9b0}
+html[data-theme="dark"] .priority-medium{background:#514226;color:#ffe19b}
+html[data-theme="dark"] .priority-low{background:#264e3f;color:#a3f0c2}
+@media(prefers-reduced-motion:no-preference){.appearance-options button{transition:background-color .18s,border-color .18s,color .18s}}
