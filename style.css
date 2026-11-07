@@ -685,3 +685,27 @@ html[data-theme="dark"] .bottom-tabs{background:#202b3d!important;border-color:#
 html[data-theme="dark"] .bottom-tabs .tab.active{background:#354b69!important;color:#e3edfb!important}
 html[data-theme="dark"] .bottom-tabs .tab:not(.active){color:#a8b6ca!important}
 html[data-theme="dark"] .progress-bar,html[data-theme="dark"] progress{accent-color:#7296c7}
+
+/* V106: fix high-specificity light account card overriding dark mode. */
+html[data-theme="dark"] #pageSettings #accountUsernameSection,
+html[data-theme="dark"] #authPanel #accountUsernameSection{
+ background:#28364b!important;
+ border:1px solid #43546e!important;
+ box-shadow:none!important;
+ color:#e1e9f5!important;
+}
+html[data-theme="dark"] #pageSettings #accountUsernameSection #accountUsernameHeading,
+html[data-theme="dark"] #pageSettings #accountUsernameSection #accountUsernameLabel{
+ color:#e1e9f5!important;
+}
+html[data-theme="dark"] #pageSettings #accountUsernameSection #accountUsernameHint{
+ color:#b2bfd2!important;
+}
+html[data-theme="dark"] #pageSettings #accountUsernameSection #accountMyUsername{
+ background:#202c3e!important;
+ border-color:#4a5c77!important;
+ color:#e1e9f5!important;
+}
+html[data-theme="dark"] #pageSettings #accountUsernameSection #accountMyUsername::placeholder{
+ color:#aab8ca!important;
+}
