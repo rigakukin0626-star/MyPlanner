@@ -8,7 +8,7 @@
   <title>My Planner</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=16">
+  <link rel="stylesheet" href="style.css?v=17">
 </head>
 <body>
   <div class="app-shell">
@@ -78,13 +78,13 @@
           <form id="taskForm" class="task-form">
             <label class="sr-only" for="taskInput">任务内容</label>
             <input id="taskInput" maxlength="160" placeholder="タスクを入力… / 添加任务" autocomplete="off" required>
-            <input id="reminderInput" type="datetime-local" aria-label="提醒时间" title="提醒时间（可选）">
-            <select id="repeatInput" aria-label="重复提醒" title="重复提醒"><option value="none">繰り返さない / 不重复</option><option value="daily">毎日 / 每天</option><option value="weekly">毎週 / 每周</option><option value="monthly">毎月 / 每月</option></select>
-            <select id="priorityInput" aria-label="优先级">
+            <label class="task-field task-field-reminder"><span class="task-field-label bilingual">通知時刻<small>提醒时间</small></span><input id="reminderInput" type="datetime-local" aria-label="提醒时间" title="提醒时间（可选）"></label>
+            <label class="task-field task-field-repeat"><span class="task-field-label bilingual">繰り返し<small>重复频率</small></span><select id="repeatInput" aria-label="重复提醒" title="重复提醒"><option value="none">繰り返さない / 不重复</option><option value="daily">毎日 / 每天</option><option value="weekly">毎週 / 每周</option><option value="monthly">毎月 / 每月</option></select></label>
+            <label class="task-field task-field-priority"><span class="task-field-label bilingual">優先度<small>优先级</small></span><select id="priorityInput" aria-label="优先级">
               <option value="medium">優先度：中 / 中优先级</option>
               <option value="high">優先度：高 / 高优先级</option>
               <option value="low">優先度：低 / 低优先级</option>
-            </select>
+            </select></label>
             <button class="button button-primary" type="submit"><span class="bilingual">＋ 追加<small>添加</small></span></button>
           </form>
 
@@ -133,6 +133,6 @@
     </div>
   </dialog>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=16"></script>
+  <script src="script.js?v=17"></script>
 </body>
 </html>
