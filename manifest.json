@@ -1,7 +1,7 @@
 {
   "name": "My Planner",
   "short_name": "My Planner",
-  "description": "Tasks, Calendar & Chat · Deep Blue Edition",
+  "description": "Tasks, Calendar & Private Chat · v171",
   "start_url": "/MyPlanner/",
   "display": "standalone",
   "background_color": "#ffffff",
