@@ -202,3 +202,12 @@
 #pageLongTerm .tasks-panel .task-heading h2{font-size:19px;}
 #editDialog.longterm-edit label:has(#editDate),#editDialog.longterm-edit label:has(#editRepeat){display:none!important;}
 #editDialog.longterm-edit #editReminderDisplay{font-weight:500;}
+
+/* v36: long-term date picker uses one full-width field, with the native picker invisible over its display. */
+#pageLongTerm .task-form{grid-template-columns:minmax(0,1fr)!important;}
+#pageLongTerm .task-form>#taskInput,#pageLongTerm .task-form>.task-field-reminder,#pageLongTerm .task-form>.task-field-priority,#pageLongTerm .task-form>button{grid-column:1/-1!important;width:100%;min-width:0;}
+#pageLongTerm .task-field-reminder .reminder-picker{position:relative;display:flex;align-items:center;width:100%;height:52px;overflow:hidden;box-sizing:border-box;}
+#pageLongTerm .task-field-reminder .reminder-display{display:block;width:100%;padding:0 14px;box-sizing:border-box;font-size:14px!important;font-weight:400!important;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;}
+#pageLongTerm .task-field-reminder input[type="date"]{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;max-height:100%!important;margin:0!important;padding:0!important;opacity:0!important;z-index:3!important;cursor:pointer;border:0!important;}
+#pageLongTerm .tasks-panel{margin-top:0;margin-bottom:18px;}
+#pageLongTerm .countdown-panel{margin-top:0;margin-bottom:20px;}
