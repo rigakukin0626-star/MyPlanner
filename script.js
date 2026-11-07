@@ -1,6 +1,10 @@
-const UI_LANG_KEY="myPlannerLanguage";
-let uiLanguage=localStorage.getItem(UI_LANG_KEY)||"ja";
-if(!["zh","ja","en"].includes(uiLanguage))uiLanguage="ja";
+function detectBrowserLanguage(){
+ const languages=navigator.languages?.length?navigator.languages:[navigator.language||"en"];
+ for(const language of languages){const code=language.toLowerCase().split("-")[0];if(["zh","ja","en"].includes(code))return code;}
+ return "en";
+}
+let uiLanguage=detectBrowserLanguage();
+localStorage.removeItem("myPlannerLanguage");
 const uiEnglish={
 "やりたいことを、一つずつ。":"Plan one thing at a time.",
 "今日に戻る":"Today","クラウド同期":"Cloud Sync","ログインすると、PCとiPhoneでタスクを同期できます。":"Sign in to sync tasks across devices.",
@@ -22,7 +26,6 @@ const uiEnglish={
 function tr(ja,zh,en){return uiLanguage==="zh"?zh:uiLanguage==="en"?(en||uiEnglish[ja]||ja):ja;}
 function applyLanguage(){
  document.documentElement.lang=uiLanguage==="zh"?"zh-CN":uiLanguage;
- const picker=$("languageSelect");if(picker)picker.value=uiLanguage;
  const auth=$("authStatus");if(auth&&currentUser&&(auth.dataset.statusKey==="synced"||/^(同期済み|已同步|Synced)\s*[·・]/.test(auth.textContent||""))){auth.dataset.statusKey="synced";auth.textContent=tr("同期済み","已同步","Synced")+" · "+currentUser.email;}
  document.querySelectorAll(".bilingual").forEach(el=>{
   if(!el.dataset.ja)return;
@@ -199,6 +202,6 @@ $("editForm").addEventListener("submit",e=>{e.preventDefault();const task=tasks.
 function closeEdit(){editDialog.close();editingId=null}$("closeDialog").addEventListener("click",closeEdit);$("cancelEdit").addEventListener("click",closeEdit);
 $("prevMonth").addEventListener("click",()=>{viewMonth.setMonth(viewMonth.getMonth()-1);renderCalendar()});$("nextMonth").addEventListener("click",()=>{viewMonth.setMonth(viewMonth.getMonth()+1);renderCalendar()});$("todayBtn").addEventListener("click",()=>{selectedDate=todayKey;showLongTerm=false;viewMonth=new Date(today.getFullYear(),today.getMonth(),1);render()});$("longTermBtn").addEventListener("click",()=>{showLongTerm=true;filter="all";updateTabs();renderTasks()});$("taskTabs").addEventListener("click",e=>{const btn=e.target.closest("[data-filter]");if(!btn)return;filter=btn.dataset.filter;updateTabs();renderTasks()});function updateTabs(){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.filter===filter))}
 if("serviceWorker"in navigator&&location.protocol!=="file:")window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(console.error));
-$("languageSelect").addEventListener("change",e=>{uiLanguage=e.target.value;localStorage.setItem(UI_LANG_KEY,uiLanguage);applyLanguage();});
+
 document.querySelectorAll(".bilingual").forEach(el=>{const small=el.querySelector("small");if(small){el.dataset.ja=el.firstChild?.textContent||"";el.dataset.zh=small.textContent;}});
 applyLanguage();refreshAuthUI();
