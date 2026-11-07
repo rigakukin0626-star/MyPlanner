@@ -328,6 +328,7 @@ refreshReminderDisplay();
 /* My Planner Chat V1. Requires the chat database SQL before use. */
 let chatPeer=null,chatSubscription=null,chatRefreshBusy=false,chatLastSignature="",chatReloadQueued=false;
 let chatConfirmedCache=[],chatCachePeer=null;
+let chatLastFetchAt=0;
 const chatPending=new Map();
 function chatText(zh,ja,en){return tr(ja,zh,en)}
 function updateChatLanguage(){
@@ -391,7 +392,7 @@ function chatRenderMessages(){
  const root=$("chatMessages");
  const confirmed=chatCachePeer===chatPeer?chatConfirmedCache:[];
  for(const [key,item] of chatPending){
-  if(item.peer===chatPeer&&item.serverId&&confirmed.some(m=>String(m.id)===String(item.serverId)))chatPending.delete(key);
+  if(item.peer===chatPeer&&((item.serverId&&confirmed.some(m=>String(m.id)===String(item.serverId)))||(item.status==="uncertain"&&confirmed.some(m=>m.sender_id===currentUser.id&&m.recipient_id===item.peer&&m.body===item.body&&Math.abs(new Date(m.created_at).getTime()-item.createdAt)<120000))))chatPending.delete(key);
  }
  const pending=[...chatPending.entries()].filter(([,item])=>item.peer===chatPeer);
  const signature=confirmed.map(m=>m.id).join(",")+"|"+pending.map(([key,item])=>key+":"+item.status).join(",");
@@ -407,7 +408,7 @@ function chatRenderMessages(){
  for(const [key,item] of pending){
   const div=document.createElement("div");div.className="chat-bubble mine";div.dataset.pendingKey=key;
   const body=document.createElement("span");body.textContent=item.body;
-  const time=document.createElement("small");time.textContent=item.status==="failed"?chatText("发送失败","送信失敗","Failed"):item.status==="sent"?chatText("已发送","送信済み","Sent"):chatText("发送中…","送信中…","Sending...");
+  const time=document.createElement("small");time.textContent=item.status==="failed"?chatText("发送失败","送信失敗","Failed"):item.status==="uncertain"?chatText("发送超时·待确认","送信確認中","Delivery unconfirmed"):item.status==="sent"?chatText("已发送","送信済み","Sent"):chatText("发送中…","送信中…","Sending...");
   div.append(body,time);fragment.append(div);
  }
  root.replaceChildren(fragment);
@@ -423,6 +424,7 @@ async function loadChatMessages(){
  if(error){chatRefreshBusy=false;chatError(error.message);return}
  if(chatPeer!==requestedPeer){chatRefreshBusy=false;return}
  chatConfirmedCache=data||[];
+ chatLastFetchAt=Date.now();
  chatCachePeer=requestedPeer;
  chatRenderMessages();
  chatRefreshBusy=false;
@@ -442,18 +444,21 @@ $("chatSendForm").addEventListener("submit",async e=>{
  const input=$("chatMessageInput"),body=input.value.trim();if(!body)return;
  const peer=chatPeer;
  const key="pending-"+Date.now()+"-"+Math.random().toString(36).slice(2);
- chatPending.set(key,{peer,body,status:"sending",serverId:null});
+ chatPending.set(key,{peer,body,status:"sending",serverId:null,createdAt:Date.now()});
  input.value="";
  // Always render from the local pending queue first; network work starts afterward.
  chatRenderMessages();
  try{
-  const {data,error}=await supabaseClient.from("chat_messages").insert({sender_id:currentUser.id,recipient_id:peer,body}).select("id").single();
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),12000);
+  let data,error;
+  try{({data,error}=await supabaseClient.from("chat_messages").insert({sender_id:currentUser.id,recipient_id:peer,body}).select("id").single().abortSignal(controller.signal))}finally{clearTimeout(timeout)}
   if(error)throw error;
   const pending=chatPending.get(key);if(pending){pending.serverId=data.id;pending.status="sent"}
   if(chatPeer===peer){chatRenderMessages();await loadChatMessages()}
  }catch(error){
-  const pending=chatPending.get(key);if(pending)pending.status="failed";
-  if(chatPeer===peer){chatRenderMessages();chatError(error)}
+  const pending=chatPending.get(key);if(pending)pending.status=error?.name==="AbortError"?"uncertain":"failed";
+  if(chatPeer===peer){chatRenderMessages();chatError(error?.name==="AbortError"?chatText("网络超时，正在核实消息是否送达，请勿重复发送。","通信がタイムアウトしました。送信状況を確認中です。","Network timeout. Checking delivery; do not resend yet."):error);loadChatMessages()}
  }
 
 });
@@ -461,7 +466,7 @@ $("chatSendForm").addEventListener("submit",async e=>{
 /* v39: mobile Safari may suspend Realtime sockets; periodically reconcile from DB while chat is visible. */
 setInterval(()=>{
  if(document.hidden||document.body.dataset.activePage!=="chat"||!currentUser)return;
- if(chatPeer)loadChatMessages();else loadChatFriends();
+ if(chatPeer){if(Date.now()-chatLastFetchAt>2500)loadChatMessages()}else if(Date.now()-chatLastFetchAt>10000)loadChatFriends();
 },1000);
 document.addEventListener("visibilitychange",()=>{
  if(!document.hidden&&document.body.dataset.activePage==="chat"&&currentUser){if(chatPeer)loadChatMessages();else loadChatFriends()}
