@@ -1522,19 +1522,20 @@ async function groupOpen(group){
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
  groupReplyTarget=null;groupUpdateReplyPreview();
  chatActiveGroup=group;groupLastSignature="";groupMessageLastFetched=0;
- groupPreparePanels(group);
  groupMarkSeen(group.id);
  $("chatGroupTitle").textContent=group.name;
  $("chatGroups").hidden=true;$("chatGroupTools").hidden=true;$("chatModeSwitch").hidden=true;
  $("chatGroupConversation").hidden=false;document.body.classList.add("chat-open");
  $("chatGroupMessages").replaceChildren();$("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
  groupShowCachedMessages(group.id);
- groupWarmPanels(group);
  groupChannel=supabaseClient.channel("group-"+group.id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+group.id},()=>groupScheduleRefresh())
  .on("postgres_changes",{event:"DELETE",schema:"public",table:"chat_group_messages"},()=>groupScheduleRefresh())
  .subscribe();
- await groupLoadMessages();
+ const messagesRequest=groupLoadMessages();
+ groupPreparePanels(group);
+ groupWarmPanels(group);
+ await messagesRequest;
 }
 function groupScheduleRefresh(){
  if(groupMessageRefreshTimer||!chatActiveGroup)return;
@@ -1670,6 +1671,7 @@ async function groupLoadInviteFriends(warm=false,force=false){
    btn.disabled=true;btn.textContent=chatText("添加中…","追加中…","Adding...");
    const {error:addError}=await supabaseClient.rpc("chat_add_group_member",{target_group:groupId,target_user:id});
    if(addError){btn.disabled=false;btn.textContent=chatText("重试","再試行","Retry");$("chatGroupInviteFeedback").textContent=addError.message;return}
+   $("chatGroupMembersList").dataset.renderedAt="0";
    members.add(id);btn.textContent=chatText("已在群里","参加済み","Joined");
    $("chatGroupInviteFeedback").textContent=chatText("已添加好友到群聊","友達をグループに追加しました","Friend added to group");
   });
@@ -1760,7 +1762,7 @@ async function groupShowMembers(warm=false,force=false){
    kick.addEventListener("click",async()=>{
     if(!confirm(chatText("确定移除此成员？","このメンバーを削除しますか？","Remove this member?")))return;
     const {error}=await supabaseClient.rpc("chat_remove_group_member",{target_group:groupId,target_user:member.user_id});
-    if(error)groupError(error);else groupShowMembers(false,true);
+    if(error)groupError(error);else {$("chatGroupFriendInviteList").dataset.renderedAt="0";groupShowMembers(false,true)};
    });row.append(kick);
   }
   fragment.append(row);
@@ -1785,6 +1787,7 @@ $("chatGroupAddByUsername").addEventListener("click",async()=>{
   if(chatActiveGroup?.id!==groupId)return;
   $("chatGroupAddUsername").value="";
   status.textContent=chatText("已添加 @","追加しました @","Added @")+person.username;
+  $("chatGroupFriendInviteList").dataset.renderedAt="0";
   await groupShowMembers(false,true);
  }catch(error){status.textContent=error?.message||String(error)}
  finally{button.disabled=false}
