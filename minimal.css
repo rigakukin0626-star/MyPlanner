@@ -459,3 +459,6 @@ html[data-theme="dark"] .welcome-auth{background:#000}
 html[data-theme="dark"] .bottom-tabs{background:#000}
 html[data-theme="dark"] .chat-bubble:not(.mine){background:var(--surface);border-color:var(--line)}
 html[data-theme="dark"] .chat-send textarea{background:var(--field);color:var(--ink)}
+
+/* Display useful errors, but not noisy successful sync status. */
+#chatStatus[data-friends-synced-count]{display:none}
