@@ -61,18 +61,7 @@ function applyLanguage(){
  const note=document.querySelector(".storage-note");if(note)note.textContent=tr("データはこの端末にも保存されます。端末を変更する前に同期を確認してください。","数据也保存在本设备。更换设备前请确认已同步。","Data is also stored on this device. Check sync before switching devices.");
  if(!currentUser)setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."));
  render();
- if(typeof chatMode!=="undefined"){
-  chatLastSignature="";
-  groupLastSignature="";
-  if(chatPeer)chatRenderMessages();
-  if(chatActiveGroup){
-   try{const cached=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+chatActiveGroup.id)||"null");if(Array.isArray(cached?.items))groupRenderMessages(cached.items)}catch{}
-  }
-  if(chatMode==="group"&&!chatActiveGroup){
-   groupListSignature="";
-   groupShowCachedList();
-  }
- }
+ window.chatRefreshLocalizedViews?.();
 }
 const STORAGE_KEY = "myPlannerTasks";
 const $ = (id) => document.getElementById(id);
@@ -933,6 +922,19 @@ function groupShowCachedList(){
 
 function groupStatus(message){$("chatGroupStatus").textContent=message}
 function groupError(error){groupStatus(error?.message||String(error))}
+function refreshChatLocalizedViews(){
+  chatLastSignature="";
+  groupLastSignature="";
+  if(chatPeer)chatRenderMessages();
+  if(chatActiveGroup){
+   try{const cached=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+chatActiveGroup.id)||"null");if(Array.isArray(cached?.items))groupRenderMessages(cached.items)}catch{}
+  }
+  if(chatMode==="group"&&!chatActiveGroup){
+   groupListSignature="";
+   groupShowCachedList();
+  }
+}
+window.chatRefreshLocalizedViews=refreshChatLocalizedViews;
 function groupMode(mode){
  if(chatPeer)chatShowList();
  if(chatActiveGroup)groupClose();
