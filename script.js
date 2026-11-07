@@ -490,6 +490,7 @@ function updateChatLanguage(){
  $("chatGroupAddUsername").placeholder=chatText("输入用户名","ユーザー名を入力","Enter username");
  $("chatGroupAddByUsername").textContent=chatText("添加成员","メンバーを追加","Add member");
  $("chatGroupLeave").textContent=chatText("退出群聊","グループを退出","Leave group");
+ $("chatGroupDisband").textContent=chatText("解散群聊","グループを解散","Disband group");
  $("chatGroupMessageInput").placeholder=chatText("输入群消息…","グループメッセージ…","Group message...");
  $("chatGroupSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
  $("chatTitle").textContent=chatMode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
@@ -1004,6 +1005,7 @@ async function groupShowMembers(){
  if(!chatActiveGroup||chatActiveGroup.id!==groupId)return;
  const panel=$("chatGroupMembersPanel"),root=$("chatGroupMembersList");root.replaceChildren();$("chatGroupInvitePanel").hidden=true;
  $("chatGroupAddMember").hidden=chatActiveGroup.created_by!==currentUser.id;
+ $("chatGroupDisband").hidden=chatActiveGroup.created_by!==currentUser.id;
  const members=[...new Map((data||[]).map(m=>[m.user_id,m])).values()];
  const ids=members.map(x=>x.user_id);
  let profiles=[];
@@ -1049,6 +1051,21 @@ $("chatGroupAddByUsername").addEventListener("click",async()=>{
 });
 $("chatGroupManage").addEventListener("click",groupShowMembers);
 $("chatGroupMembersClose").addEventListener("click",()=>{$("chatGroupMembersPanel").hidden=true});
+$("chatGroupDisband").addEventListener("click",async()=>{
+ if(!currentUser||!chatActiveGroup||chatActiveGroup.created_by!==currentUser.id)return;
+ const groupId=chatActiveGroup.id,groupName=chatActiveGroup.name;
+ if(!confirm(chatText("确定解散「"+groupName+"」？所有群成员将被移除，群消息会永久删除。","「"+groupName+"」を解散しますか？メッセージとメンバーが完全に削除されます。","Disband "+groupName+"? All members and messages will be permanently deleted.")))return;
+ const typed=prompt(chatText("为确认解散，请输入群名称："+groupName,"確認のためグループ名を入力："+groupName,"Type the group name to confirm: "+groupName));
+ if(typed!==groupName){if(typed!==null)alert(chatText("群名称不一致，已取消","グループ名が一致しません","Group name did not match. Cancelled."));return}
+ const button=$("chatGroupDisband");button.disabled=true;
+ try{
+  const {error}=await supabaseClient.rpc("chat_disband_group",{target_group:groupId});
+  if(error)throw error;
+  if(chatActiveGroup?.id===groupId)groupClose();
+  groupStatus(chatText("群聊已解散","グループを解散しました","Group disbanded"));
+ }catch(error){groupError(error);alert(chatText("解散失败：","解散に失敗：","Disband failed: ")+(error?.message||String(error)))}
+ finally{button.disabled=false}
+});
 $("chatGroupLeave").addEventListener("click",async()=>{
  if(!chatActiveGroup||!currentUser)return;
  if(!confirm(chatText("确定退出群聊？","グループを退出しますか？","Leave this group?")))return;
