@@ -56,3 +56,13 @@ Supabase SQL Editor. It was NOT automatically applied.
 - Development branch: `feat-line-swipe-menu-2026-11-07`
 - UI-only code changes; chat data, users, group membership, Supabase policies, storage objects, and existing storage keys are not changed.
 - Restore original code from the backup branch if desired; this is not a cloud database backup and does not include unsynced local storage.
+
+## Private chat action menu, zoom, and photo retrieval fix — v171
+
+- Previous main commit snapshot: `21a0e686f78b7301855b7d914ec4c1196b4b5da2`
+- Backup branch: `backup-before-private-menu-photo-fix-2026-11-07`
+- Development branch: `fix-private-actions-photo-zoom-2026-11-07`
+- Friend deletion is a server-confirmed deletion of the friendship relationship, not messages or media.
+- Before delete-friend and incoming photo access can work when RLS policies are missing, an authorized Supabase admin must run `supabase/chat-access-permissions-v171.sql` in Supabase SQL Editor (once). GitHub publishing alone **does not run SQL migrations**.
+- Photo retrieval now attempts signed URLs first and falls back to private authenticated downloads. It never makes the Storage bucket public.
+- No existing Supabase data or Storage objects were changed by these GitHub commits.
