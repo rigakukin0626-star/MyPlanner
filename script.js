@@ -81,6 +81,7 @@ function applyLanguage(){
   const key=btn.dataset.appearance;if(labels[key])btn.textContent=labels[key][idx];
  });
  updateWelcomeLanguage();
+ updateChatLanguage();
  window.chatRefreshLocalizedViews?.();
 }
 const STORAGE_KEY = "myPlannerTasks";
@@ -518,6 +519,28 @@ let chatLastFetchAt=0;
 const chatPending=new Map();
 function chatText(zh,ja,en){return tr(ja,zh,en)}
 function updateChatLanguage(){
+ // Translate controls already rendered inside an open group panel without reloading its data.
+ const translateExisting=(rootId,pairs)=>{
+  const root=$(rootId);if(!root)return;
+  root.querySelectorAll("button,small,label").forEach(el=>{
+   if(el.children.length)return;
+   const value=(el.textContent||"").trim();
+   const pair=pairs.find(p=>p.includes(value));
+   if(pair)el.textContent=pair[uiLanguage==="zh"?0:uiLanguage==="ja"?1:2];
+  });
+ };
+ translateExisting("chatGroupMembersPanel",[
+  ["修改群名称","グループ名を変更","Rename group"],
+  ["备注","メモ","Remark"],["移除","削除","Remove"],
+  ["关闭","閉じる","Close"],["退出群聊","グループを退出","Leave group"],
+  ["解散群聊","グループを解散","Disband group"]
+ ]);
+ translateExisting("chatGroupInvitePanel",[
+  ["复制","コピー","Copy"],["分享邀请码","招待コードを共有","Share invite code"],
+  ["关闭","閉じる","Close"],["已在群里","参加済み","Already joined"],
+  ["添加","追加","Add"],["正在加载好友…","友達を読み込み中…","Loading friends..."]
+ ]);
+
  const status=$("chatStatus");
  if(status?.dataset?.friendsSyncedCount!==undefined&&status.dataset.friendsSyncedCount!==""){
   const n=status.dataset.friendsSyncedCount;
