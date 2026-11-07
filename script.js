@@ -1316,7 +1316,86 @@ async function groupLoadList(force=false){
  }catch(error){groupError(error)}
  finally{groupListLoading=false}
 }
+const GROUP_REPLY_PREFIX="[myplanner-group-reply]:";
+let groupReplyTarget=null;
+const groupRecallBusy=new Set();
+function groupParseReply(body){
+ if(typeof body!=="string"||!body.startsWith(GROUP_REPLY_PREFIX))return null;
+ try{const data=JSON.parse(body.slice(GROUP_REPLY_PREFIX.length));return typeof data.text==="string"&&typeof data.quote==="string"?data:null}catch{return null}
+}
+function groupPlainBody(body){return groupParseReply(body)?.text??body}
+function groupQuote(body){
+ const text=String(groupPlainBody(body)||"");
+ return text.startsWith("[myplanner-group-image]:")?chatText("图片","画像","Photo"):text.replace(/\\s+/g," ").slice(0,100);
+}
+function groupUpdateReplyPreview(){
+ let node=document.getElementById("chatGroupReplyPreview");
+ if(!node){
+  node=document.createElement("div");node.id="chatGroupReplyPreview";node.className="chat-reply-preview";
+  const form=$("chatGroupSendForm");form.parentNode.insertBefore(node,form);
+ }
+ node.replaceChildren();node.hidden=!groupReplyTarget;
+ if(!groupReplyTarget)return;
+ const info=document.createElement("span");info.className="chat-reply-preview-info";
+ const title=document.createElement("strong");title.textContent=chatText("正在回复","返信中","Replying to");
+ const quote=document.createElement("span");quote.textContent=groupQuote(groupReplyTarget.body);
+ info.append(title,quote);
+ const close=document.createElement("button");close.type="button";close.className="chat-reply-close";close.textContent="×";
+ close.setAttribute("aria-label",chatText("取消回复","返信をキャンセル","Cancel reply"));
+ close.addEventListener("click",()=>{groupReplyTarget=null;groupUpdateReplyPreview()});
+ node.append(info,close);
+}
+async function groupRecallMessage(item){
+ if(!currentUser||!chatActiveGroup||item.sender_id!==currentUser.id)return;
+ const id=String(item.id),groupId=chatActiveGroup.id,userId=currentUser.id;
+ if(groupRecallBusy.has(id)||!confirm(chatText("撤回这条群消息？所有群成员都将看不到它。","このグループメッセージを取り消しますか？","Recall this message for everyone in the group?")))return;
+ groupRecallBusy.add(id);
+ try{
+  const {data,error}=await supabaseClient.from("chat_group_messages").delete().eq("id",item.id).eq("group_id",groupId).eq("sender_id",userId).select("id");
+  if(error)throw error;
+  if(!data?.length)throw new Error(chatText("服务器未授权删除，请检查群消息 DELETE 权限。","グループメッセージの削除権限を確認してください。","Group message DELETE permission is missing."));
+  if(chatActiveGroup?.id!==groupId)return;
+  document.querySelectorAll("#chatGroupMessages [data-group-message-id]").forEach(el=>{if(el.dataset.groupMessageId===id)el.remove()});
+  groupLastSignature="";
+  try{
+   const key="myplanner-group-msg-"+userId+"-"+groupId;
+   const cached=JSON.parse(sessionStorage.getItem(key)||"null");
+   if(Array.isArray(cached?.items)){cached.items=cached.items.filter(x=>String(x.id)!==id);sessionStorage.setItem(key,JSON.stringify(cached))}
+  }catch{}
+  if(groupReplyTarget?.id===id){groupReplyTarget=null;groupUpdateReplyPreview()}
+  groupStatus(chatText("消息已撤回","メッセージを取り消しました","Message recalled"));
+  groupScheduleRefresh();
+ }catch(error){groupError(error);alert(chatText("撤回失败：","取り消し失敗：","Recall failed: ")+(error?.message||String(error)))}
+ finally{groupRecallBusy.delete(id)}
+}
+function groupMessageActions(bubble,item){
+ let timer=null,x=0,y=0,opened=false;
+ const cancel=()=>{if(timer!==null){clearTimeout(timer);timer=null}};
+ const open=()=>{
+  if(opened)return;opened=true;cancel();chatCloseMessageMenu();
+  const menu=document.createElement("div");menu.className="chat-context-menu";menu.setAttribute("role","menu");
+  const add=(label,action,extra="")=>{
+   const btn=document.createElement("button");btn.type="button";btn.className="chat-context-option "+extra;btn.textContent=label;
+   btn.addEventListener("click",e=>{e.stopPropagation();chatCloseMessageMenu();action()});menu.append(btn);
+  };
+  add(chatText("回复","返信","Reply"),()=>{
+   groupReplyTarget={id:String(item.id),body:item.body,groupId:chatActiveGroup?.id};
+   groupUpdateReplyPreview();$("chatGroupMessageInput").focus();
+  });
+  if(item.sender_id===currentUser?.id)add(chatText("撤回","送信取消","Recall"),()=>groupRecallMessage(item),"danger");
+  document.body.append(menu);chatMenuNode=menu;
+  const rect=bubble.getBoundingClientRect(),width=menu.offsetWidth,height=menu.offsetHeight;
+  menu.style.left=Math.max(8,Math.min(innerWidth-width-8,rect.left))+"px";
+  menu.style.top=Math.max(8,Math.min(innerHeight-height-8,rect.top-height-8))+"px";
+  setTimeout(()=>document.addEventListener("pointerdown",chatDismissMessageMenu,{once:true}),0);
+ };
+ bubble.addEventListener("pointerdown",e=>{if(e.button!==0||e.target.closest("button,a,img"))return;x=e.clientX;y=e.clientY;opened=false;cancel();timer=setTimeout(open,480)});
+ bubble.addEventListener("pointermove",e=>{if(Math.abs(e.clientX-x)>12||Math.abs(e.clientY-y)>12)cancel()});
+ for(const type of ["pointerup","pointercancel","pointerleave"])bubble.addEventListener(type,cancel);
+ bubble.addEventListener("contextmenu",e=>{e.preventDefault();open()});
+}
 function groupClose(){
+ groupReplyTarget=null;groupUpdateReplyPreview();
  if(groupMessageRefreshTimer){clearTimeout(groupMessageRefreshTimer);groupMessageRefreshTimer=null}
  $("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
  chatActiveGroup=null;groupLastSignature="";
@@ -1329,6 +1408,7 @@ function groupClose(){
 async function groupOpen(group){
  if(groupMessageRefreshTimer){clearTimeout(groupMessageRefreshTimer);groupMessageRefreshTimer=null}
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
+ groupReplyTarget=null;groupUpdateReplyPreview();
  chatActiveGroup=group;groupLastSignature="";groupMessageLastFetched=0;
  groupMarkSeen(group.id);
  $("chatGroupTitle").textContent=group.name;
@@ -1338,6 +1418,7 @@ async function groupOpen(group){
  groupShowCachedMessages(group.id);
  groupChannel=supabaseClient.channel("group-"+group.id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+group.id},()=>groupScheduleRefresh())
+ .on("postgres_changes",{event:"DELETE",schema:"public",table:"chat_group_messages"},()=>groupScheduleRefresh())
  .subscribe();
  await groupLoadMessages();
 }
@@ -1364,9 +1445,13 @@ function groupRenderMessages(items){
     chatGetSignedImageUrl(path).then(url=>{if(img.isConnected)img.src=url}).catch(()=>{if(img.isConnected)img.alt=chatText("照片加载失败","写真を読み込めません","Photo unavailable")});
     img.addEventListener("click",()=>chatOpenPhotoPreview(img.src));
    }else body.textContent=chatText("照片无效","無効な画像","Invalid photo");
-  }else body.textContent=item.body;
+  }else{
+   const reply=groupParseReply(item.body);
+   if(reply){const quote=document.createElement("div");quote.className="chat-quoted-message";const label=document.createElement("strong");label.textContent=chatText("回复消息","返信","Reply");const content=document.createElement("span");content.textContent=reply.quote;quote.append(label,content);body.append(quote);const text=document.createElement("div");text.className="chat-reply-text";text.textContent=reply.text;body.append(text)}
+   else body.textContent=item.body;
+  }
   const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
-  bubble.append(sender,body,time);fragment.append(bubble);
+  bubble.append(sender,body,time);groupMessageActions(bubble,item);fragment.append(bubble);
  }
  const oldNodes=[...root.children],newNodes=[...fragment.children];
  let appendOnly=oldNodes.length>0&&newNodes.length>=oldNodes.length;
@@ -1588,8 +1673,11 @@ $("chatGroupPhotoInput").addEventListener("change",async event=>{
 });
 $("chatGroupSendForm").addEventListener("submit",async event=>{
  event.preventDefault();if(!currentUser||!chatActiveGroup)return;
- const input=$("chatGroupMessageInput"),body=input.value.trim();if(!body)return;
- const groupId=chatActiveGroup.id;input.value="";
+ const input=$("chatGroupMessageInput"),textBody=input.value.trim();if(!textBody)return;
+ const groupId=chatActiveGroup.id;
+ const reply=groupReplyTarget?.groupId===groupId?groupReplyTarget:null;
+ const body=reply?GROUP_REPLY_PREFIX+JSON.stringify({id:reply.id,quote:groupQuote(reply.body),text:textBody}):textBody;
+ input.value="";groupReplyTarget=null;groupUpdateReplyPreview();
  const root=$("chatGroupMessages"),bubble=document.createElement("div");bubble.className="chat-bubble mine";
  const label=document.createElement("span");label.textContent=body;
  const time=document.createElement("small");time.textContent=new Date().toLocaleString()+" · "+chatText("发送中…","送信中…","Sending...");
