@@ -482,6 +482,8 @@ function updateChatLanguage(){
  $("chatGroupInvite").textContent=chatText("邀请","招待","Invite");
  $("chatGroupManage").textContent=chatText("成员","メンバー","Members");
  $("chatGroupMembersTitle").textContent=chatText("群成员","グループメンバー","Group members");
+ $("chatGroupAddUsername").placeholder=chatText("输入用户名","ユーザー名を入力","Enter username");
+ $("chatGroupAddByUsername").textContent=chatText("添加成员","メンバーを追加","Add member");
  $("chatGroupLeave").textContent=chatText("退出群聊","グループを退出","Leave group");
  $("chatGroupMessageInput").placeholder=chatText("输入群消息…","グループメッセージ…","Group message...");
  $("chatGroupSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
@@ -965,6 +967,7 @@ async function groupShowMembers(){
  if(error){groupError(error);return}
  if(!chatActiveGroup||chatActiveGroup.id!==groupId)return;
  const panel=$("chatGroupMembersPanel"),root=$("chatGroupMembersList");root.replaceChildren();
+ $("chatGroupAddMember").hidden=chatActiveGroup.created_by!==currentUser.id;
  const ids=(data||[]).map(x=>x.user_id);
  let profiles=[];
  if(ids.length){const res=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);if(!res.error)profiles=res.data||[]}
@@ -985,6 +988,27 @@ async function groupShowMembers(){
  }
  panel.hidden=false;
 }
+$("chatGroupAddByUsername").addEventListener("click",async()=>{
+ if(!chatActiveGroup||!currentUser||chatActiveGroup.created_by!==currentUser.id)return;
+ const username=$("chatGroupAddUsername").value.trim().replace(/^@/,"").toLowerCase();
+ const status=$("chatGroupAddStatus"),button=$("chatGroupAddByUsername");
+ if(!chatUsernameValid(username)){status.textContent=chatText("请输入3–20位用户名","3〜20文字のユーザー名を入力","Enter a 3–20 character username");return}
+ button.disabled=true;status.textContent=chatText("正在查找…","検索中…","Searching...");
+ try{
+  const {data,error}=await supabaseClient.rpc("chat_find_username",{search_username:username});
+  if(error)throw error;
+  const person=Array.isArray(data)?data[0]:null;
+  if(!person)throw Error(chatText("找不到这个用户名","ユーザーが見つかりません","Username not found"));
+  const groupId=chatActiveGroup.id;
+  const {error:addError}=await supabaseClient.rpc("chat_add_group_member",{target_group:groupId,target_user:person.id});
+  if(addError)throw addError;
+  if(chatActiveGroup?.id!==groupId)return;
+  $("chatGroupAddUsername").value="";
+  status.textContent=chatText("已添加 @","追加しました @","Added @")+person.username;
+  await groupShowMembers();
+ }catch(error){status.textContent=error?.message||String(error)}
+ finally{button.disabled=false}
+});
 $("chatGroupManage").addEventListener("click",groupShowMembers);
 $("chatGroupMembersClose").addEventListener("click",()=>{$("chatGroupMembersPanel").hidden=true});
 $("chatGroupLeave").addEventListener("click",async()=>{
