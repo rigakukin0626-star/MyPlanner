@@ -925,4 +925,3 @@ html[data-theme="dark"] .chat-pin-button[aria-pressed="true"]{background:#2b3444
 .chat-reply-text{white-space:pre-wrap;overflow-wrap:anywhere;}
 
 .chat-build-version{margin-left:auto;font-size:11px;color:#8290a7;flex-shrink:0;font-weight:500;}
-\n/* Korean glyphs: match the application’s primary UI typography and weights */\nhtml[lang="ko"] body,html[lang="ko"] input,html[lang="ko"] select,html[lang="ko"] button,html[lang="ko"] textarea{font-family:Inter,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;}\n
