@@ -720,3 +720,8 @@ button,input,textarea,select{
  #pageChat #linePrivateMenu{right:10px}
  #pageChat .chat-media-frame{width:min(232px,64vw)}
 }
+
+/* v172: slightly wider, more balanced chat bubbles for short messages. */
+#pageChat .chat-bubble:not(:has(.chat-media-frame)){min-width:clamp(96px,25vw,130px);max-width:min(83%,500px);padding-inline:15px}
+#pageChat .chat-bubble:has(.chat-media-frame){min-width:0}
+@media(max-width:719px){#pageChat .chat-bubble:not(:has(.chat-media-frame)){min-width:clamp(92px,26vw,118px);max-width:84%;padding-inline:14px}}
