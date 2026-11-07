@@ -907,3 +907,7 @@ html[data-theme="dark"] .chat-pin-button[aria-pressed="true"]{background:#2b3444
 .chat-context-option{display:block;width:100%;text-align:left;border:0;background:transparent;color:inherit;border-radius:9px;padding:11px 13px;font-size:14px;cursor:pointer;}
 .chat-context-option:active,.chat-context-option:hover{background:#3b414d;}
 .chat-context-option.danger{color:#ff9b9b;}
+
+/* v124: prevent iOS text-selection callout competing with chat long-press menu */
+#pageChat .chat-bubble,#pageChat .chat-bubble *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}
+#pageChat .chat-bubble img{-webkit-user-drag:none;user-drag:none;}
