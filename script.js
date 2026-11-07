@@ -303,7 +303,7 @@ function switchPlannerPage(page){
   updateLongTermFormMode();
  }
  if(page==="calendar")renderCalendar();
- if(page==="chat"){if(chatPeer)loadChatMessages();else loadChatFriends();}
+ if(page==="chat"){if(chatPeer){loadChatMessages();chatMarkRead()}else loadChatFriends();}
  window.scrollTo({top:0,behavior:"instant"});
 }
 function updatePlannerTabLanguage(){
@@ -347,6 +347,7 @@ refreshReminderDisplay();
 /* My Planner Chat V1. Requires the chat database SQL before use. */
 let chatPeer=null,chatSubscription=null,chatRefreshBusy=false,chatLastSignature="",chatReloadQueued=false;
 let chatConfirmedCache=[],chatCachePeer=null;
+let chatReadBusy=false,chatReadLastId=null;
 let chatLastFetchAt=0;
 const chatPending=new Map();
 function chatText(zh,ja,en){return tr(ja,zh,en)}
@@ -359,7 +360,7 @@ function updateChatLanguage(){
 }
 function chatStatus(message){$("chatStatus").textContent=message}
 function chatError(error){chatStatus(error?.message||String(error))}
-function chatShowList(){document.body.classList.remove("chat-open");chatConfirmedCache=[];chatCachePeer=null;chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
+function chatShowList(){document.body.classList.remove("chat-open");chatConfirmedCache=[];chatCachePeer=null;chatReadLastId=null;chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
 function chatStopRealtime(){if(chatSubscription){supabaseClient.removeChannel(chatSubscription);chatSubscription=null}}
 async function loadChatFriends(){
  if(chatPeer)return;
@@ -387,19 +388,20 @@ function chatAppendRealtime(item){
  const bubble=document.createElement("div");bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
  bubble.dataset.messageId=String(item.id);
  const body=document.createElement("span");chatMessageContent(body,item.body);
- const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
+ const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString()+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
  bubble.append(body,time);root.append(bubble);root.scrollTop=root.scrollHeight;
  chatLastSignature="";
 }
 async function openChat(id,name){
  chatStopRealtime();
- chatLastSignature="";chatConfirmedCache=[];chatCachePeer=id;chatPeer=id;document.body.classList.add("chat-open");
+ chatLastSignature="";chatConfirmedCache=[];chatCachePeer=id;chatReadLastId=null;chatPeer=id;document.body.classList.add("chat-open");
  $("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");
  $("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
  const userId=currentUser.id;
  chatSubscription=supabaseClient.channel("private-chat-"+userId+"-"+id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"recipient_id=eq."+userId},payload=>{if(chatPeer===payload.new.sender_id){chatAppendRealtime(payload.new);loadChatMessages()}})
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"sender_id=eq."+userId},payload=>{if(chatPeer===payload.new.recipient_id){chatAppendRealtime(payload.new);loadChatMessages()}})
+ .on("postgres_changes",{event:"UPDATE",schema:"public",table:"chat_messages",filter:"sender_id=eq."+userId},payload=>{if(chatPeer===payload.new.recipient_id)loadChatMessages()})
  .subscribe(status=>{
   if(chatPeer!==id)return;
   if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")chatStatus(chatText("实时连接中断，正在使用备用同步","リアルタイム接続が中断しました","Realtime unavailable; using backup sync"));
@@ -431,14 +433,14 @@ function chatRenderMessages(){
   if(item.peer===chatPeer&&((item.serverId&&confirmed.some(m=>String(m.id)===String(item.serverId)))||(item.status==="uncertain"&&confirmed.some(m=>m.sender_id===currentUser.id&&m.recipient_id===item.peer&&m.body===item.body&&Math.abs(new Date(m.created_at).getTime()-item.createdAt)<120000))))chatPending.delete(key);
  }
  const pending=[...chatPending.entries()].filter(([,item])=>item.peer===chatPeer);
- const signature=confirmed.map(m=>m.id).join(",")+"|"+pending.map(([key,item])=>key+":"+item.status).join(",");
+ const signature=confirmed.map(m=>m.id+":"+(m.read_at||"")).join(",")+"|"+pending.map(([key,item])=>key+":"+item.status).join(",");
  if(signature===chatLastSignature)return;
  chatLastSignature=signature;
  const fragment=document.createDocumentFragment();
  for(const item of confirmed){
   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);
   const body=document.createElement("span");body.textContent=item.body;
-  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
+  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString()+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
   div.append(body,time);fragment.append(div);
  }
  for(const [key,item] of pending){
@@ -451,18 +453,35 @@ function chatRenderMessages(){
  root.scrollTop=root.scrollHeight;
  requestAnimationFrame(()=>{if(chatPeer&&root.isConnected)root.scrollTop=root.scrollHeight});
 }
+async function chatMarkRead(){
+ if(chatReadBusy||!currentUser||!chatPeer||document.hidden||document.body.dataset.activePage!=="chat")return;
+ const peer=chatPeer;
+ const unread=(chatCachePeer===peer?chatConfirmedCache:[]).filter(m=>m.sender_id===peer&&m.recipient_id===currentUser.id&&!m.read_at);
+ if(!unread.length)return;
+ const latest=unread[unread.length-1].id;
+ if(chatReadLastId===latest)return;
+ chatReadBusy=true;
+ try{
+  const {error}=await supabaseClient.from("chat_messages").update({read_at:new Date().toISOString()}).eq("recipient_id",currentUser.id).eq("sender_id",peer).is("read_at",null);
+  if(error)throw error;
+  chatReadLastId=latest;
+  for(const item of unread)item.read_at=new Date().toISOString();
+ }catch(error){console.warn("Read receipt update failed",error)}
+ finally{chatReadBusy=false}
+}
 async function loadChatMessages(){
  if(!currentUser||!chatPeer)return;
  if(chatRefreshBusy){chatReloadQueued=true;return}
  chatRefreshBusy=true;
  const requestedPeer=chatPeer;
- const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+chatPeer+"),and(sender_id.eq."+chatPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:true}).limit(200);
+ const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at,read_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+chatPeer+"),and(sender_id.eq."+chatPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:true}).limit(200);
  if(error){chatRefreshBusy=false;chatError(error.message);return}
  if(chatPeer!==requestedPeer){chatRefreshBusy=false;return}
  chatConfirmedCache=data||[];
  chatLastFetchAt=Date.now();
  chatCachePeer=requestedPeer;
  chatRenderMessages();
+ chatMarkRead();
  chatRefreshBusy=false;
  if(chatReloadQueued){chatReloadQueued=false;queueMicrotask(loadChatMessages)}
 }
