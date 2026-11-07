@@ -21,3 +21,13 @@
 .task-form>button{grid-column:1/-1;min-height:48px}
 @media(max-width:760px){.task-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.task-form>#taskInput{grid-column:1/-1}.task-form>.task-field-priority{grid-column:1/-1}.task-form>button{grid-column:1/-1}}
 @media(max-width:380px){.task-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.task-form>#taskInput,.task-form>.task-field-priority,.task-form>button{grid-column:1/-1}}
+
+/* v18: iOS Safari native datetime controls must not dictate grid track size */
+.task-form{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+.task-form>.task-field{min-width:0;width:100%;align-self:stretch;justify-content:flex-end}
+.task-form>.task-field .task-field-label{display:block;min-height:18px;line-height:18px;margin:0}
+.task-form>.task-field input,.task-form>.task-field select{display:block;box-sizing:border-box;inline-size:100%;min-inline-size:0;max-inline-size:100%;block-size:52px;min-block-size:52px;max-block-size:52px;margin:0;padding:0 10px;border:1px solid #e4e9f1;border-radius:10px;font-size:13px;line-height:normal;background:#fff}
+.task-form>.task-field input[type="datetime-local"]{font-size:12px;padding-inline:7px;overflow:hidden}
+.task-form>.task-field input[type="datetime-local"]::-webkit-datetime-edit{padding:0;min-width:0}
+.task-form>.task-field input[type="datetime-local"]::-webkit-calendar-picker-indicator{margin:0;padding:0;width:15px;flex-shrink:0}
+@media(max-width:760px){.task-form{grid-template-columns:repeat(2,minmax(0,1fr))}.task-form>.task-field{grid-column:auto}.task-form>.task-field-priority{grid-column:1/-1}}
