@@ -457,3 +457,10 @@ button,a,input,textarea,select,[role="button"],.bottom-tabs{touch-action:manipul
 
 /* v73: white account username card in Settings */
 #pageSettings #accountUsernameSection{background:#fff!important}
+
+/* v79: full-screen in-app photo preview instead of opening Supabase URL */
+.chat-photo-preview[hidden]{display:none!important}
+.chat-photo-preview{position:fixed;inset:0;z-index:99999;background:rgba(10,16,30,.94);display:flex;align-items:center;justify-content:center;padding:60px 12px 35px;box-sizing:border-box}
+.chat-photo-preview-image{max-width:100%;max-height:100%;object-fit:contain;display:block;border-radius:4px}
+.chat-photo-preview-close{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:18px;width:44px;height:44px;border:0;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:34px;line-height:1;cursor:pointer}
+#pageChat .chat-photo{cursor:zoom-in}
