@@ -1552,7 +1552,7 @@ async function groupLoadInviteFriends(){
  area.hidden=!isOwner;
  root.replaceChildren();
  if(!isOwner)return;
- const loading=document.createElement("p");loading.textContent=chatText("正在加载好友…","友達を読み込み中…","Loading friends...");root.append(loading);
+ const loading=document.createElement("p");loading.className="group-panel-loading";loading.textContent=chatText("正在加载好友…","友達を読み込み中…","Loading friends...");root.append(loading);
  const [friendsResult,membersResult]=await Promise.all([
   supabaseClient.from("chat_friends").select("user_a,user_b").or("user_a.eq."+currentUser.id+",user_b.eq."+currentUser.id),
   supabaseClient.from("chat_group_members").select("user_id").eq("group_id",groupId)
@@ -1597,11 +1597,16 @@ $("chatGroupShareInvite").addEventListener("click",async()=>{
 });
 async function groupShowMembers(){
  if(!chatActiveGroup)return;
+ const panel=$("chatGroupMembersPanel"),root=$("chatGroupMembersList");
+ $("chatGroupInvitePanel").hidden=true;
+ panel.hidden=false;
+ root.replaceChildren();
+ const loading=document.createElement("p");loading.className="group-panel-loading";loading.textContent=chatText("正在加载成员…","メンバーを読み込み中…","Loading members...");root.append(loading);
  const groupId=chatActiveGroup.id;
  const {data,error}=await supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId).order("joined_at");
  if(error){groupError(error);return}
  if(!chatActiveGroup||chatActiveGroup.id!==groupId)return;
- const panel=$("chatGroupMembersPanel"),root=$("chatGroupMembersList");root.replaceChildren();$("chatGroupInvitePanel").hidden=true;
+ root.replaceChildren();
  $("chatGroupAddMember").hidden=chatActiveGroup.created_by!==currentUser.id;
  $("chatGroupDisband").hidden=chatActiveGroup.created_by!==currentUser.id;
  const members=[...new Map((data||[]).map(m=>[m.user_id,m])).values()];
