@@ -1737,7 +1737,7 @@ function groupRenderMessages(items){
    else body.textContent=item.body;
   }
   const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-  bubble.append(sender,body,time);groupMessageActions(bubble,item);fragment.append(bubble);
+  bubble.append(body,time);groupMessageActions(bubble,item);fragment.append(bubble);
  }
  const oldNodes=[...root.children],newNodes=[...fragment.children];
  let appendOnly=oldNodes.length>0&&newNodes.length>=oldNodes.length;
