@@ -628,7 +628,10 @@ function chatRenderMessages(){
  for(const [key,item] of pending){
   const div=document.createElement("div");div.className="chat-bubble mine";div.dataset.pendingKey=key;
   const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else chatMessageContent(body,item.body);
-  const time=document.createElement("small");time.textContent=item.status==="failed"?chatText("发送失败","送信失敗","Failed"):item.status==="uncertain"?chatText("发送超时·待确认","送信確認中","Delivery unconfirmed"):item.status==="sent"?chatText("已发送","送信済み","Sent"):chatText("发送中…","送信中…","Sending...");
+  const time=document.createElement("small");
+  const sentAt=new Date(item.createdAt).toLocaleString();
+  const state=item.status==="failed"?chatText("发送失败","送信失敗","Failed"):item.status==="uncertain"?chatText("发送超时·待确认","送信確認中","Delivery unconfirmed"):item.status==="sent"?"":chatText("发送中…","送信中…","Sending...");
+  time.textContent=sentAt+(state?" · "+state:"");
   div.append(body,time);fragment.append(div);
  }
  const wasNearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<130;
