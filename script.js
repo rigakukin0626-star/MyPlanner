@@ -438,6 +438,11 @@ function updateChatLanguage(){
  for(const [id,values] of Object.entries(labels)){const el=$(id);if(el)el.textContent=values[uiLanguage==="ja"?0:uiLanguage==="zh"?1:2]}
  $("chatFriendCode").placeholder=chatText("粘贴好友的邀请码","友達のコードを貼り付け","Paste friend code");
  $("chatMyUsername").placeholder=chatText("设置用户名，如 planner123","ユーザー名を設定","Choose username");
+ $("accountUsernameHeading").textContent=chatText("账号","アカウント","Account");
+ $("accountUsernameHint").textContent=chatText("设置或修改用户名","ユーザー名を設定・変更","Set or change your username");
+ $("accountUsernameLabel").textContent=chatText("用户名","ユーザー名","Username");
+ $("accountMyUsername").placeholder=chatText("例如 planner123","例: planner123","e.g. planner123");
+ $("accountSaveUsername").textContent=chatText("保存","保存","Save");
  $("chatSearchUsername").placeholder=chatText("输入好友用户名","友達のユーザー名","Friend username");
  $("chatSaveUsername").textContent=chatText("保存","保存","Save");
  $("chatSearchUser").textContent=chatText("搜索","検索","Search");
@@ -446,7 +451,7 @@ function updateChatLanguage(){
  $("chatPasteCode").textContent=chatText("粘贴","貼り付け","Paste");
  $("chatInviteSection").querySelector(".chat-invite-heading").textContent=chatText("添加好友","友達を追加","Add friend");
  const invite=$("chatInviteSection");
- const ownLabel=document.querySelector('label[for="chatMyUsername"]');
+ const ownLabel=invite.querySelector('label[for="chatMyUsername"]');
  const searchLabel=invite.querySelector('label[for="chatSearchUsername"]');
  if(ownLabel)ownLabel.textContent=chatText("我的用户名（唯一）","自分のユーザー名（固有）","My username (unique)");
  if(searchLabel)searchLabel.textContent=chatText("搜索好友用户名","友達のユーザー名を検索","Search friend username");
@@ -625,7 +630,7 @@ let chatUsernameLoadedFor=null;
 async function chatLoadMyUsername(){
  if(!currentUser||chatUsernameLoadedFor===currentUser.id)return;
  const {data,error}=await supabaseClient.rpc("chat_get_my_username");
- if(!error&&currentUser){$("chatMyUsername").value=data||"";chatUsernameLoadedFor=currentUser.id}
+ if(!error&&currentUser){$("chatMyUsername").value=data||"";$("accountMyUsername").value=data||"";chatUsernameLoadedFor=currentUser.id}
 }
 function chatUsernameValid(value){return /^[a-z0-9_]{3,20}$/.test(value)}
 $("chatSaveUsername").addEventListener("click",async()=>{
@@ -638,6 +643,22 @@ $("chatSaveUsername").addEventListener("click",async()=>{
   if(error)throw error;
   chatUsernameLoadedFor=currentUser.id;$("accountUsernameStatus").textContent=chatText("用户名已保存：@","ユーザー名を保存：@","Username saved: @")+username;
  }catch(error){$("accountUsernameStatus").textContent=error.message||String(error)}finally{button.disabled=false}
+});
+$("accountSaveUsername").addEventListener("click",async()=>{
+ if(!currentUser)return;
+ const username=$("accountMyUsername").value.trim().toLowerCase();
+ const status=$("accountUsernameStatus");
+ if(!chatUsernameValid(username)){status.textContent=chatText("用户名需要3–20位小写字母、数字或下划线","ユーザー名は英小文字・数字・_ の3〜20文字","Use 3–20 lowercase letters, numbers or underscores");return}
+ const button=$("accountSaveUsername");button.disabled=true;
+ try{
+  const {error}=await supabaseClient.rpc("chat_set_username",{new_username:username});
+  if(error)throw error;
+  chatUsernameLoadedFor=currentUser.id;
+  $("chatMyUsername").value=username;
+  $("accountMyUsername").value=username;
+  status.textContent=chatText("用户名已保存：@","ユーザー名を保存しました：@","Username saved: @")+username;
+ }catch(error){status.textContent=error.message||String(error)}
+ finally{button.disabled=false}
 });
 $("chatSearchUser").addEventListener("click",async()=>{
  if(!currentUser)return;
