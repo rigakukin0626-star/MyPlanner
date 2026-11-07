@@ -1965,7 +1965,7 @@ showWelcomeAuth();
     document.documentElement.dataset.theme=mode;
     document.documentElement.style.colorScheme=mode;
     const meta=document.querySelector('meta[name="theme-color"]');
-    if(meta)meta.setAttribute("content",mode==="dark"?"#101827":"#f4f6fb");
+    if(meta)meta.setAttribute("content",mode==="dark"?"#111214":"#ffffff");
     document.querySelectorAll("[data-appearance]").forEach(button=>{
       const active=button.dataset.appearance===selected;
       button.setAttribute("aria-pressed",String(active));
