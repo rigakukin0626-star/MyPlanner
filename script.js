@@ -1582,9 +1582,10 @@ async function groupLoadInviteFriends(){
  const area=$("chatGroupFriendInvite"),root=$("chatGroupFriendInviteList");
  const isOwner=chatActiveGroup.created_by===currentUser.id;
  area.hidden=!isOwner;
- root.replaceChildren();
- if(!isOwner)return;
- const loading=document.createElement("p");loading.className="group-panel-loading";loading.textContent=chatText("正在加载好友…","友達を読み込み中…","Loading friends...");root.append(loading);
+ const cached=root.dataset.groupId===groupId&&root.dataset.userId===currentUser.id&&root.children.length>0;
+ if(!cached){root.replaceChildren();root.dataset.groupId=groupId;root.dataset.userId=currentUser.id}
+ if(!isOwner){root.replaceChildren();return}
+ if(!cached){const loading=document.createElement("p");loading.className="group-panel-loading";loading.textContent=chatText("正在加载好友…","友達を読み込み中…","Loading friends...");root.append(loading)}
  const [friendsResult,membersResult]=await Promise.all([
   supabaseClient.from("chat_friends").select("user_a,user_b").or("user_a.eq."+currentUser.id+",user_b.eq."+currentUser.id),
   supabaseClient.from("chat_group_members").select("user_id").eq("group_id",groupId)
@@ -1632,12 +1633,12 @@ async function groupShowMembers(){
  const panel=$("chatGroupMembersPanel"),root=$("chatGroupMembersList");
  $("chatGroupInvitePanel").hidden=true;
  panel.hidden=false;
- root.replaceChildren();
- const loading=document.createElement("p");loading.className="group-panel-loading";loading.textContent=chatText("正在加载成员…","メンバーを読み込み中…","Loading members...");root.append(loading);
  const groupId=chatActiveGroup.id;
+ const cached=root.dataset.groupId===groupId&&root.dataset.userId===currentUser.id&&root.children.length>0;
+ if(!cached){root.replaceChildren();root.dataset.groupId=groupId;root.dataset.userId=currentUser.id;const loading=document.createElement("p");loading.className="group-panel-loading";loading.textContent=chatText("正在加载成员…","メンバーを読み込み中…","Loading members...");root.append(loading)}
  const {data,error}=await supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId).order("joined_at");
  if(error){groupError(error);return}
- if(!chatActiveGroup||chatActiveGroup.id!==groupId)return;
+ if(!chatActiveGroup||chatActiveGroup.id!==groupId||panel.hidden)return;
  root.replaceChildren();
  $("chatGroupAddMember").hidden=chatActiveGroup.created_by!==currentUser.id;
  $("chatGroupDisband").hidden=chatActiveGroup.created_by!==currentUser.id;
