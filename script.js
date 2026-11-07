@@ -948,7 +948,7 @@ function groupRenderMessages(items){
   const body=document.createElement("span");
   if(item.body.startsWith("[myplanner-group-image]:")){
    const path=item.body.slice("[myplanner-group-image]:".length);
-   if(/^([0-9a-f-]{36})\\/([0-9a-f-]{36})\\/([0-9a-f-]{36})\\.(jpg|png|webp|gif)$/.test(path)){
+   if(new RegExp("^[0-9a-f-]{36}/[0-9a-f-]{36}/[0-9a-f-]{36}\\\\.(jpg|png|webp|gif)$").test(path)){
     const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.alt=chatText("群照片","グループ写真","Group photo");body.append(img);
     const cached=chatImageUrlCache.get(path);
     if(cached&&cached.expires>Date.now())img.src=cached.url;
