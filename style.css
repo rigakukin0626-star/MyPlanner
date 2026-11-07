@@ -127,3 +127,7 @@
 
 /* v24: lighter reminder date text */
 .task-form>.task-field-reminder .reminder-display{font-weight:400;}
+
+/* v25: match reminder display to adjacent repeat selector typography */
+.task-form>.task-field-reminder .reminder-display{font-size:inherit;font-weight:400;line-height:normal;}
+@media(max-width:760px){.task-form>.task-field-reminder .reminder-display{font-size:inherit;}}
