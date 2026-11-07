@@ -969,3 +969,59 @@ html[data-theme="dark"] #pageChat .chat-messages .chat-bubble.chat-with-avatar::
  border-color:#525968;
  color:#f4f6fb;
 }
+
+
+/* v142: non-destructive mobile usability polish. No navigation or data logic changes. */
+@media (hover:hover) and (pointer:fine){
+ #pageChat button:not(:disabled):hover,.bottom-tabs button:not(:disabled):hover{
+  filter:brightness(1.045);
+ }
+}
+@media (pointer:coarse){
+ #pageChat button,.bottom-tabs button,.appearance-options button{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+ }
+ #pageChat input,#pageChat textarea,#pageChat select{
+  font-size:max(16px,1em);
+ }
+}
+#pageChat .chat-messages{
+ overscroll-behavior-y:contain;
+ -webkit-overflow-scrolling:touch;
+ scroll-padding-bottom:16px;
+}
+#pageChat .chat-bubble{
+ white-space:pre-wrap;
+ overflow-wrap:anywhere;
+ word-break:normal;
+}
+#pageChat .chat-bubble small{
+ white-space:normal;
+ font-variant-numeric:tabular-nums;
+}
+#pageChat .chat-bubble.chat-with-avatar::before{
+ user-select:none;
+ -webkit-user-select:none;
+}
+#pageChat .chat-photo{
+ max-width:100%;
+ height:auto;
+ object-fit:contain;
+}
+#pageChat :is(input,textarea,select,button):focus-visible,
+.bottom-tabs button:focus-visible{
+ outline:2px solid #60a5fa;
+ outline-offset:2px;
+}
+#pageChat :is(button,input,textarea,select):disabled{
+ cursor:not-allowed;
+ opacity:.65;
+}
+@media (prefers-reduced-motion:reduce){
+ #pageChat *,.bottom-tabs *{
+  scroll-behavior:auto!important;
+  animation-duration:.01ms!important;
+  transition-duration:.01ms!important;
+ }
+}
