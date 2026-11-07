@@ -137,6 +137,8 @@ async function refreshAuthUI(){
   $("signInBtn").hidden=!!currentUser; $("signUpBtn").hidden=!!currentUser; $("signOutBtn").hidden=!currentUser;
   $("authForm").classList.toggle("signed-in",!!currentUser);
   $("authPanel").classList.toggle("is-signed-in",!!currentUser);
+  $("accountUsernameSection").hidden=!currentUser;
+  if(currentUser&&document.body.dataset.activePage==="settings")chatLoadMyUsername();
   $("enableNotificationsBtn").hidden = !currentUser;
   $("resetNotificationsBtn").hidden = !currentUser;
   showWelcomeAuth();
@@ -369,6 +371,7 @@ function switchPlannerPage(page){
   updateLongTermFormMode();
  }
  if(page==="calendar")renderCalendar();
+ if(page==="settings"&&currentUser)chatLoadMyUsername();
  if(page==="chat"){if(chatPeer){loadChatMessages();chatMarkRead()}else loadChatFriends();}
  window.scrollTo({top:0,behavior:"instant"});
 }
@@ -443,7 +446,7 @@ function updateChatLanguage(){
  $("chatPasteCode").textContent=chatText("粘贴","貼り付け","Paste");
  $("chatInviteSection").querySelector(".chat-invite-heading").textContent=chatText("添加好友","友達を追加","Add friend");
  const invite=$("chatInviteSection");
- const ownLabel=invite.querySelector('label[for="chatMyUsername"]');
+ const ownLabel=document.querySelector('label[for="chatMyUsername"]');
  const searchLabel=invite.querySelector('label[for="chatSearchUsername"]');
  if(ownLabel)ownLabel.textContent=chatText("我的用户名（唯一）","自分のユーザー名（固有）","My username (unique)");
  if(searchLabel)searchLabel.textContent=chatText("搜索好友用户名","友達のユーザー名を検索","Search friend username");
@@ -628,13 +631,13 @@ function chatUsernameValid(value){return /^[a-z0-9_]{3,20}$/.test(value)}
 $("chatSaveUsername").addEventListener("click",async()=>{
  if(!currentUser)return;
  const username=$("chatMyUsername").value.trim().toLowerCase();
- if(!chatUsernameValid(username)){chatStatus(chatText("用户名只能用3–20位小写英文字母、数字或下划线","ユーザー名は英小文字・数字・_ の3〜20文字","Use 3–20 lowercase letters, numbers or underscores"));return}
+ if(!chatUsernameValid(username)){$("accountUsernameStatus").textContent=chatText("用户名只能用3–20位小写英文字母、数字或下划线","ユーザー名は英小文字・数字・_ の3〜20文字","Use 3–20 lowercase letters, numbers or underscores");return}
  const button=$("chatSaveUsername");button.disabled=true;
  try{
   const {error}=await supabaseClient.rpc("chat_set_username",{new_username:username});
   if(error)throw error;
-  chatUsernameLoadedFor=currentUser.id;chatStatus(chatText("用户名已保存：@","ユーザー名を保存：@","Username saved: @")+username);
- }catch(error){chatError(error)}finally{button.disabled=false}
+  chatUsernameLoadedFor=currentUser.id;$("accountUsernameStatus").textContent=chatText("用户名已保存：@","ユーザー名を保存：@","Username saved: @")+username;
+ }catch(error){$("accountUsernameStatus").textContent=error.message||String(error)}finally{button.disabled=false}
 });
 $("chatSearchUser").addEventListener("click",async()=>{
  if(!currentUser)return;
@@ -747,7 +750,7 @@ document.addEventListener("visibilitychange",()=>{
 $("chatToggleAdd").addEventListener("click",()=>{
  const panel=$("chatInviteSection"),open=panel.hidden;
  panel.hidden=!open;$("chatToggleAdd").setAttribute("aria-expanded",String(open));
- if(open&&currentUser){$("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;chatLoadMyUsername()}
+ if(open&&currentUser){$("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;}
 });
 
 // v66: initialize navigation only after chatPeer and all chat handlers exist.
