@@ -1641,6 +1641,27 @@ async function groupShowMembers(){
  root.replaceChildren();
  $("chatGroupAddMember").hidden=chatActiveGroup.created_by!==currentUser.id;
  $("chatGroupDisband").hidden=chatActiveGroup.created_by!==currentUser.id;
+ if(chatActiveGroup.created_by===currentUser.id){
+  const renameRow=document.createElement("div");renameRow.className="group-rename-row";
+  const renameButton=document.createElement("button");renameButton.type="button";
+  renameButton.textContent=chatText("修改群名称","グループ名を変更","Rename group");
+  renameButton.addEventListener("click",async()=>{
+   const active=chatActiveGroup;if(!active||active.created_by!==currentUser?.id)return;
+   const input=prompt(chatText("输入新的群名称","新しいグループ名","New group name"),active.name);
+   if(input===null)return;
+   const name=input.trim().slice(0,40);if(!name||name===active.name)return;
+   renameButton.disabled=true;
+   const result=await supabaseClient.from("chat_groups").update({name}).eq("id",active.id).eq("created_by",currentUser.id).select("id,name");
+   renameButton.disabled=false;
+   if(result.error||!result.data?.length){
+    alert(chatText("修改失败：请检查群名称修改权限","変更できません。権限を確認してください","Rename failed. Check group permissions.")+(result.error?"\n"+result.error.message:""));
+    return;
+   }
+   if(chatActiveGroup?.id===active.id){chatActiveGroup.name=name;$("chatGroupTitle").textContent=name}
+   groupListLastLoaded=0;groupListSignature="";
+  });
+  renameRow.append(renameButton);root.append(renameRow);
+ }
  const members=[...new Map((data||[]).map(m=>[m.user_id,m])).values()];
  const ids=members.map(x=>x.user_id);
  let profiles=[];
@@ -1658,6 +1679,16 @@ async function groupShowMembers(){
   const row=document.createElement("div");row.className="chat-group-member";
   const label=document.createElement("span");label.textContent=(chatRemarkFor(member.user_id)||names.get(member.user_id)||"ID: "+member.user_id.slice(0,8))+(nameCounts.get(names.get(member.user_id))>1?" · "+member.user_id.slice(0,8):"")+(member.user_id===chatActiveGroup.created_by?" ★":"")+(member.user_id===currentUser.id?chatText("（我）","（自分）"," (Me)"):"");
   row.append(label);
+  if(member.user_id!==currentUser.id){
+   const remarkBtn=document.createElement("button");remarkBtn.type="button";
+   remarkBtn.className="group-member-remark-btn";
+   remarkBtn.textContent=chatText("备注","メモ","Nickname");
+   remarkBtn.addEventListener("click",()=>{
+    chatSetRemarkFor(member.user_id);
+    label.textContent=(chatRemarkFor(member.user_id)||names.get(member.user_id)||"ID: "+member.user_id.slice(0,8))+(nameCounts.get(names.get(member.user_id))>1?" · "+member.user_id.slice(0,8):"")+(member.user_id===chatActiveGroup.created_by?" ★":"");
+   });
+   row.append(remarkBtn);
+  }
   if(chatActiveGroup.created_by===currentUser.id&&member.user_id!==currentUser.id){
    const kick=document.createElement("button");kick.type="button";kick.textContent=chatText("移除","削除","Remove");
    kick.addEventListener("click",async()=>{
