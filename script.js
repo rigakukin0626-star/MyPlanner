@@ -24,8 +24,7 @@ function applyLanguage(){
  document.documentElement.lang=uiLanguage==="zh"?"zh-CN":uiLanguage;
  const picker=$("languageSelect");if(picker)picker.value=uiLanguage;
  document.querySelectorAll(".bilingual").forEach(el=>{
-  const small=el.querySelector("small");if(!small)return;
-  if(!el.dataset.ja){el.dataset.ja=el.firstChild?.textContent||"";el.dataset.zh=small.textContent;}
+  if(!el.dataset.ja)return;
   el.textContent=tr(el.dataset.ja,el.dataset.zh);
  });
  const placeholders={
@@ -44,6 +43,7 @@ function applyLanguage(){
  document.querySelectorAll(".calendar-weekdays span").forEach((el,i)=>el.textContent=days[i]);
  const hint=document.querySelector(".calendar-hint");if(hint)hint.lastChild.textContent=" "+tr("タスクがある日","有任务的日期","Days with tasks");
  const note=document.querySelector(".storage-note");if(note)note.textContent=tr("データはこの端末にも保存されます。端末を変更する前に同期を確認してください。","数据也保存在本设备。更换设备前请确认已同步。","Data is also stored on this device. Check sync before switching devices.");
+ if(!currentUser)setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."));
  render();
 }
 const STORAGE_KEY = "myPlannerTasks";
@@ -82,7 +82,7 @@ function queueCloudUpsert() {
     const {error}=await supabaseClient.from("tasks").upsert(snapshot,{onConflict:"id"});
     if(error) throw error;
     setAuthStatus(bilingual("同期済み","已同步")+" · "+currentUser.email);
-  }).catch(error=>{console.error(error);setAuthStatus("同步失败："+error.message);});
+  }).catch(error=>{console.error(error);setAuthStatus(tr("同期失敗：","同步失败：","Sync failed: ")+error.message);});
 }
 async function loadCloudTasks() {
   setAuthStatus(bilingual("クラウドから読み込み中…","正在读取云端任务…"));
@@ -104,23 +104,23 @@ async function refreshAuthUI(){
   $("authForm").classList.toggle("signed-in",!!currentUser);
   $("enableNotificationsBtn").hidden = !currentUser;
   $("resetNotificationsBtn").hidden = !currentUser;
-  if(currentUser){try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus("云端读取失败："+e.message);}}
-  else{cloudReady=false;setAuthStatus("尚未登录。当前任务保存在本设备；登录后可同步。")}
+  if(currentUser){try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}}
+  else{cloudReady=false;setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."))}
 }
 $("authForm").addEventListener("submit",async e=>{
   e.preventDefault(); const email=$("authEmail").value.trim(),password=$("authPassword").value;
-  $("signInBtn").disabled=true;setAuthStatus("正在登录…");
+  $("signInBtn").disabled=true;setAuthStatus(tr("ログイン中…","正在登录…","Signing in…"));
   try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;await refreshAuthUI();}
-  catch(err){setAuthStatus("登录失败："+err.message)}finally{$("signInBtn").disabled=false}
+  catch(err){setAuthStatus(tr("ログイン失敗：","登录失败：","Sign in failed: ")+err.message)}finally{$("signInBtn").disabled=false}
 });
 $("signUpBtn").addEventListener("click",async()=>{
   const email=$("authEmail").value.trim(),password=$("authPassword").value;
-  if(!email||password.length<6){setAuthStatus("请填写邮箱，并设置至少 6 位密码。");return}
-  $("signUpBtn").disabled=true;setAuthStatus("正在创建账号…");
-  try{const {data,error}=await supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;if(data.session)await refreshAuthUI();else setAuthStatus("注册成功！请到邮箱点击确认链接，再回来登录。");}
-  catch(err){setAuthStatus("注册失败："+err.message)}finally{$("signUpBtn").disabled=false}
+  if(!email||password.length<6){setAuthStatus(tr("メールアドレスと6文字以上のパスワードを入力してください。","请填写邮箱，并设置至少 6 位密码。","Enter an email and password of at least 6 characters."));return}
+  $("signUpBtn").disabled=true;setAuthStatus(tr("アカウント作成中…","正在创建账号…","Creating account…"));
+  try{const {data,error}=await supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;if(data.session)await refreshAuthUI();else setAuthStatus(tr("登録しました。メールの確認リンクを開いてください。","注册成功！请到邮箱点击确认链接，再回来登录。","Account created. Check your email to confirm."));}
+  catch(err){setAuthStatus(tr("登録失敗：","注册失败：","Sign up failed: ")+err.message)}finally{$("signUpBtn").disabled=false}
 });
-$("signOutBtn").addEventListener("click",async()=>{const {error}=await supabaseClient.auth.signOut();if(error)setAuthStatus("退出失败："+error.message);else{currentUser=null;cloudReady=false;await refreshAuthUI()}});
+$("signOutBtn").addEventListener("click",async()=>{const {error}=await supabaseClient.auth.signOut();if(error)setAuthStatus(tr("ログアウト失敗：","退出失败：","Sign out failed: ")+error.message);else{currentUser=null;cloudReady=false;await refreshAuthUI()}});
 supabaseClient.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;if(!currentUser){cloudReady=false;setAuthStatus("尚未登录。当前任务保存在本设备；登录后可同步。")}});
 
 
