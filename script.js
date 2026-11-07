@@ -1311,3 +1311,33 @@ $("chatToggleAdd").addEventListener("click",()=>{
 // v66: initialize navigation only after chatPeer and all chat handlers exist.
 initPlannerPages();
 showWelcomeAuth();
+
+
+// V102: user-selectable appearance, saved only on this device.
+(function initAppearance(){
+  const key="myPlannerAppearance";
+  const allowed=["auto","light","dark"];
+  const media=window.matchMedia("(prefers-color-scheme: dark)");
+  let selected=localStorage.getItem(key)||"auto";
+  if(!allowed.includes(selected))selected="auto";
+  const apply=()=>{
+    const mode=selected==="auto"?(media.matches?"dark":"light"):selected;
+    document.documentElement.dataset.theme=mode;
+    document.documentElement.style.colorScheme=mode;
+    const meta=document.querySelector('meta[name="theme-color"]');
+    if(meta)meta.setAttribute("content",mode==="dark"?"#101827":"#f4f6fb");
+    document.querySelectorAll("[data-appearance]").forEach(button=>{
+      const active=button.dataset.appearance===selected;
+      button.setAttribute("aria-pressed",String(active));
+      button.classList.toggle("active",active);
+    });
+  };
+  document.querySelectorAll("[data-appearance]").forEach(button=>button.addEventListener("click",()=>{
+    selected=button.dataset.appearance;
+    localStorage.setItem(key,selected);
+    apply();
+  }));
+  if(media.addEventListener)media.addEventListener("change",()=>{if(selected==="auto")apply()});
+  else if(media.addListener)media.addListener(()=>{if(selected==="auto")apply()});
+  apply();
+})();
