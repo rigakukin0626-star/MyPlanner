@@ -29,6 +29,7 @@ function tr(ja,zh,en){return uiLanguage==="zh"?zh:uiLanguage==="en"?(en||uiEngli
 function applyLanguage(){
  document.documentElement.lang=uiLanguage==="zh"?"zh-CN":uiLanguage;
  const picker=$("languageSelect");if(picker)picker.value=languagePreference;
+ updateCloudSyncSummary();
  const auth=$("authStatus");if(auth&&currentUser&&(auth.dataset.statusKey==="synced"||/^(同期済み|已同步|Synced)\s*[·・]/.test(auth.textContent||""))){auth.dataset.statusKey="synced";auth.textContent=tr("同期済み","已同步","Synced")+" · "+currentUser.email;}
  document.querySelectorAll(".bilingual").forEach(el=>{
   if(!el.dataset.ja)return;
@@ -128,9 +129,24 @@ async function loadCloudTasks() {
   // Retry pending deletions before allowing further cloud upserts.
   if(deleted.size)await queuePendingTaskDeletes();
   if(!syncedBefore)queueCloudUpsert();
+  else setAuthStatus(tr("同期済み","已同步","Synced"),"synced");
 }
 function bilingual(ja,zh){return tr(ja,zh);}
-function setAuthStatus(message,statusKey=""){const el=$("authStatus");if(el){el.dataset.statusKey=statusKey;el.textContent=statusKey==="synced"&&currentUser?tr("同期済み","已同步","Synced")+" · "+currentUser.email:message;}}
+function setAuthStatus(message,statusKey=""){
+ const el=$("authStatus");if(!el)return;
+ el.dataset.statusKey=statusKey;
+ el.textContent=statusKey==="synced"&&currentUser?tr("同期済み","已同步","Synced")+" · "+currentUser.email:message;
+ updateCloudSyncSummary();
+}
+function updateCloudSyncSummary(){
+ const heading=$("cloudSyncHeading"),summary=$("cloudSyncSummary"),details=$("cloudSyncDetails"),status=$("authStatus");
+ if(!heading||!summary||!details||!status)return;
+ heading.textContent=tr("クラウド同期","云端同步","Cloud sync");
+ const message=status.textContent||"";
+ const failed=/失敗|失败|failed|error/i.test(message);
+ details.classList.toggle("sync-error",failed);
+ summary.textContent=failed?tr("同期エラー","同步异常","Sync error"):!currentUser?tr("未ログイン","未登录","Not signed in"):status.dataset.statusKey==="synced"?tr("同期済み","已同步","Synced"):tr("自動同期","自动同步","Auto sync");
+}
 async function refreshAuthUI(){
   const {data:{session}}=await supabaseClient.auth.getSession(); currentUser=session?.user||null;
   $("authEmail").hidden=!!currentUser; $("authPassword").hidden=!!currentUser;
@@ -142,6 +158,7 @@ async function refreshAuthUI(){
   $("enableNotificationsBtn").hidden = !currentUser;
   $("resetNotificationsBtn").hidden = !currentUser;
   showWelcomeAuth();
+  updateCloudSyncSummary();
   if(currentUser){if(document.body.dataset.activePage==="chat")chatShowList();try{await loadCloudTasks();}catch(e){console.error(e);setAuthStatus(tr("読み込み失敗：","云端读取失败：","Cloud load failed: ")+e.message);}}
   else{cloudReady=false;setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."))}
 }
