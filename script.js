@@ -442,6 +442,16 @@ function updateChatLanguage(){
  $("chatShareCode").textContent=chatText("分享","共有","Share");
  $("chatPasteCode").textContent=chatText("粘贴","貼り付け","Paste");
  $("chatInviteSection").querySelector(".chat-invite-heading").textContent=chatText("添加好友","友達を追加","Add friend");
+ const invite=$("chatInviteSection");
+ const ownLabel=invite.querySelector('label[for="chatMyUsername"]');
+ const searchLabel=invite.querySelector('label[for="chatSearchUsername"]');
+ if(ownLabel)ownLabel.textContent=chatText("我的用户名（唯一）","自分のユーザー名（固有）","My username (unique)");
+ if(searchLabel)searchLabel.textContent=chatText("搜索好友用户名","友達のユーザー名を検索","Search friend username");
+ $("chatAddFriend").textContent=chatText("添加好友","友達を追加","Add friend");
+ $("chatToggleAdd").setAttribute("aria-label",chatText("添加好友","友達を追加","Add friend"));
+ $("chatBack").setAttribute("aria-label",chatText("返回","戻る","Back"));
+ $("chatBack").style.setProperty("--chat-back-label",JSON.stringify(chatText("返回","戻る","Back")));
+
  $("chatMessageInput").placeholder=chatText("输入消息…","メッセージを入力…","Type a message...");
  $("chatSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
 }
