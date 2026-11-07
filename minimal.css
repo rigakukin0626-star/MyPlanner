@@ -816,14 +816,14 @@ button,input,textarea,select{
   gap:9px;background:var(--conversation);
   padding-inline:15px;
 }
-#pageChat .chat-messages .chat-bubble:not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+#pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
   min-height:52px;max-width:min(80%,500px);
   padding:11px 15px 9px;
   gap:5px;font-size:16px;line-height:1.48;
   border-radius:19px 19px 19px 7px;
   box-shadow:none;
 }
-#pageChat .chat-messages .chat-bubble.mine:not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+#pageChat .chat-messages .chat-bubble.mine:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
   border-radius:19px 19px 7px 19px;
 }
 #pageChat .chat-messages .chat-bubble small{
@@ -860,7 +860,7 @@ button,input,textarea,select{
 }
 @media(max-width:719px){
   #pageChat .chat-messages{padding-inline:12px;gap:8px}
-  #pageChat .chat-messages .chat-bubble:not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+  #pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
     max-width:calc(100% - 90px);
     font-size:16px;
     padding:11px 14px 9px;
@@ -921,7 +921,7 @@ button,input,textarea,select{
  gap:12px;
  padding:16px 13px 20px;
 }
-#pageChat .chat-messages .chat-bubble:not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+#pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
  display:grid!important;
  grid-template-columns:minmax(0,1fr);
  grid-template-rows:auto minmax(18px,auto);
@@ -939,17 +939,17 @@ button,input,textarea,select{
  border-radius:20px 20px 20px 8px!important;
  overflow:visible;
 }
-#pageChat .chat-messages .chat-bubble.mine:not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+#pageChat .chat-messages .chat-bubble.mine:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
  border-radius:20px 20px 8px 20px!important;
 }
-#pageChat .chat-messages .chat-bubble:not(:has(.chat-media-frame)):not(:has(.chat-photo))>span{
+#pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo))>span{
  grid-column:1;
  min-width:0;
  max-width:100%;
  line-height:1.5;
  overflow-wrap:anywhere;
 }
-#pageChat .chat-messages .chat-bubble:not(:has(.chat-media-frame)):not(:has(.chat-photo))>small{
+#pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo))>small{
  position:static!important;
  grid-column:1;
  grid-row:2;
@@ -1005,7 +1005,7 @@ button,input,textarea,select{
  #pageChat .chat-mode-switch button{min-height:47px}
  #pageChat .chat-friends .chat-friend{min-height:82px;padding:11px 2px}
  #pageChat .chat-messages{gap:11px;padding:14px 10px 18px}
- #pageChat .chat-messages .chat-bubble:not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+ #pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
   min-width:clamp(156px,39vw,183px);
   max-width:calc(100% - 90px)!important;
   min-height:65px;
@@ -1014,196 +1014,167 @@ button,input,textarea,select{
 }
 
 
-/* v177: reply messages have their own content flow; clocks stay inside.
-   Applies to direct and group chats, including long multilingual quotes. */
-#pageChat .chat-messages .chat-bubble:has(.chat-quoted-message):not(:has(.chat-media-frame)){
+/* v179: Dedicated reply component. Legacy grid applies to plain text only.
+   Explicit reply stack + normal block sizing eliminate iOS intrinsic-grid overlap. */
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble{
+ display:block!important;
+ position:relative!important;
+ flex:0 0 auto;
+ align-self:flex-start;
+ box-sizing:border-box!important;
+ width:min(280px,calc(100% - 92px))!important;
+ max-width:calc(100% - 92px)!important;
+ height:auto!important;
+ min-height:0!important;
+ max-height:none!important;
+ padding:11px 12px 10px!important;
+ margin-top:0!important;
+ margin-bottom:0!important;
+ border-radius:18px 18px 18px 7px!important;
+ line-height:1.45;
+ overflow:visible!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble.mine{
+ align-self:flex-end;
+ border-radius:18px 18px 7px 18px!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble>.chat-reply-stack{
+ position:static!important;
  display:flex!important;
  flex-direction:column!important;
  align-items:stretch!important;
- justify-content:flex-start!important;
- gap:0!important;
- width:max-content;
+ gap:8px!important;
+ box-sizing:border-box!important;
+ width:100%!important;
  min-width:0!important;
- max-width:min(82%,500px)!important;
+ max-width:100%!important;
  height:auto!important;
  min-height:0!important;
- padding:12px 13px 10px!important;
- box-sizing:border-box;
-}
-#pageChat .chat-messages .chat-bubble:has(.chat-quoted-message)>span{
- display:flex!important;
- flex-direction:column!important;
- gap:8px;
- align-items:stretch;
- min-width:0;
- max-width:100%;
- width:100%;
- white-space:normal;
- overflow-wrap:anywhere;
-}
-#pageChat .chat-messages .chat-bubble .chat-quoted-message{
- display:flex!important;
- flex-direction:column!important;
- gap:3px;
- width:100%;
- min-width:0;
- max-width:100%;
- padding:8px 10px!important;
- margin:0!important;
- box-sizing:border-box;
- border-radius:10px!important;
- border-left:3px solid var(--accent);
- background:var(--field);
- font-size:12px;
- line-height:1.4;
- overflow:hidden;
-}
-#pageChat .chat-messages .chat-bubble .chat-quoted-message strong{
- font-size:11px;
- font-weight:650;
- line-height:1.35;
- opacity:.8;
-}
-#pageChat .chat-messages .chat-bubble .chat-quoted-message span{
- display:block;
- min-width:0;
- max-width:100%;
- overflow:hidden;
- text-overflow:ellipsis;
- white-space:nowrap;
- font-size:12px;
- line-height:1.45;
-}
-#pageChat .chat-messages .chat-bubble .chat-reply-text{
- display:block;
- width:100%;
- min-width:0;
- margin:0;
- padding:0;
- font-size:16px;
- line-height:1.5;
- overflow-wrap:anywhere;
- white-space:pre-wrap;
-}
-#pageChat .chat-messages .chat-bubble:has(.chat-quoted-message)>small{
- position:static!important;
- display:block!important;
- flex:none!important;
- align-self:stretch!important;
- width:100%;
- max-width:100%;
- min-height:16px;
- margin:7px 0 0!important;
  padding:0!important;
- text-align:right!important;
- font-size:11px;
- line-height:16px!important;
- white-space:nowrap;
-}
-@media(max-width:719px){
- #pageChat .chat-messages .chat-bubble:has(.chat-quoted-message):not(:has(.chat-media-frame)){
-  max-width:calc(100% - 88px)!important;
-  padding:11px 12px 9px!important;
- }
-}
-
-/* v178: stable BLOCK layout for replies. The v176 grid and v177 flex rules
-   conflict with nested quote + body + timestamp on Mobile Safari.
-   Avatar remains absolutely positioned; reply children stay in normal flow. */
-#pageChat .chat-messages .chat-bubble.chat-reply-bubble,
-#pageChat .chat-messages .chat-bubble.chat-reply-bubble:has(.chat-quoted-message){
- display:block!important;
- position:relative!important;
- width:fit-content!important;
- min-width:190px!important;
- max-width:min(78%,460px)!important;
- min-height:0!important;
- height:auto!important;
- padding:12px 13px 10px!important;
- border-radius:19px 19px 19px 8px!important;
+ margin:0!important;
  overflow:visible!important;
- box-sizing:border-box!important;
 }
-#pageChat .chat-messages .chat-bubble.chat-reply-bubble.mine{
- border-radius:19px 19px 8px 19px!important;
-}
-#pageChat .chat-messages .chat-bubble.chat-reply-bubble>span{
- display:block!important;
+#pageChat .chat-messages .chat-reply-stack>.chat-quoted-message{
  position:static!important;
- width:100%!important;
- height:auto!important;
- max-width:100%!important;
- min-width:0!important;
- overflow:visible!important;
- box-sizing:border-box!important;
-}
-#pageChat .chat-messages .chat-bubble.chat-reply-bubble .chat-quoted-message{
  display:block!important;
- position:static!important;
+ box-sizing:border-box!important;
  width:100%!important;
- max-width:100%!important;
  min-width:0!important;
+ max-width:100%!important;
  height:auto!important;
- margin:0 0 9px!important;
+ margin:0!important;
  padding:8px 10px!important;
  background:var(--field)!important;
  border:0!important;
  border-left:3px solid var(--accent)!important;
  border-radius:9px!important;
+ color:var(--ink);
  overflow:hidden!important;
- box-sizing:border-box!important;
 }
-#pageChat .chat-messages .chat-bubble.chat-reply-bubble .chat-quoted-message>strong{
+#pageChat .chat-messages .chat-reply-stack>.chat-quoted-message>strong{
+ position:static!important;
  display:block!important;
- margin:0 0 3px!important;
+ margin:0 0 2px!important;
  font-size:12px!important;
- font-weight:650!important;
- line-height:1.35!important;
+ line-height:1.3!important;
+ font-weight:650;
 }
-#pageChat .chat-messages .chat-bubble.chat-reply-bubble .chat-quoted-message>span{
+#pageChat .chat-messages .chat-reply-stack>.chat-quoted-message>span{
+ position:static!important;
  display:block!important;
- width:100%!important;
  max-width:100%!important;
  min-width:0!important;
  overflow:hidden!important;
- text-overflow:ellipsis!important;
+ text-overflow:ellipsis;
  white-space:nowrap!important;
- font-size:12px!important;
- line-height:1.45!important;
+ line-height:1.4;
+ font-size:12px;
 }
-#pageChat .chat-messages .chat-bubble.chat-reply-bubble .chat-reply-text{
- display:block!important;
+#pageChat .chat-messages .chat-reply-stack>.chat-reply-text{
  position:static!important;
+ display:block!important;
+ flex:none!important;
+ box-sizing:border-box!important;
  width:100%!important;
  min-width:0!important;
  max-width:100%!important;
  height:auto!important;
  margin:0!important;
  padding:0!important;
+ color:var(--ink);
  font-size:16px!important;
  line-height:1.5!important;
  white-space:pre-wrap!important;
  overflow-wrap:anywhere!important;
 }
 #pageChat .chat-messages .chat-bubble.chat-reply-bubble>small{
- display:block!important;
  position:static!important;
- width:100%!important;
- height:auto!important;
- min-height:17px!important;
- max-width:100%!important;
- margin:7px 0 0!important;
- padding:0!important;
- font-size:11px!important;
- line-height:17px!important;
- text-align:right!important;
- white-space:nowrap!important;
- overflow:visible!important;
+ display:block!important;
  box-sizing:border-box!important;
+ width:100%!important;
+ min-width:0!important;
+ max-width:100%!important;
+ height:auto!important;
+ min-height:16px;
+ padding:0!important;
+ margin:7px 0 0!important;
+ line-height:16px!important;
+ font-size:11px!important;
+ font-variant-numeric:tabular-nums;
+ white-space:nowrap!important;
+ text-align:right!important;
+ color:var(--muted);
 }
 @media(max-width:719px){
  #pageChat .chat-messages .chat-bubble.chat-reply-bubble{
-  min-width:170px!important;
-  max-width:calc(100% - 90px)!important;
+  width:min(272px,calc(100% - 88px))!important;
+  max-width:calc(100% - 88px)!important;
  }
+}
+/* Long press: a light, compact popover beside the tapped message.
+   Never leave it in document flow where Safari shifts it below the composer. */
+body>.chat-context-menu.chat-message-popover{
+ position:fixed!important;
+ z-index:100100!important;
+ display:flex;
+ flex-direction:column;
+ gap:2px;
+ width:min(234px,calc(100vw - 24px))!important;
+ max-height:min(300px,55vh);
+ padding:6px!important;
+ margin:0!important;
+ background:var(--surface)!important;
+ border:1px solid var(--line)!important;
+ border-radius:15px!important;
+ box-shadow:0 14px 38px rgba(0,26,64,.17)!important;
+ overflow-y:auto;
+ overscroll-behavior:contain;
+ -webkit-overflow-scrolling:touch;
+}
+body>.chat-context-menu.chat-message-popover>.chat-context-option{
+ display:flex;
+ align-items:center;
+ justify-content:flex-start;
+ width:100%;
+ flex:none;
+ min-height:43px;
+ margin:0!important;
+ padding:10px 13px!important;
+ border:0!important;
+ border-radius:9px!important;
+ background:transparent!important;
+ color:var(--ink)!important;
+ text-align:left!important;
+ font-size:14px!important;
+ line-height:1.35;
+ font-weight:550;
+}
+body>.chat-context-menu.chat-message-popover>.chat-context-option:active{
+ background:var(--field)!important;
+}
+body>.chat-context-menu.chat-message-popover>.chat-context-option.danger{
+ color:var(--danger)!important;
+}
+@media(prefers-reduced-motion:reduce){
+ body>.chat-context-menu.chat-message-popover{transition:none!important;animation:none!important}
 }
