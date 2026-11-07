@@ -1,5 +1,5 @@
-const CACHE_NAME = "my-planner-v60";
-const FILES = ["./","./index.html","./style.css?v=60","./script.js?v=60","./manifest.json?v=60","./icon.svg"];
+const CACHE_NAME = "my-planner-v61";
+const FILES = ["./","./index.html","./style.css?v=61","./script.js?v=61","./manifest.json?v=61","./icon.svg"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)));
   self.skipWaiting();
