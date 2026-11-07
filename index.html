@@ -79,11 +79,11 @@
             <label class="sr-only" for="taskInput">任务内容</label>
             <input id="taskInput" maxlength="160" placeholder="タスクを入力… / 添加任务" autocomplete="off" required>
             <input id="reminderInput" type="datetime-local" aria-label="提醒时间" title="提醒时间（可选）">
-            <select id="repeatInput" aria-label="重复提醒" title="重复提醒"><option value="none"><span class="bilingual">繰り返さない<small>不重复</small></span></option><option value="daily"><span class="bilingual">毎日<small>每天</small></span></option><option value="weekly"><span class="bilingual">毎週<small>每周</small></span></option><option value="monthly"><span class="bilingual">毎月<small>每月</small></span></option></select>
+            <select id="repeatInput" aria-label="重复提醒" title="重复提醒"><option value="none">繰り返さない / 不重复</option><option value="daily">毎日 / 每天</option><option value="weekly">毎週 / 每周</option><option value="monthly">毎月 / 每月</option></select>
             <select id="priorityInput" aria-label="优先级">
-              <option value="medium"><span class="bilingual">優先度：中<small>中优先级</small></span></option>
-              <option value="high"><span class="bilingual">優先度：高<small>高优先级</small></span></option>
-              <option value="low"><span class="bilingual">優先度：低<small>低优先级</small></span></option>
+              <option value="medium">優先度：中 / 中优先级</option>
+              <option value="high">優先度：高 / 高优先级</option>
+              <option value="low">優先度：低 / 低优先级</option>
             </select>
             <button class="button button-primary" type="submit"><span class="bilingual">＋ 追加<small>添加</small></span></button>
           </form>
@@ -116,8 +116,8 @@
       <div class="dialog-fields">
         <label><span class="bilingual">日付<small>日期</small></span><input id="editDate" type="date"></label>
         <label><span class="bilingual">通知日時<small>提醒时间</small></span><input id="editReminder" type="datetime-local"></label>
-        <label><span class="bilingual">繰り返し通知<small>重复提醒</small></span><select id="editRepeat"><option value="none"><span class="bilingual">繰り返さない<small>不重复</small></span></option><option value="daily"><span class="bilingual">毎日<small>每天</small></span></option><option value="weekly"><span class="bilingual">毎週<small>每周</small></span></option><option value="monthly"><span class="bilingual">毎月<small>每月</small></span></option></select></label>
-        <label><span class="bilingual">優先度<small>优先级</small></span><select id="editPriority"><option value="high"><span class="bilingual">高<small>高</small></span></option><option value="medium"><span class="bilingual">中<small>中</small></span></option><option value="low"><span class="bilingual">低<small>低</small></span></option></select></label>
+        <label><span class="bilingual">繰り返し通知<small>重复提醒</small></span><select id="editRepeat"><option value="none">繰り返さない / 不重复</option><option value="daily">毎日 / 每天</option><option value="weekly">毎週 / 每周</option><option value="monthly">毎月 / 每月</option></select></label>
+        <label><span class="bilingual">優先度<small>优先级</small></span><select id="editPriority"><option value="high">高 / 高</option><option value="medium">中 / 中</option><option value="low">低 / 低</option></select></label>
       </div>
       <div class="dialog-actions"><button id="cancelEdit" class="button button-ghost" type="button"><span class="bilingual">キャンセル<small>取消</small></span></button><button class="button button-primary" type="submit"><span class="bilingual">変更を保存<small>保存修改</small></span></button></div>
     </form>
