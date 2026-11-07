@@ -819,6 +819,56 @@ async function chatGetSignedImageUrl(path){
  chatImageUrlRequests.set(path,request);
  try{return await request}finally{chatImageUrlRequests.delete(path)}
 }
+/* Private photos remain private; show an actionable retry when Storage denies a signed URL. */
+function chatAttachStoredPhoto(node,path,isGroup=false){
+ const wrap=document.createElement("span");wrap.className="chat-media-frame";
+ const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.decoding="async";
+ img.alt=chatText("照片加载中…","写真を読み込み中…","Loading photo...");
+ const retry=document.createElement("button");retry.type="button";retry.className="chat-photo-retry";retry.hidden=true;
+ retry.textContent=chatText("照片加载失败 · 点击重试","写真を読み込めません · 再試行","Photo unavailable · Retry");
+ retry.addEventListener("pointerdown",event=>event.stopPropagation());
+ const failed=(error)=>{
+  img.hidden=true;retry.hidden=false;
+  if(error)console.warn("Chat photo access unavailable",error?.message||error);
+ };
+ const load=()=>{
+  retry.hidden=true;img.hidden=false;
+  chatImageUrlCache.delete(path);
+  chatGetSignedImageUrl(path).then(url=>{
+   if(!wrap.isConnected)return;
+   img.onerror=()=>failed(new Error("Image download or decoding failed"));
+   img.onload=()=>{img.alt=chatText("聊天照片","チャット写真","Chat photo");if(!isGroup&&Date.now()<chatAutoScrollUntil)chatScrollToLatest()};
+   img.src=url;
+  }).catch(failed);
+ };
+ retry.addEventListener("click",event=>{event.stopPropagation();load()});
+ img.addEventListener("click",event=>{event.stopPropagation();if(img.src)chatOpenPhotoPreview(img.src)});
+ wrap.append(img,retry);node.append(wrap);
+ // The render transaction attaches the node before this microtask.
+ queueMicrotask(load);
+}
+async function chatPrepareUploadFile(file){
+ if(["image/jpeg","image/png","image/webp","image/gif"].includes(file.type))return file;
+ if(!file.type.startsWith("image/"))throw Error(chatText("请选择图片文件","画像を選択してください","Select an image"));
+ // iPhone HEIC/HEIF photos need real JPEG encoding, not only a .jpg suffix.
+ const objectUrl=URL.createObjectURL(file);
+ try{
+  const photo=await new Promise((resolve,reject)=>{
+   const image=new Image();image.onload=()=>resolve(image);
+   image.onerror=()=>reject(Error(chatText("此照片格式暂不支持，请转换成 JPEG 后重试","JPEG に変換して再試行してください","Convert this photo to JPEG and retry")));
+   image.src=objectUrl;
+  });
+  const scale=Math.min(1,2048/Math.max(photo.naturalWidth,photo.naturalHeight));
+  const canvas=document.createElement("canvas");
+  canvas.width=Math.max(1,Math.round(photo.naturalWidth*scale));
+  canvas.height=Math.max(1,Math.round(photo.naturalHeight*scale));
+  const ctx=canvas.getContext("2d");if(!ctx)throw Error("Image conversion unavailable");
+  ctx.drawImage(photo,0,0,canvas.width,canvas.height);
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",.88));
+  if(!blob)throw Error("JPEG conversion unavailable");
+  return new File([blob],(file.name||"photo").replace(/\.[^.]+$/,"")+".jpg",{type:"image/jpeg"});
+ }finally{URL.revokeObjectURL(objectUrl)}
+}
 function chatOpenPhotoPreview(url){
  if(!url)return;
  let overlay=document.getElementById("chatPhotoPreview");
@@ -887,14 +937,8 @@ function chatMessageContent(node,body){
  if(typeof body==="string"&&body.startsWith(CHAT_IMAGE_PREFIX)){
   const path=body.slice(CHAT_IMAGE_PREFIX.length);
   if(!/^([0-9a-f-]{36})\/([0-9a-f-]{36})\/([0-9a-f-]{36})\.(jpg|png|webp|gif)$/i.test(path)){node.textContent=chatText("图片格式无效","画像形式が無効です","Invalid photo format");return}
-  const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.decoding="async";img.alt=chatText("照片加载中…","写真を読み込み中…","Loading photo…");
-  node.append(img);
-  chatGetSignedImageUrl(path).then(url=>{if(img.isConnected)img.src=url}).catch(()=>{
-   if(img.isConnected)img.alt=chatText("照片加载失败","写真を読み込めません","Photo unavailable");
-  });
-  img.addEventListener("load",()=>{img.alt=chatText("聊天照片","チャット写真","Chat photo");if(Date.now()<chatAutoScrollUntil)chatScrollToLatest()});
-  img.addEventListener("error",()=>{img.alt=chatText("照片加载失败","写真を読み込めません","Photo failed to load")});
-  img.addEventListener("click",()=>chatOpenPhotoPreview(img.src));
+  chatAttachStoredPhoto(node,path,false);
+
  }else node.textContent=body;
 }
 const CHAT_HIDDEN_KEY="myplanner-hidden-messages-v1";
@@ -1589,10 +1633,8 @@ function groupRenderMessages(items){
   if(item.body.startsWith("[myplanner-group-image]:")){
    const path=item.body.slice("[myplanner-group-image]:".length);
    if(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp|gif)$/i.test(path)){
-    const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.alt=chatText("群照片","グループ写真","Group photo");body.append(img);
-    img.decoding="async";
-    chatGetSignedImageUrl(path).then(url=>{if(img.isConnected)img.src=url}).catch(()=>{if(img.isConnected)img.alt=chatText("照片加载失败","写真を読み込めません","Photo unavailable")});
-    img.addEventListener("click",()=>chatOpenPhotoPreview(img.src));
+    chatAttachStoredPhoto(body,path,true);
+
    }else body.textContent=chatText("照片无效","無効な画像","Invalid photo");
   }else{
    const reply=groupParseReply(item.body);
