@@ -31,3 +31,33 @@
 .task-form>.task-field input[type="datetime-local"]::-webkit-datetime-edit{padding:0;min-width:0}
 .task-form>.task-field input[type="datetime-local"]::-webkit-calendar-picker-indicator{margin:0;padding:0;width:15px;flex-shrink:0}
 @media(max-width:760px){.task-form{grid-template-columns:repeat(2,minmax(0,1fr))}.task-form>.task-field{grid-column:auto}.task-form>.task-field-priority{grid-column:1/-1}}
+
+/* v19: account section stays compact and notifications are optional */
+.auth-panel{grid-template-columns:minmax(180px,.8fr) minmax(0,1.5fr);gap:12px;padding:15px 18px;margin-bottom:14px}
+.auth-copy .eyebrow{margin-bottom:4px}
+.auth-copy h2{font-size:15px;margin:0 0 3px}
+.auth-status{font-size:11px;line-height:1.5}
+.auth-form input{padding:9px 11px}
+.notification-settings{grid-column:1/-1;border-top:1px solid #edf0f6;padding-top:8px}
+.notification-settings summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;color:#63718a;min-height:30px}
+.notification-settings summary::-webkit-details-marker{display:none}
+.notification-settings summary:after{content:"⌄";font-size:19px;line-height:1;transition:transform .2s}
+.notification-settings[open] summary:after{transform:rotate(180deg)}
+.notification-settings-content{display:flex;flex-wrap:wrap;gap:8px;padding-top:10px}
+.notification-settings-content .button{flex:1 1 160px;padding:10px 12px}
+.notification-settings-content #notificationStatus{flex-basis:100%}
+.notification-settings-content [hidden]{display:none!important}
+.auth-panel.is-signed-in{grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 12px}
+.auth-panel.is-signed-in .auth-form{display:flex;justify-content:flex-end}
+.auth-panel.is-signed-in .auth-buttons{display:flex;justify-content:flex-end}
+.auth-panel.is-signed-in .notification-settings{grid-column:1/-1}
+@media(max-width:760px){
+ .auth-panel{grid-template-columns:1fr;gap:10px;padding:14px 16px}
+ .auth-panel.is-signed-in{grid-template-columns:minmax(0,1fr) auto;gap:7px 10px}
+ .auth-panel.is-signed-in .auth-copy{min-width:0}
+ .auth-panel.is-signed-in .auth-copy h2{font-size:14px}
+ .auth-panel.is-signed-in .auth-status{font-size:10px;overflow-wrap:anywhere}
+ .auth-panel.is-signed-in .auth-buttons .button{font-size:11px;padding:8px 10px}
+ .auth-panel.is-signed-in .notification-settings{grid-column:1/-1}
+ .auth-panel:not(.is-signed-in) .auth-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
