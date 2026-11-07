@@ -582,7 +582,7 @@ function updateChatLanguage(){
    if(empty)empty.textContent=chatText("还没有群聊，创建或加入一个吧","グループはまだありません。作成または参加してください","No groups yet. Create or join one.");
   }
  }
- const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"],chatBack:["戻る","返回","Back"]};
+ const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"]};
  for(const [id,values] of Object.entries(labels)){const el=$(id);if(el)el.textContent=values[uiLanguage==="ja"?0:uiLanguage==="zh"?1:2]}
  $("chatFriendCode").placeholder=chatText("粘贴好友的邀请码","友達のコードを貼り付け","Paste friend code");
  $("accountUsernameHeading").textContent=chatText("账号","アカウント","Account");
@@ -600,9 +600,11 @@ function updateChatLanguage(){
  const searchLabel=invite.querySelector('label[for="chatSearchUsername"]');
  if(searchLabel)searchLabel.textContent=chatText("搜索好友用户名","友達のユーザー名を検索","Search friend username");
  $("chatAddFriend").textContent=chatText("添加好友","友達を追加","Add friend");
- $("chatToggleAdd").setAttribute("aria-label",chatText("添加好友","友達を追加","Add friend"));
+ $("chatToggleAdd").setAttribute("aria-label",chatMode==="group"?chatText("创建或加入群聊","グループを作成・参加","Create or join a group"):chatText("添加好友","友達を追加","Add friend"));
+ $("chatGroupBack").setAttribute("aria-label",chatText("返回","戻る","Back"));
  $("chatBack").setAttribute("aria-label",chatText("返回","戻る","Back"));
- $("chatBack").style.setProperty("--chat-back-label",JSON.stringify(chatText("返回","戻る","Back")));
+ const groupToolsTitle=$("chatGroupToolsTitle");
+ if(groupToolsTitle)groupToolsTitle.textContent=chatText("新建或加入群聊","グループの作成・参加","Create or join a group");
 
  const listSearch=$("chatListSearchInput");
  if(listSearch){listSearch.placeholder=chatText("搜索好友或群聊","友達やグループを検索","Search friends or groups");listSearch.setAttribute("aria-label",listSearch.placeholder)}
@@ -775,15 +777,26 @@ function chatAppendRealtime(item){
  const bubble=document.createElement("div");bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
  bubble.dataset.messageId=String(item.id);
  const body=document.createElement("span");chatDisplayBody(body,item.body);
- const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString()+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
+ const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
  bubble.append(body,time);root.append(bubble);root.scrollTop=root.scrollHeight;
  chatLastSignature="";
+}
+function chatUpdatePeerHeader(id,name){
+ const title=$("chatPeerName"),subtitle=$("chatPeerSub");
+ const original=String(name||title?.dataset.originalName||"").trim();
+ const remark=chatRemarkFor(id);
+ const display=remark||original||id.slice(0,8);
+ title.dataset.originalName=original;
+ title.textContent=display;
+ if(subtitle){subtitle.textContent=remark&&original&&remark!==original?original:"";subtitle.hidden=!subtitle.textContent;}
+ const avatar=$("chatConversation")?.querySelector(".chat-peer-avatar");
+ if(avatar)avatar.textContent=display.trim().slice(0,1)||"?";
 }
 async function openChat(id,name){
  chatStopRealtime();
  chatReplyTarget=null;chatUpdateReplyPreview();chatShowBuildVersion();chatLastSignature="";chatConfirmedCache=chatRestoreSnapshot(id);chatCachePeer=id;chatReadLastId=null;chatPeer=id;chatAutoScrollUntil=Date.now()+8000;document.body.classList.add("chat-open");
  $("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");
- $("chatPeerName").dataset.originalName=name;$("chatPeerName").textContent=chatRemarkFor(id)||name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
+ chatUpdatePeerHeader(id,name);$("chatFriends").hidden=true;$("chatConversation").hidden=false;
  chatRenderMessages();chatScrollToLatest();
  const userId=currentUser.id;
  chatRecallChannel=supabaseClient.channel(chatRecallTopic(userId,id))
@@ -1060,7 +1073,7 @@ function chatSetRemarkFor(userId){
   all[currentUser.id]=own;localStorage.setItem(CHAT_REMARKS_KEY,JSON.stringify(all));
  }catch(error){alert(chatText("备注保存失败","保存できませんでした","Could not save nickname"));return}
  chatLastSignature="";groupLastSignature="";
- if(chatPeer===userId&&$("chatPeerName"))$("chatPeerName").textContent=remark||$("chatPeerName").dataset.originalName||userId.slice(0,8);
+ if(chatPeer===userId&&$("chatPeerName"))chatUpdatePeerHeader(userId,$("chatPeerName").dataset.originalName);
  if(chatPeer)chatRenderMessages();
  if(chatActiveGroup){groupLastSignature="";try{const cache=JSON.parse(sessionStorage.getItem("myplanner-group-msg-"+currentUser.id+"-"+chatActiveGroup.id)||"null");if(Array.isArray(cache?.items))groupRenderMessages(cache.items)}catch{}}
 }
@@ -1097,7 +1110,7 @@ function chatRenderMessages(){
  for(const item of confirmed){
   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);chatBubbleAvatar(div,item.sender_id);
   const body=document.createElement("span");if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}else chatDisplayBody(body,item.body);
-  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString()+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
+  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
   div.append(body,time);chatMessageActions(div,item);fragment.append(div);
  }
  for(const [key,item] of pending){
@@ -1433,9 +1446,12 @@ function groupMode(mode){
  $("chatGroupMode").classList.toggle("active",mode==="group");
  $("chatFriends").hidden=mode!=="private";
  $("chatGroups").hidden=mode!=="group";
- $("chatGroupTools").hidden=mode!=="group";
- $("chatToggleAdd").hidden=mode==="group";
+ $("chatGroupTools").hidden=true;
+ $("chatToggleAdd").hidden=false;
  $("chatInviteSection").hidden=true;
+ $("chatToggleAdd").setAttribute("aria-expanded","false");
+ $("chatToggleAdd").setAttribute("aria-controls",mode==="group"?"chatGroupTools":"chatInviteSection");
+ $("chatToggleAdd").setAttribute("aria-label",mode==="group"?chatText("创建或加入群聊","グループを作成・参加","Create or join a group"):chatText("添加好友","友達を追加","Add friend"));
  $("chatStatus").hidden=mode==="group";
  if(mode==="private"&&$("chatStatus").dataset.friendsSyncedCount!==undefined)updateChatLanguage();
  $("chatTitle").textContent=mode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
@@ -1580,7 +1596,7 @@ function groupClose(){
  chatActiveGroup=null;groupLastSignature="";
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
  $("chatGroupConversation").hidden=true;$("chatModeSwitch").hidden=false;
- $("chatGroups").hidden=chatMode!=="group";$("chatGroupTools").hidden=chatMode!=="group";
+ $("chatGroups").hidden=chatMode!=="group";$("chatGroupTools").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");
  document.body.classList.remove("chat-open");
  if(chatMode==="group")groupLoadList(true);
 }
@@ -1651,7 +1667,7 @@ function groupRenderMessages(items){
    if(reply){const quote=document.createElement("div");quote.className="chat-quoted-message";const label=document.createElement("strong");label.textContent=chatText("回复消息","返信","Reply");const content=document.createElement("span");content.textContent=reply.quote;quote.append(label,content);body.append(quote);const text=document.createElement("div");text.className="chat-reply-text";text.textContent=reply.text;body.append(text)}
    else body.textContent=item.body;
   }
-  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();
+  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
   bubble.append(sender,body,time);groupMessageActions(bubble,item);fragment.append(bubble);
  }
  const oldNodes=[...root.children],newNodes=[...fragment.children];
@@ -1941,9 +1957,16 @@ $("chatGroupSendForm").addEventListener("submit",async event=>{
 setInterval(()=>{if(!document.hidden&&document.body.dataset.activePage==="chat"&&chatActiveGroup)groupLoadMessages()},5000);
 /* Chat V43: LINE-style friend management drawer. */
 $("chatToggleAdd").addEventListener("click",()=>{
- const panel=$("chatInviteSection"),open=panel.hidden;
- panel.hidden=!open;$("chatToggleAdd").setAttribute("aria-expanded",String(open));
- if(open&&currentUser){$("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;}
+ const isGroup=chatMode==="group";
+ const panel=$(isGroup?"chatGroupTools":"chatInviteSection");
+ const other=$(isGroup?"chatInviteSection":"chatGroupTools");
+ const open=panel.hidden;
+ other.hidden=true;panel.hidden=!open;
+ $("chatToggleAdd").setAttribute("aria-expanded",String(open));
+ $("chatToggleAdd").setAttribute("aria-controls",isGroup?"chatGroupTools":"chatInviteSection");
+ if(open&&!isGroup&&currentUser){
+  $("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;
+ }
 });
 
 // v66: initialize navigation only after chatPeer and all chat handlers exist.
