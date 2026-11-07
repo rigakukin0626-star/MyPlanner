@@ -930,7 +930,7 @@ button,input,textarea,select{
  row-gap:7px!important;
  width:max-content;
  height:auto!important;
- min-width:clamp(135px,29vw,175px);
+ min-width:clamp(160px,30vw,190px);
  min-height:68px;
  max-width:min(82%,500px)!important;
  padding:13px 16px 12px!important;
@@ -1006,7 +1006,7 @@ button,input,textarea,select{
  #pageChat .chat-friends .chat-friend{min-height:82px;padding:11px 2px}
  #pageChat .chat-messages{gap:11px;padding:14px 10px 18px}
  #pageChat .chat-messages .chat-bubble:not(:has(.chat-media-frame)):not(:has(.chat-photo)){
-  min-width:clamp(132px,35vw,168px);
+  min-width:clamp(156px,39vw,183px);
   max-width:calc(100% - 90px)!important;
   min-height:65px;
   padding:12px 14px 11px!important;
