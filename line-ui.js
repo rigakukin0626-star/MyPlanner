@@ -134,6 +134,7 @@
   event.preventDefault();
   const willOpen=groupMenu.hidden;
   groupMenu.hidden=!willOpen;
+  if(willOpen){const rect=more.getBoundingClientRect();groupMenu.style.top=Math.min(rect.bottom+8,window.innerHeight-125)+"px";groupMenu.style.right=Math.max(12,window.innerWidth-rect.right)+"px";}
   more.setAttribute("aria-expanded",String(willOpen));
  });
  groupMenu.addEventListener("click",event=>{
