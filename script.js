@@ -1464,11 +1464,21 @@ function groupClose(){
  document.body.classList.remove("chat-open");
  if(chatMode==="group")groupLoadList(true);
 }
+let groupPanelPrefetch=null;
+function groupPreparePanels(group){
+ if(!currentUser||!group)return;
+ const userId=currentUser.id,groupId=group.id;
+ const members=supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId).order("joined_at").then(x=>x);
+ const friends=supabaseClient.from("chat_friends").select("user_a,user_b").or("user_a.eq."+userId+",user_b.eq."+userId).then(x=>x);
+ const inviteMembers=supabaseClient.from("chat_group_members").select("user_id").eq("group_id",groupId).then(x=>x);
+ groupPanelPrefetch={groupId,userId,members,friends,inviteMembers};
+}
 async function groupOpen(group){
  if(groupMessageRefreshTimer){clearTimeout(groupMessageRefreshTimer);groupMessageRefreshTimer=null}
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
  groupReplyTarget=null;groupUpdateReplyPreview();
  chatActiveGroup=group;groupLastSignature="";groupMessageLastFetched=0;
+ groupPreparePanels(group);
  groupMarkSeen(group.id);
  $("chatGroupTitle").textContent=group.name;
  $("chatGroups").hidden=true;$("chatGroupTools").hidden=true;$("chatModeSwitch").hidden=true;
@@ -1586,9 +1596,10 @@ async function groupLoadInviteFriends(){
  if(!cached){root.replaceChildren();root.dataset.groupId=groupId;root.dataset.userId=currentUser.id}
  if(!isOwner){root.replaceChildren();return}
  // Keep the panel stable while fetching; no temporary loading text or layout jump.
+ const prepared=groupPanelPrefetch?.groupId===groupId&&groupPanelPrefetch?.userId===currentUser.id?groupPanelPrefetch:null;
  const [friendsResult,membersResult]=await Promise.all([
-  supabaseClient.from("chat_friends").select("user_a,user_b").or("user_a.eq."+currentUser.id+",user_b.eq."+currentUser.id),
-  supabaseClient.from("chat_group_members").select("user_id").eq("group_id",groupId)
+  prepared?.friends||supabaseClient.from("chat_friends").select("user_a,user_b").or("user_a.eq."+currentUser.id+",user_b.eq."+currentUser.id),
+  prepared?.inviteMembers||supabaseClient.from("chat_group_members").select("user_id").eq("group_id",groupId)
  ]);
  if(!chatActiveGroup||chatActiveGroup.id!==groupId||$("chatGroupInvitePanel").hidden)return;
  if(friendsResult.error||membersResult.error){if(!cached)root.textContent=(friendsResult.error||membersResult.error).message;return}
@@ -1636,8 +1647,9 @@ async function groupShowMembers(){
  panel.hidden=false;
  const groupId=chatActiveGroup.id;
  const cached=root.dataset.groupId===groupId&&root.dataset.userId===currentUser.id&&root.children.length>0;
- if(!cached){root.replaceChildren();root.dataset.groupId=groupId;root.dataset.userId=currentUser.id;const loading=document.createElement("p");loading.className="group-panel-loading";loading.textContent=chatText("正在加载成员…","メンバーを読み込み中…","Loading members...");root.append(loading)}
- const {data,error}=await supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId).order("joined_at");
+ if(!cached){root.replaceChildren();root.dataset.groupId=groupId;root.dataset.userId=currentUser.id}
+ const prepared=groupPanelPrefetch?.groupId===groupId&&groupPanelPrefetch?.userId===currentUser.id?groupPanelPrefetch:null;
+ const {data,error}=await (prepared?.members||supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId).order("joined_at"));
  if(error){groupError(error);return}
  if(!chatActiveGroup||chatActiveGroup.id!==groupId||panel.hidden)return;
  root.replaceChildren();
