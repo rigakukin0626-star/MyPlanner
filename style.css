@@ -843,3 +843,37 @@ html[data-theme="dark"] .welcome-modes button,
 html[data-theme="dark"] .welcome-modes button.active { background:transparent!important;color:#60a5fa!important;box-shadow:none!important; }
 html[data-theme="dark"] .welcome-modes button.active { background:#343943!important; }
 html[data-theme="dark"] #welcomeSubmit { background:#505660!important;color:#60a5fa!important;border-color:#505660!important; }
+
+/* V115: cohesive mobile UI polish; preserves user-selected blue typography */
+:root { -webkit-tap-highlight-color:transparent; }
+button, input, select, textarea { font:inherit; }
+button, .tab, .bottom-tabs button, .appearance-options button, .icon-button {
+ transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease,opacity .18s ease;
+}
+button:active:not(:disabled),.tab:active,.bottom-tabs button:active {transform:scale(.975);}
+button:disabled {cursor:not-allowed;opacity:.55;}
+:where(button,input,select,textarea,a,summary):focus-visible {
+ outline:2px solid #60a5fa;outline-offset:3px;
+}
+html[data-theme="dark"] :is(.panel,.welcome-auth-card,.chat-panel,.appearance-panel,.calendar-panel,.tasks-panel,.countdown-panel) {
+ border-color:#343943!important;box-shadow:0 5px 24px rgba(0,0,0,.13)!important;
+}
+html[data-theme="dark"] :is(input,textarea,select) {
+ border-color:#454b56!important;
+ transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease;
+}
+html[data-theme="dark"] :is(input,textarea,select):focus {
+ border-color:#60a5fa!important;box-shadow:0 0 0 3px rgba(96,165,250,.16)!important;outline:none;
+}
+html[data-theme="dark"] :is(.welcome-modes button.active,.appearance-options button[aria-pressed="true"],.bottom-tabs .active) {
+ box-shadow:inset 0 0 0 1px rgba(96,165,250,.24)!important;
+}
+html[data-theme="dark"] :is(.chat-friends,.chat-messages,.task-list) {scrollbar-color:#454b56 transparent;}
+@media(max-width:600px){
+ :is(.task-form,.chat-group-form) :is(input,select,textarea) {min-height:44px;}
+ .bottom-tabs button {touch-action:manipulation;}
+}
+@media(prefers-reduced-motion:reduce){
+ button,.tab,.bottom-tabs button,.appearance-options button,.icon-button,
+ input,select,textarea {transition:none!important;animation:none!important;}
+}
