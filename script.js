@@ -356,10 +356,10 @@ async function loadChatFriends(){
  if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");root.append(empty);return}
  const {data:profiles}=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name]));
- for(const id of ids){const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";const name=names.get(id)||id.slice(0,8);btn.textContent="●  "+name;btn.addEventListener("click",()=>openChat(id,name));root.append(btn)}
+ for(const id of ids){const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";const name=names.get(id)||id.slice(0,8);const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=(name.trim()[0]||"?").toUpperCase();const content=document.createElement("span");content.className="chat-friend-info";const title=document.createElement("strong");title.textContent=name;const subtitle=document.createElement("small");subtitle.textContent=chatText("点击开始聊天","タップしてチャット","Tap to chat");content.append(title,subtitle);const arrow=document.createElement("span");arrow.className="chat-friend-chevron";arrow.textContent="›";btn.append(avatar,content,arrow);btn.addEventListener("click",()=>openChat(id,name));root.append(btn)}
 }
 async function openChat(id,name){
- chatLastSignature="";chatPeer=id;$("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
+ chatLastSignature="";chatPeer=id;$("chatInviteSection").hidden=true;$("chatToggleAdd").setAttribute("aria-expanded","false");$("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
  await loadChatMessages();chatStopRealtime();
  chatSubscription=supabaseClient.channel("private-chat-"+currentUser.id+"-"+id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages",filter:"recipient_id=eq."+currentUser.id},payload=>{if(chatPeer===payload.new.sender_id)loadChatMessages()})
@@ -444,4 +444,11 @@ setInterval(()=>{
 },2000);
 document.addEventListener("visibilitychange",()=>{
  if(!document.hidden&&document.body.dataset.activePage==="chat"&&currentUser){if(chatPeer)loadChatMessages();else loadChatFriends()}
+});
+
+/* Chat V43: LINE-style friend management drawer. */
+$("chatToggleAdd").addEventListener("click",()=>{
+ const panel=$("chatInviteSection"),open=panel.hidden;
+ panel.hidden=!open;$("chatToggleAdd").setAttribute("aria-expanded",String(open));
+ if(open&&currentUser)$("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;
 });
