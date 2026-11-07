@@ -270,7 +270,7 @@ applyLanguage();refreshAuthUI();
 
 /* v21: multi-page shell. Existing task/auth nodes are moved, never recreated. */
 function switchPlannerPage(page){
- if(!["tasks","longterm","calendar","settings"].includes(page))page="tasks";
+ if(!["tasks","longterm","calendar","chat","settings"].includes(page))page="tasks";
  document.querySelectorAll(".app-page").forEach(el=>el.classList.toggle("active",el.dataset.page===page));
  document.querySelectorAll(".bottom-tabs .tab").forEach(el=>el.classList.toggle("active",el.dataset.target===page));
  document.body.dataset.activePage=page;
@@ -283,14 +283,16 @@ function switchPlannerPage(page){
   updateLongTermFormMode();
  }
  if(page==="calendar")renderCalendar();
+ if(page==="chat")loadChatFriends();
  window.scrollTo({top:0,behavior:"instant"});
 }
 function updatePlannerTabLanguage(){
- const labels={zh:["预定","长期预定","日历","设置"],ja:["予定","長期予定","カレンダー","設定"],en:["Plans","Long-term Plans","Calendar","Settings"]}[uiLanguage];
- ["tabTasksLabel","tabLongTermLabel","tabCalendarLabel","tabSettingsLabel"].forEach((id,i)=>{const el=$(id);if(el)el.textContent=labels[i]});
- const title=$("settingsTitle");if(title)title.textContent=labels[3];
+ const labels={zh:["预定","长期预定","日历","聊天","设置"],ja:["予定","長期予定","カレンダー","チャット","設定"],en:["Plans","Long-term Plans","Calendar","Chat","Settings"]}[uiLanguage];
+ ["tabTasksLabel","tabLongTermLabel","tabCalendarLabel","tabChatLabel","tabSettingsLabel"].forEach((id,i)=>{const el=$(id);if(el)el.textContent=labels[i]});
+ const title=$("settingsTitle");if(title)title.textContent=labels[4];
  const titleCountdown=$("countdownTitle");if(titleCountdown)titleCountdown.textContent=tr("長期予定のカウントダウン","长期预定倒计时","Long-term Countdowns");
  renderLongTermCountdowns();
+ updateChatLanguage();
 }
 function initPlannerPages(){
  const main=$("appMain"),overview=main.querySelector(".overview"),grid=main.querySelector(".main-grid");
@@ -321,3 +323,63 @@ $("reminderInput")?.addEventListener("change",refreshReminderDisplay);
 $("languageSelect")?.addEventListener("change",()=>queueMicrotask(refreshReminderDisplay));
 document.querySelector("#taskForm")?.addEventListener("submit",()=>queueMicrotask(refreshReminderDisplay));
 refreshReminderDisplay();
+
+/* My Planner Chat V1. Requires the chat database SQL before use. */
+let chatPeer=null,chatSubscription=null;
+function chatText(zh,ja,en){return tr(ja,zh,en)}
+function updateChatLanguage(){
+ const labels={chatTitle:["チャット","好友私聊","Private Chat"],chatAddFriend:["友達を追加","添加好友","Add Friend"],chatBack:["戻る","返回","Back"]};
+ for(const [id,values] of Object.entries(labels)){const el=$(id);if(el)el.textContent=values[uiLanguage==="ja"?0:uiLanguage==="zh"?1:2]}
+ $("chatFriendCode").placeholder=chatText("输入好友邀请码","友達の招待コード","Friend invite code");
+ $("chatMessageInput").placeholder=chatText("输入消息…","メッセージを入力…","Type a message...");
+ $("chatSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
+}
+function chatStatus(message){$("chatStatus").textContent=message}
+function chatError(error){chatStatus(error?.message||String(error))}
+function chatShowList(){chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
+function chatStopRealtime(){if(chatSubscription){supabaseClient.removeChannel(chatSubscription);chatSubscription=null}}
+async function loadChatFriends(){
+ updateChatLanguage();
+ if(!currentUser){$("chatIdentity").textContent=chatText("请先到设置登录账号。","設定からログインしてください。","Sign in from Settings first.");$("chatFriends").replaceChildren();$("chatAddFriend").disabled=true;return}
+ $("chatAddFriend").disabled=false;
+ $("chatIdentity").textContent=chatText("我的邀请码：","自分の招待コード：","My invite code: ")+currentUser.id;
+ const {data,error}=await supabaseClient.from("chat_friends").select("user_a,user_b,created_at").or("user_a.eq."+currentUser.id+",user_b.eq."+currentUser.id).order("created_at",{ascending:false});
+ if(error){chatError(chatText("聊天数据库尚未配置：","チャットDBが未設定です：","Chat database is not configured: ")+error.message);return}
+ const ids=(data||[]).map(f=>f.user_a===currentUser.id?f.user_b:f.user_a);
+ const root=$("chatFriends");root.replaceChildren();
+ if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");root.append(empty);return}
+ const {data:profiles}=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);
+ const names=new Map((profiles||[]).map(p=>[p.id,p.display_name]));
+ for(const id of ids){const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";const name=names.get(id)||id.slice(0,8);btn.textContent="●  "+name;btn.addEventListener("click",()=>openChat(id,name));root.append(btn)}
+}
+async function openChat(id,name){
+ chatPeer=id;$("chatPeerName").textContent=name;$("chatFriends").hidden=true;$("chatConversation").hidden=false;
+ await loadChatMessages();chatStopRealtime();
+ chatSubscription=supabaseClient.channel("private-chat-"+currentUser.id+"-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages"},payload=>{if(chatPeer&&(payload.new.sender_id===chatPeer||payload.new.sender_id===currentUser.id))loadChatMessages()}).subscribe();
+}
+async function loadChatMessages(){
+ if(!currentUser||!chatPeer)return;
+ const {data,error}=await supabaseClient.from("chat_messages").select("id,sender_id,recipient_id,body,created_at").or("and(sender_id.eq."+currentUser.id+",recipient_id.eq."+chatPeer+"),and(sender_id.eq."+chatPeer+",recipient_id.eq."+currentUser.id+")").order("created_at",{ascending:true}).limit(200);
+ if(error){chatError(error.message);return}
+ const root=$("chatMessages");root.replaceChildren();
+ for(const item of data||[]){const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");const body=document.createElement("span");body.textContent=item.body;const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleString();div.append(body,time);root.append(div)}
+ root.scrollTop=root.scrollHeight;
+}
+$("chatAddFriend").addEventListener("click",async()=>{
+ if(!currentUser)return;
+ const code=$("chatFriendCode").value.trim().toLowerCase();
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(code)){chatStatus(chatText("请输入完整的好友邀请码。","正しい招待コードを入力してください。","Enter a complete invite code."));return}
+ const {error}=await supabaseClient.rpc("chat_add_friend",{friend_code:code});
+ if(error){chatError(error);return}
+ $("chatFriendCode").value="";chatStatus(chatText("好友添加成功！","友達を追加しました。","Friend added."));await loadChatFriends();
+});
+$("chatBack").addEventListener("click",chatShowList);
+$("chatSendForm").addEventListener("submit",async e=>{
+ e.preventDefault();if(!currentUser||!chatPeer)return;
+ const input=$("chatMessageInput"),body=input.value.trim();if(!body)return;
+ const btn=$("chatSendForm").querySelector("button");btn.disabled=true;
+ const {error}=await supabaseClient.from("chat_messages").insert({sender_id:currentUser.id,recipient_id:chatPeer,body});
+ btn.disabled=false;
+ if(error){chatError(error);return}
+ input.value="";await loadChatMessages();
+});
