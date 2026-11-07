@@ -1441,6 +1441,132 @@ function groupMarkSeen(groupId,when){
   all[currentUser.id]=times;localStorage.setItem(groupReadKey,JSON.stringify(all));
  }catch{}
 }
+
+/* v176 — Real group read receipts. Does not simulate reads locally:
+   absent RLS/table => no group read count displayed.
+   One row per member per group, written only by the reading user.
+*/
+let groupReceiptState={
+ groupId:null,readers:new Map(),members:[],ready:false,messagesReady:false,lastRecordedMessageId:null,
+ lastPoll:0,lastWrite:0,lastMemberFetch:0,polling:false,writing:false
+};
+let groupReceiptTimer=null;
+function groupReceiptReset(groupId=null){
+ if(groupReceiptTimer){clearInterval(groupReceiptTimer);groupReceiptTimer=null}
+ groupReceiptState={
+  groupId,readers:new Map(),members:[],ready:false,messagesReady:false,lastRecordedMessageId:null,
+  lastPoll:0,lastWrite:0,lastMemberFetch:0,polling:false,writing:false
+ };
+}
+function groupReceiptIsActive(groupId){
+ return Boolean(groupId&&currentUser&&chatActiveGroup?.id===groupId
+  &&!document.hidden&&document.body.dataset.activePage==="chat"
+  &&!$("chatGroupConversation").hidden);
+}
+function groupReceiptNearBottom(){
+ const root=$("chatGroupMessages");
+ return Boolean(root&&root.scrollHeight-root.scrollTop-root.clientHeight<170);
+}
+function groupReceiptPaint(){
+ const state=groupReceiptState;
+ const root=$("chatGroupMessages");
+ if(!root)return;
+ const currentId=currentUser?.id;
+ for(const bubble of root.querySelectorAll(".chat-bubble.mine[data-group-message-id]")){
+  const time=bubble.querySelector(":scope > small");
+  if(!time)continue;
+  const base=time.dataset.baseClock||time.textContent.split(" · ")[0];
+  time.dataset.baseClock=base;
+  let full=base;
+  if(state.ready&&state.groupId===chatActiveGroup?.id&&state.members.length>1){
+   const created=Date.parse(bubble.dataset.groupMessageCreated||"");
+   if(Number.isFinite(created)){
+    let count=0;
+    for(const member of state.members){
+     if(member.user_id===currentId)continue;
+     const joined=Date.parse(member.joined_at||"");
+     if(Number.isFinite(joined)&&joined>created)continue;
+     const readTime=Date.parse(state.readers.get(member.user_id)||"");
+     if(Number.isFinite(readTime)&&readTime>=created)count++;
+    }
+    full+=" · "+chatText("已读","既読","Read")+" "+count;
+   }
+  }
+  if(time.textContent!==full)time.textContent=full;
+ }
+}
+async function groupReceiptMarkRead(){
+ const state=groupReceiptState;
+ const groupId=chatActiveGroup?.id,userId=currentUser?.id;
+ if(!state.ready||!state.messagesReady||!groupReceiptIsActive(groupId)||state.groupId!==groupId
+    ||!groupReceiptNearBottom()||state.writing
+    ||Date.now()-state.lastWrite<6000)return;
+ const root=$("chatGroupMessages");
+ const latest=root?.querySelector(".chat-bubble[data-group-message-id]:last-child");
+ const latestId=latest?.dataset.groupMessageId;
+ if(!latestId||state.lastRecordedMessageId===latestId)return;
+ state.lastWrite=Date.now();
+ state.writing=true;
+ try{
+  // Server trigger overwrites last_read_at with server time.
+  const {data,error}=await supabaseClient.from("chat_group_read_receipts")
+   .upsert({group_id:groupId,user_id:userId},{onConflict:"group_id,user_id"})
+   .select("last_read_at").single();
+  if(error)throw error;
+  if(groupReceiptState!==state||!groupReceiptIsActive(groupId))return;
+  if(data?.last_read_at)state.readers.set(userId,data.last_read_at);
+  state.lastRecordedMessageId=latestId;
+  groupReceiptPaint();
+ }catch(error){
+  if(groupReceiptState===state)state.lastWrite=Date.now();
+  console.warn("Group read receipt update unavailable:",error?.message||error);
+ }finally{state.writing=false}
+}
+async function groupReceiptPoll(force=false){
+ const state=groupReceiptState,groupId=chatActiveGroup?.id;
+ if(!groupId||state.groupId!==groupId||state.polling
+    ||!groupReceiptIsActive(groupId))return;
+ const now=Date.now();
+ const minimumDelay=state.ready?9000:30000;
+ if(!force&&now-state.lastPoll<minimumDelay)return;
+ state.lastPoll=now;state.polling=true;
+ try{
+  const refreshMembers=!state.members.length||now-state.lastMemberFetch>60000;
+  const [membership,receipts]=await Promise.all([
+   refreshMembers?supabaseClient.from("chat_group_members").select("user_id,joined_at").eq("group_id",groupId):Promise.resolve({data:state.members,error:null}),
+   supabaseClient.from("chat_group_read_receipts").select("user_id,last_read_at").eq("group_id",groupId)
+  ]);
+  if(membership.error)throw membership.error;
+  if(receipts.error)throw receipts.error;
+  if(groupReceiptState!==state||chatActiveGroup?.id!==groupId)return;
+  state.members=membership.data||[];
+  if(refreshMembers)state.lastMemberFetch=now;
+  state.readers=new Map((receipts.data||[]).map(row=>[row.user_id,row.last_read_at]));
+  state.ready=true;
+  groupReceiptPaint();
+  void groupReceiptMarkRead();
+ }catch(error){
+  if(groupReceiptState!==state)return;
+  state.ready=false;
+  groupReceiptPaint(); // Never display an invented '0' without confirmed backend.
+  if(state.lastPoll===now)console.info("Group read counts require the v176 Supabase migration:",error?.message||error);
+ }finally{state.polling=false}
+}
+function groupReceiptStart(groupId){
+ groupReceiptReset(groupId);
+ // Read receipts poll independently from messages; do not rebuild message bubbles.
+ groupReceiptTimer=setInterval(()=>{
+  if(groupReceiptIsActive(groupId))void groupReceiptPoll();
+ },12000);
+ void groupReceiptPoll(true);
+}
+document.addEventListener("visibilitychange",()=>{
+ if(!document.hidden&&chatActiveGroup?.id){
+  void groupReceiptPoll(true);
+  void groupReceiptMarkRead();
+ }
+});
+
 let groupListRequestId=0;
 async function groupFetchPreviews(groups){
  if(!currentUser||!groups.length)return groups;
@@ -1662,6 +1788,7 @@ function groupClose(){
  groupReplyTarget=null;groupUpdateReplyPreview();
  if(groupMessageRefreshTimer){clearTimeout(groupMessageRefreshTimer);groupMessageRefreshTimer=null}
  $("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
+ groupReceiptReset();
  chatActiveGroup=null;groupLastSignature="";
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
  $("chatGroupConversation").hidden=true;$("chatModeSwitch").hidden=false;
@@ -1693,12 +1820,14 @@ async function groupOpen(group){
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
  groupReplyTarget=null;groupUpdateReplyPreview();
  chatActiveGroup=group;groupLastSignature="";groupMessageLastFetched=0;
+ groupReceiptReset(group.id);
  groupMarkSeen(group.id);
  $("chatGroupTitle").textContent=group.name;
  $("chatGroups").hidden=true;$("chatGroupTools").hidden=true;$("chatModeSwitch").hidden=true;
  $("chatGroupConversation").hidden=false;document.body.classList.add("chat-open");
  $("chatGroupMessages").replaceChildren();$("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
  groupShowCachedMessages(group.id);
+ groupReceiptStart(group.id);
  groupChannel=supabaseClient.channel("group-"+group.id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+group.id},()=>groupScheduleRefresh())
  .on("postgres_changes",{event:"DELETE",schema:"public",table:"chat_group_messages"},()=>groupScheduleRefresh())
@@ -1719,10 +1848,18 @@ function groupShowCachedMessages(groupId){
 function groupRenderMessages(items){
  const root=$("chatGroupMessages"),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<140;
  const hidden=groupHiddenIds(chatActiveGroup?.id);
+ const visibleItems=items.filter(item=>!hidden.has(String(item.id)));
+ const oldNodes=[...root.children];
+ const oldIds=oldNodes.map(node=>node.dataset.groupMessageId);
+ const context=uiLanguage+"|"+[...new Set(visibleItems.map(item=>item.sender_id))]
+   .map(id=>id+":"+chatRemarkFor(id)).join(",");
+ const canAppend=oldIds.length>0&&root.dataset.renderContext===context
+   &&visibleItems.length>=oldIds.length
+   &&oldIds.every((id,i)=>id===String(visibleItems[i].id));
  const fragment=document.createDocumentFragment();
- for(const item of items){
-  if(hidden.has(String(item.id)))continue;
-  const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");chatBubbleAvatar(bubble,item.sender_id,true);
+ const incoming=canAppend?visibleItems.slice(oldIds.length):visibleItems;
+ for(const item of incoming){
+  const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.dataset.groupMessageCreated=item.created_at;bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");chatBubbleAvatar(bubble,item.sender_id,true);
   const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):(chatRemarkFor(item.sender_id)||item.sender_id.slice(0,8));
   const body=document.createElement("span");
   if(item.body.startsWith("[myplanner-group-image]:")){
@@ -1736,14 +1873,14 @@ function groupRenderMessages(items){
    if(reply){const quote=document.createElement("div");quote.className="chat-quoted-message";const label=document.createElement("strong");label.textContent=chatText("回复消息","返信","Reply");const content=document.createElement("span");content.textContent=reply.quote;quote.append(label,content);body.append(quote);const text=document.createElement("div");text.className="chat-reply-text";text.textContent=reply.text;body.append(text)}
    else body.textContent=item.body;
   }
-  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+  const time=document.createElement("small");time.className="chat-clock";time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});time.dataset.baseClock=time.textContent;
   bubble.append(body,time);groupMessageActions(bubble,item);fragment.append(bubble);
  }
- const oldNodes=[...root.children],newNodes=[...fragment.children];
- let appendOnly=oldNodes.length>0&&newNodes.length>=oldNodes.length;
- if(appendOnly){for(let i=0;i<oldNodes.length;i++){if(!oldNodes[i].dataset.groupMessageId||oldNodes[i].dataset.groupMessageId!==newNodes[i].dataset.groupMessageId){appendOnly=false;break}}}
- if(appendOnly){for(let i=oldNodes.length;i<newNodes.length;i++)root.append(newNodes[i])}else root.replaceChildren(fragment);
+ if(canAppend)root.append(fragment);
+ else root.replaceChildren(fragment);
+ root.dataset.renderContext=context;
  if(nearBottom||!root.dataset.loaded)root.scrollTop=root.scrollHeight;root.dataset.loaded="1";
+ groupReceiptPaint();
 }
 async function groupLoadMessages(){
  if(groupPolling||!chatActiveGroup||!currentUser)return;
@@ -1753,10 +1890,12 @@ async function groupLoadMessages(){
   if(error)throw error;
   if(!chatActiveGroup||chatActiveGroup.id!==groupId||currentUser?.id!==userId)return;
   const items=(data||[]).reverse(),signature=uiLanguage+"|"+items.map(m=>m.id+":"+chatRemarkFor(m.sender_id)).join(",");
-  if(signature===groupLastSignature)return;
+  if(signature===groupLastSignature){if(groupReceiptState.groupId===groupId)groupReceiptState.messagesReady=true;void groupReceiptMarkRead();return;}
   groupLastSignature=signature;
   groupRenderMessages(items);
+  if(groupReceiptState.groupId===groupId)groupReceiptState.messagesReady=true;
   groupMarkSeen(groupId,items[items.length-1]?.created_at);
+  void groupReceiptMarkRead();
   try{const key="myplanner-group-msg-"+currentUser.id+"-"+groupId;const payload=JSON.stringify({items:items.slice(-60)});sessionStorage.setItem(key,payload);localStorage.setItem(key,payload)}catch{}
  }catch(error){if(chatActiveGroup?.id===groupId&&currentUser?.id===userId)groupError(error);groupMessageLastFetched=0}
  finally{groupPolling=false}
@@ -1764,6 +1903,7 @@ async function groupLoadMessages(){
 $("chatPrivateMode").addEventListener("click",()=>groupMode("private"));
 $("chatGroupMode").addEventListener("click",()=>groupMode("group"));
 $("chatGroupBack").addEventListener("click",groupClose);
+$("chatGroupMessages").addEventListener("scroll",()=>{if(chatActiveGroup)void groupReceiptMarkRead()},{passive:true});
 $("chatCreateGroup").addEventListener("click",async()=>{
  if(!currentUser)return;
  const name=$("chatGroupName").value.trim();if(name.length<2||name.length>40){groupStatus(chatText("群名称需要2–40个字符","グループ名は2〜40文字","Group name must be 2–40 characters"));return}
