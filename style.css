@@ -367,3 +367,7 @@ body.chat-open .bottom-tabs{z-index:50!important;}
 #pageChat .chat-send button{padding:10px 15px!important;font-size:14px!important}
 #pageChat .chat-photo-picker{flex-basis:34px;width:34px;height:34px}
 #pageChat #chatStatus{font-size:11px!important;margin:8px 18px!important;color:#a1adbf!important}
+
+/* v58: reserve image space so chat stays at the newest message during image loading */
+#pageChat .chat-photo{width:190px!important;height:240px!important;max-width:min(190px,55vw)!important;max-height:240px!important;object-fit:contain!important;background:#e9effa;border-radius:11px;display:block}
+#pageChat .chat-messages{overflow-anchor:none}
