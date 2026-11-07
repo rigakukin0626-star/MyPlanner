@@ -636,6 +636,7 @@ function updateChatLanguage(){
  $("chatTitle").textContent=chatMode==="group"?chatText("群聊","グループチャット","Group Chats"):chatText("好友私聊","チャット","Private Chat");
  $("chatMessageInput").placeholder=chatText("输入消息…","メッセージを入力…","Type a message...");
  $("chatSendForm").querySelector("button").textContent=chatText("发送","送信","Send");
+ window.chatRefreshListHeader?.();
 }
 function chatStatus(message){$("chatStatus").textContent=message;if(!/^(好友列表已同步|友達一覧を同期しました|Friends synced)/.test(message))delete $("chatStatus").dataset.friendsSyncedCount}
 function chatError(error){chatStatus(error?.message||String(error))}
@@ -736,7 +737,7 @@ async function loadChatFriends(){
  $("chatStatus").dataset.friendsSyncedCount=String(ids.length);
  chatStatus(chatText("好友列表已同步（"+ids.length+"）","友達一覧を同期しました（"+ids.length+"）","Friends synced ("+ids.length+")"));
  const root=$("chatFriends");const fragment=document.createDocumentFragment();
- if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");fragment.append(empty);if(requestId===chatFriendsRequestId&&!chatPeer)root.replaceChildren(fragment);try{localStorage.setItem(CHAT_FRIEND_CACHE_KEY,JSON.stringify({userId:currentUser.id,friends:[]}))}catch(error){}return}
+ if(!ids.length){const empty=document.createElement("p");empty.className="chat-hint";empty.textContent=chatText("暂无好友。把邀请码发给朋友，或输入朋友的邀请码。","友達はまだいません。招待コードで追加できます。","No friends yet. Share or enter an invite code.");fragment.append(empty);if(requestId===chatFriendsRequestId&&!chatPeer){root.replaceChildren(fragment);root.dataset.renderSignature="empty-"+currentUser.id+"-"+uiLanguage;}try{localStorage.setItem(CHAT_FRIEND_CACHE_KEY,JSON.stringify({userId:currentUser.id,friends:[]}))}catch(error){}return}
  const {data:profiles}=await supabaseClient.from("chat_profiles").select("id,display_name").in("id",ids);
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name]));
  const {data:recent}=await supabaseClient.from("chat_messages").select("sender_id,recipient_id,body,created_at,read_at").or("sender_id.eq."+currentUser.id+",recipient_id.eq."+currentUser.id).order("created_at",{ascending:false}).limit(200);
@@ -766,7 +767,14 @@ async function loadChatFriends(){
   btn.append(avatar,content,meta);chatAddPinControl(btn,id,order);btn.addEventListener("click",()=>openChat(id,name));fragment.append(btn);
   cachedFriends.push({id,name,preview:subtitle.textContent,time:m?new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""});
  }
- if(requestId===chatFriendsRequestId&&!chatPeer)root.replaceChildren(fragment);
+ // Keep existing DOM nodes and click handlers when the refreshed list is identical.
+ const signature=uiLanguage+"|"+currentUser.id+"|"+JSON.stringify(sorted.map(id=>[
+  id,names.get(id)||"",chatRemarkFor(id)||"",last.get(id)?.body||"",
+  last.get(id)?.created_at||"",unread.get(id)||0,pinnedIds.has(id)
+ ]));
+ if(requestId===chatFriendsRequestId&&!chatPeer&&root.dataset.renderSignature!==signature){
+  root.replaceChildren(fragment);root.dataset.renderSignature=signature;
+ }
  try{localStorage.setItem(CHAT_FRIEND_CACHE_KEY,JSON.stringify({userId:currentUser.id,friends:cachedFriends}))}catch(error){console.warn("Friend cache write failed",error)}
  }finally{chatFriendsLoading=false;chatFriendsLastLoaded=Date.now()}
 }
@@ -2045,6 +2053,7 @@ showWelcomeAuth();
   for(const id of ["chatPrivateMode","chatGroupMode","chatGroupBack","chatBack"]){
     document.getElementById(id)?.addEventListener("click",()=>queueMicrotask(filter));
   }
+  window.chatRefreshListHeader=filter;
   filter();
 })();
 
