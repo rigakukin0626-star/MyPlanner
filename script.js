@@ -12,7 +12,7 @@ let filter = "all", showLongTerm = false, editingId = null, tasks = loadTasks();
 // Supabase Project URL + Publishable key（可安全放在前端；不要使用 Secret key）
 const SUPABASE_URL = "https://nushjnpeftksloyzojgd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_bDN-tQp_ZUu77LxcAVpjgQ_fM9f3-c9";
-const VAPID_PUBLIC_KEY = "BC3QDoy-5gL0f8rN2WGdjuqlHd8YlAn-SKCjvMgJzK1rbcsaASS0Tbh-1YQfzaiPRKkpuS-BSNQJxY4ofMSYxrs";
+const VAPID_PUBLIC_KEY = "BKHHrBNwurKrucCP0CsLKtLZnaqQXS0QeKtg8h08OwTjcgLmEG4azIVCd3yyrwK6J5udn7wM24mI606qKOJtwKw";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 let currentUser = null, cloudReady = false, syncQueue = Promise.resolve();
 
@@ -91,6 +91,19 @@ $("enableNotificationsBtn").addEventListener("click",async()=>{
     if(permission!=="granted"){status.textContent="通知权限未开启，请在浏览器设置中允许通知。";return}
     const registration=await navigator.serviceWorker.ready;
     let subscription=await registration.pushManager.getSubscription();
+    const targetKey=urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+    if(subscription){
+      const currentKey=subscription.options?.applicationServerKey;
+      const existing=currentKey?new Uint8Array(currentKey):null;
+      const matches=existing&&existing.length===targetKey.length&&existing.every((byte,i)=>byte===targetKey[i]);
+      if(!matches){
+        const oldEndpoint=subscription.endpoint;
+        await subscription.unsubscribe();
+        subscription=null;
+        const {error:deleteError}=await supabaseClient.from("push_subscriptions").delete().eq("endpoint",oldEndpoint).eq("user_id",currentUser.id);
+        if(deleteError)console.warn("旧设备订阅记录清理失败",deleteError);
+      }
+    }
     if(!subscription){
       subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});
     }
