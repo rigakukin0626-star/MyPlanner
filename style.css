@@ -888,3 +888,9 @@ html[data-theme="dark"] body :not(svg):not(path):not(circle):not(rect):not(line)
 html[data-theme="dark"] body :is(input,textarea)::placeholder{
  color:#60a5fa!important;-webkit-text-fill-color:#60a5fa!important;
 }
+
+/* V118: chat pin controls, touch targets and keyboard accessibility */
+.chat-friend{position:relative;}
+.chat-pin-button{display:inline-flex;align-items:center;justify-content:center;min-width:36px;min-height:36px;flex-shrink:0;border-radius:10px;font-size:21px;line-height:1;cursor:pointer;user-select:none;margin-left:5px;}
+.chat-pin-button:focus-visible{outline:2px solid #60a5fa;outline-offset:2px;}
+html[data-theme="dark"] .chat-pin-button[aria-pressed="true"]{background:#2b3444!important;}
