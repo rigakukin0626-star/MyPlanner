@@ -195,7 +195,15 @@
   if(!peer||!currentUser)return;
   if(action==="remark"){
    chatSetRemarkFor(peer);
-   // Local remark updates the active header immediately; list re-renders next visit.
+   const row=$("chatFriends")?.querySelector('.chat-friend[data-peer-id="'+peer+'"]');
+   if(row){
+    const name=$("chatPeerName")?.textContent||"";
+    const title=row.querySelector(".chat-friend-info strong");
+    const avatar=row.querySelector(".chat-list-avatar");
+    if(title)title.textContent=name;
+    if(avatar)avatar.textContent=name.trim().slice(0,1).toUpperCase()||"?";
+    $("chatFriends").dataset.renderSignature="";
+   }
    return;
   }
   if(action==="copyid"){
