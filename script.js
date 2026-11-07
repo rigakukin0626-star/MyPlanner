@@ -504,14 +504,27 @@ let chatConfirmedCache=[],chatCachePeer=null;
 let chatReadBusy=false,chatReadLastId=null;
 let chatAutoScrollUntil=0;
 function chatSessionKey(peer){return "myplanner-chat-cache-"+currentUser.id+"-"+peer}
+const PRIVATE_CHAT_CACHE_TTL=24*60*60*1000;
 function chatRestoreSnapshot(peer){
  try{
-  const saved=JSON.parse(sessionStorage.getItem(chatSessionKey(peer))||"[]");
-  return Array.isArray(saved)?saved.filter(m=>m&&typeof m.id!=="undefined"&&typeof m.body==="string").slice(-80):[];
+  const key=chatSessionKey(peer);
+  let saved=JSON.parse(sessionStorage.getItem(key)||"null");
+  if(!Array.isArray(saved)){
+   const disk=JSON.parse(localStorage.getItem(key)||"null");
+   saved=Array.isArray(disk?.items)&&Date.now()-Number(disk.savedAt||0)<PRIVATE_CHAT_CACHE_TTL?disk.items:[];
+  }
+  return saved.filter(m=>m&&typeof m.id!=="undefined"&&typeof m.body==="string").slice(-80);
  }catch{return []}
 }
 function chatSaveSnapshot(peer,items){
- try{sessionStorage.setItem(chatSessionKey(peer),JSON.stringify(items.slice(-80)))}catch{}
+ if(!currentUser||!peer)return;
+ const key=chatSessionKey(peer);
+ const safe=items.slice(-80).filter(m=>m&&typeof m.id!=="undefined"&&typeof m.body==="string").map(m=>{
+  const {photoUrl,...record}=m;
+  return record;
+ });
+ try{sessionStorage.setItem(key,JSON.stringify(safe))}catch{}
+ try{localStorage.setItem(key,JSON.stringify({savedAt:Date.now(),items:safe.slice(-50)}))}catch{}
 }
 
 function chatScrollToLatest(){const root=$("chatMessages");if(!root)return;root.scrollTop=root.scrollHeight;requestAnimationFrame(()=>{if(root.isConnected)root.scrollTop=root.scrollHeight})}
@@ -821,11 +834,8 @@ function chatOpenPhotoPreview(url){
 const CHAT_REPLY_PREFIX="[myplanner-reply]:";
 let chatReplyTarget=null;
 function chatShowBuildVersion(){
- const header=document.querySelector(".chat-conversation-header");
- if(!header)return;
- let version=document.getElementById("chatBuildVersion");
- if(!version){version=document.createElement("small");version.id="chatBuildVersion";version.className="chat-build-version";header.append(version)}
- version.textContent="v152";
+ // Internal build tags should not appear in a customer-facing chat header.
+ document.getElementById("chatBuildVersion")?.remove();
 }
 function chatParseReply(body){
  if(typeof body!=="string")return null;
