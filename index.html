@@ -8,7 +8,7 @@
   <title>My Planner</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=30">
+  <link rel="stylesheet" href="style.css?v=31">
 </head>
 <body>
   <div class="app-shell">
@@ -23,6 +23,7 @@
 
     <main id="appMain">
       <div id="pageTasks" class="app-page active" data-page="tasks"></div>
+      <div id="pageLongTerm" class="app-page" data-page="longterm"></div>
       <div id="pageCalendar" class="app-page" data-page="calendar"></div>
       <div id="pageSettings" class="app-page" data-page="settings"><h2 class="settings-title" id="settingsTitle">Settings</h2></div>
       <section id="authPanel" class="panel auth-panel" aria-label="クラウド同期">
@@ -75,7 +76,7 @@
         <section class="panel tasks-panel">
           <div class="section-heading task-heading">
             <div><p class="eyebrow">TASK MANAGER</p><h2 id="selectedDateTitle"><span class="bilingual">予定<small>预定</small></span></h2></div>
-            <button id="longTermBtn" class="button button-ghost" type="button"><span class="bilingual">長期タスク<small>长期任务</small></span></button>
+            
           </div>
 
           <form id="taskForm" class="task-form">
@@ -111,6 +112,7 @@
     </main>
     <nav class="bottom-tabs" aria-label="Main navigation">
       <button class="tab active" data-target="tasks" type="button"><span class="tab-icon">☑</span><span id="tabTasksLabel">任务</span></button>
+      <button class="tab" data-target="longterm" type="button"><span class="tab-icon"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="19" cy="17" r="2"/></svg></span><span id="tabLongTermLabel">长期预定</span></button>
       <button class="tab" data-target="calendar" type="button"><span class="tab-icon"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M7 3v4M17 3v4M3 10h18"/></svg></span><span id="tabCalendarLabel">日历</span></button>
       <button class="tab" data-target="settings" type="button"><span class="tab-icon"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5" fill="#fff"/><circle cx="15" cy="17" r="2.5" fill="#fff"/></svg></span><span id="tabSettingsLabel">设置</span></button>
     </nav>
@@ -141,6 +143,6 @@
     </div>
   </dialog>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=24"></script>
+  <script src="script.js?v=31"></script>
 </body>
 </html>
