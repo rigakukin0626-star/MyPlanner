@@ -791,9 +791,13 @@ function chatOpenPhotoPreview(url){
 const CHAT_REPLY_PREFIX="[myplanner-reply]:";
 let chatReplyTarget=null;
 function chatParseReply(body){
- if(typeof body!=="string"||!body.startsWith(CHAT_REPLY_PREFIX))return null;
- try{const value=JSON.parse(body.slice(CHAT_REPLY_PREFIX.length));if(value&&typeof value.text==="string"&&typeof value.quote==="string")return value}catch{}
- return null;
+ if(typeof body!=="string")return null;
+ if(body.startsWith(CHAT_REPLY_PREFIX)){
+  try{const value=JSON.parse(body.slice(CHAT_REPLY_PREFIX.length));if(value&&typeof value.text==="string"&&typeof value.quote==="string")return value}catch{}
+  return null;
+ }
+ const match=/^↪「([^\\n]{0,120})」\\n([\\s\\S]+)$/.exec(body);
+ return match?{quote:match[1],text:match[2]}:null;
 }
 function chatPlainBody(body){const reply=chatParseReply(body);return reply?reply.text:body}
 function chatQuoteText(body){
@@ -1118,7 +1122,7 @@ $("chatSendForm").addEventListener("submit",async e=>{
  const input=$("chatMessageInput"),textBody=input.value.trim();if(!textBody)return;
  const peer=chatPeer;
  const reply=chatReplyTarget?.peer===peer?chatReplyTarget:null;
- const body=reply?CHAT_REPLY_PREFIX+JSON.stringify({id:reply.id,quote:chatQuoteText(reply.body),text:textBody}):textBody;
+ const body=reply?"↪「"+chatQuoteText(reply.body).replace(/[「」]/g,"")+ "」\n"+textBody:textBody;
  const key="pending-"+Date.now()+"-"+Math.random().toString(36).slice(2);
  chatPending.set(key,{peer,body,status:"sending",serverId:null,createdAt:Date.now()});
  input.value="";chatReplyTarget=null;chatUpdateReplyPreview();
