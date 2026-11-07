@@ -454,3 +454,6 @@ button,a,input,textarea,select,[role="button"],.bottom-tabs{touch-action:manipul
 #pageSettings #authPanel .cloud-sync-details.sync-error .cloud-sync-dot{background:#d97706}
 #pageSettings #authPanel .cloud-sync-detail{padding:8px 0 4px}
 #pageSettings #authPanel .cloud-sync-detail .auth-status{font-size:12px!important;line-height:1.5!important;overflow-wrap:anywhere}
+
+/* v73: white account username card in Settings */
+#pageSettings #accountUsernameSection{background:#fff!important}
