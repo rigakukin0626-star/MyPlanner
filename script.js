@@ -188,7 +188,7 @@ async function refreshAuthUI(){
   currentUser=session?.user||null;
   if(previousUserId!==currentUser?.id){
    chatConfirmedCache=[];chatPending.clear();chatLastSignature="";
-   chatRevokeImageBlobUrls();chatImageUrlCache.clear();chatImageUrlRequests.clear();
+   chatRevokeImageBlobUrls();chatImageUrlCache.clear();chatImageUrlRequests.clear();chatClearMediaWarmup();
    groupListSignature="";groupListLastLoaded=0;groupLastSignature="";
    if(chatActiveGroup)groupClose();
    if(chatPeer)chatShowList();
@@ -854,16 +854,112 @@ function chatRememberPhotoUrl(path,url,ttl){
  }
 }
 async function chatDownloadImageUrl(path){
+ const requestedBy=currentUser?.id;
  // Authenticated fallback: unlike public URLs, this is still checked against
  // storage.objects SELECT policies for the currently signed-in chat participant.
  const {data,error}=await supabaseClient.storage.from("chat-photos").download(path);
  if(error||!data)throw error||new Error("Photo download unavailable");
+ if(!requestedBy||currentUser?.id!==requestedBy)throw new Error("Photo request session changed");
  const url=URL.createObjectURL(data);
  chatImageBlobUrls.add(url);
  chatRememberPhotoUrl(path,url,6*60*1000);
  return url;
 }
+/* v180: Private, bounded in-memory photo warmup.
+   Download a few recent group photos while the list is already visible.
+   Never use public Storage URLs or persist authenticated image blobs to disk.
+*/
+const chatWarmedPhotos=new Map();
+const chatPhotoWarmTasks=new Map();
+function chatClearMediaWarmup(){
+ chatWarmedPhotos.clear();
+ chatPhotoWarmTasks.clear();
+ groupPrefetchedMessages.clear();
+ groupMessagePreloadTasks.clear();
+}
+function chatHasWarmedPhoto(path){
+ const image=chatWarmedPhotos.get(path);
+ return Boolean(image&&image.complete&&image.naturalWidth>0);
+}
+function chatWarmPhoto(path){
+ const userId=currentUser?.id;
+ if(!userId||!/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp|gif)$/i.test(path))return Promise.resolve(false);
+ if(chatHasWarmedPhoto(path))return Promise.resolve(true);
+ if(chatPhotoWarmTasks.has(path))return chatPhotoWarmTasks.get(path);
+ const task=(async()=>{
+  // Authorized downloads are cached only in memory as per-session blob URLs.
+  const url=chatImageUrlCache.get(path)?.url?.startsWith("blob:")?
+   chatImageUrlCache.get(path).url:await chatDownloadImageUrl(path);
+  if(currentUser?.id!==userId)return false;
+  const image=new Image();
+  image.decoding="async";image.src=url;
+  try{if(typeof image.decode==="function")await image.decode();
+   else await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject});
+  }catch{return false}
+  if(currentUser?.id!==userId||!image.naturalWidth)return false;
+  chatWarmedPhotos.set(path,image);
+  // Bound retained decoded bitmaps to avoid iPhone memory pressure.
+  while(chatWarmedPhotos.size>5)chatWarmedPhotos.delete(chatWarmedPhotos.keys().next().value);
+  return true;
+ })().catch(()=>false).finally(()=>{chatPhotoWarmTasks.delete(path)});
+ chatPhotoWarmTasks.set(path,task);
+ return task;
+}
+const groupPrefetchedMessages=new Map();
+const groupMessagePreloadTasks=new Map();
+function groupPrefetchKey(userId,groupId){return userId+":"+groupId}
+function groupPrefetchRecent(group,photoLimit=1){
+ const userId=currentUser?.id,groupId=group?.id;
+ if(!userId||!groupId||document.hidden||navigator.connection?.saveData)return Promise.resolve(null);
+ const key=groupPrefetchKey(userId,groupId);
+ const existing=groupPrefetchedMessages.get(key);
+ if(existing&&Date.now()-existing.at<45000)return Promise.resolve(existing.items);
+ if(groupMessagePreloadTasks.has(key))return groupMessagePreloadTasks.get(key);
+ const task=(async()=>{
+  const {data,error}=await supabaseClient.from("chat_group_messages")
+   .select("id,sender_id,body,created_at").eq("group_id",groupId)
+   .order("created_at",{ascending:false}).limit(60);
+  if(error)throw error;
+  if(currentUser?.id!==userId)return null;
+  const items=(data||[]).reverse();
+  groupPrefetchedMessages.set(key,{items,at:Date.now()});
+  while(groupPrefetchedMessages.size>3)groupPrefetchedMessages.delete(groupPrefetchedMessages.keys().next().value);
+  const images=items.slice().reverse().filter(item=>typeof item.body==="string"&&
+   item.body.startsWith("[myplanner-group-image]:")).map(item=>item.body.slice(24))
+   .filter(path=>path.split("/")[1]===groupId).slice(0,photoLimit);
+  for(const path of images){
+   if(currentUser?.id!==userId)break;
+   void chatWarmPhoto(path);
+  }
+  return items;
+ })().catch(error=>{
+  // Prefetch should never affect normal group-list rendering or error status.
+  console.debug("Optional group media prefetch unavailable",error?.message||error);
+  return null;
+ }).finally(()=>groupMessagePreloadTasks.delete(key));
+ groupMessagePreloadTasks.set(key,task);
+ return task;
+}
+function groupQueueMediaPrefetch(groups,maxGroups=2){
+ if(!currentUser||document.hidden||navigator.connection?.saveData||!Array.isArray(groups)||!groups.length)return;
+ const selected=groups.slice().sort((a,b)=>Date.parse(b.previewTime||0)-Date.parse(a.previewTime||0)).slice(0,maxGroups);
+ selected.forEach((group,i)=>setTimeout(()=>{
+  if(!currentUser||chatActiveGroup||document.hidden)return;
+  void groupPrefetchRecent(group,i===0?2:1);
+ },i*180+80));
+}
+function groupShowPrefetchedMessages(groupId){
+ const userId=currentUser?.id;
+ const snapshot=groupPrefetchedMessages.get(groupPrefetchKey(userId,groupId));
+ if(!snapshot||Date.now()-snapshot.at>90000||chatActiveGroup?.id!==groupId)return false;
+ groupRenderMessages(snapshot.items);
+ groupLastSignature=uiLanguage+"|"+snapshot.items.map(m=>m.id+":"+chatRemarkFor(m.sender_id)).join(",");
+ return true;
+}
+
 async function chatGetSignedImageUrl(path){
+ const preloading=chatPhotoWarmTasks.get(path);
+ if(preloading)try{await preloading}catch{}
  const cached=chatImageUrlCache.get(path);
  if(cached?.expires>Date.now())return cached.url;
  if(chatImageUrlRequests.has(path))return chatImageUrlRequests.get(path);
@@ -889,7 +985,10 @@ async function chatGetSignedImageUrl(path){
 }
 function chatAttachStoredPhoto(node,path,isGroup=false){
  const wrap=document.createElement("span");wrap.className="chat-media-frame";
- const img=document.createElement("img");img.className="chat-photo";img.loading="lazy";img.decoding="async";
+ const img=document.createElement("img");img.className="chat-photo";
+ const warmed=chatWarmedPhotos.get(path);
+ img.loading=chatHasWarmedPhoto(path)?"eager":"lazy";img.decoding="async";
+ if(warmed?.naturalWidth){img.width=warmed.naturalWidth;img.height=warmed.naturalHeight;}
  img.alt=chatText("照片加载中…","写真を読み込み中…","Loading photo...");
  const retry=document.createElement("button");retry.type="button";retry.className="chat-photo-retry";retry.hidden=true;
  retry.textContent=chatText("照片无法读取 · 点击重试","写真を読み込めません · 再試行","Photo unavailable · Retry");
@@ -898,7 +997,7 @@ function chatAttachStoredPhoto(node,path,isGroup=false){
  let activeRequest=0;
  const failed=(error)=>{
   if(!wrap.isConnected)return;
-  img.hidden=true;retry.hidden=false;
+  img.hidden=true;retry.hidden=false;wrap.classList.remove("chat-media-ready");
   img.onerror=null;img.onload=null;img.removeAttribute("src");
   const details=String(error?.cause?.signed||"")+" "+String(error?.cause?.download||"")+" "+String(error?.message||"");
   const denied=/401|403|unauthori[sz]ed|permission|row.level|rls|not allowed|access denied/i.test(details);
@@ -918,6 +1017,7 @@ function chatAttachStoredPhoto(node,path,isGroup=false){
    }else failed(new Error("Image download or decoding failed"));
   };
   img.onload=()=>{
+   wrap.classList.add("chat-media-ready");
    img.alt=chatText("聊天照片","チャット写真","Chat photo");
    if(!isGroup&&Date.now()<chatAutoScrollUntil)chatScrollToLatest();
   };
@@ -929,7 +1029,7 @@ function chatAttachStoredPhoto(node,path,isGroup=false){
   if(force){
    const old=chatImageUrlCache.get(path);
    if(old?.url?.startsWith("blob:")){URL.revokeObjectURL(old.url);chatImageBlobUrls.delete(old.url)}
-   chatImageUrlCache.delete(path);
+   chatImageUrlCache.delete(path);chatWarmedPhotos.delete(path);
   }
   chatGetSignedImageUrl(path).then(url=>setPhoto(url,id,!url.startsWith("blob:"))).catch(failed);
  };
