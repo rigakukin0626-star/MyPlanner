@@ -1049,7 +1049,10 @@ function chatAttachStoredPhoto(node,path,isGroup=false,priority=false){
  const warmed=chatWarmedPhotos.get(path);
  img.loading=priority||chatHasWarmedPhoto(path)?"eager":"lazy";img.decoding="async";
  if(priority)img.fetchPriority="high";
- if(warmed?.naturalWidth){img.width=warmed.naturalWidth;img.height=warmed.naturalHeight;}
+ if(warmed?.naturalWidth){
+  img.width=warmed.naturalWidth;img.height=warmed.naturalHeight;
+  chatFitMediaFrame(wrap,warmed); // Reserve the final size before painting.
+ }
  img.alt=chatText("照片加载中…","写真を読み込み中…","Loading photo...");
  const retry=document.createElement("button");retry.type="button";retry.className="chat-photo-retry";retry.hidden=true;
  retry.textContent=chatText("照片无法读取 · 点击重试","写真を読み込めません · 再試行","Photo unavailable · Retry");
@@ -2078,20 +2081,24 @@ function groupWarmPanels(group){
    Keep the newest message visible when photos decode or expand. A user who
    deliberately swipes up to read history keeps their own scroll position.
 */
-const groupScrollFollow={groupId:null,followLatest:false,lastUserMove:0,scheduled:false,touchY:null};
+const groupScrollFollow={groupId:null,followLatest:false,lastUserMove:0,scheduled:false,touchY:null,gesture:false,blockAutoUntil:0,latestDistance:0};
 let groupMediaResizeObserver=null;
 function groupScrollUpdateJump(){
  const button=$("chatGroupJumpToLatest");
  const root=$("chatGroupMessages");
- if(!button||!root||!chatActiveGroup){if(button)button.hidden=true;return}
+ if(!button||!root||!chatActiveGroup){if(button&&!button.hidden)button.hidden=true;return}
  const distance=root.scrollHeight-root.scrollTop-root.clientHeight;
- button.hidden=groupScrollFollow.followLatest||distance<170;
+ const shouldHide=groupScrollFollow.followLatest||distance<170;
+ if(button.hidden!==shouldHide)button.hidden=shouldHide;
 }
 function groupScrollBegin(groupId){
  groupScrollFollow.groupId=groupId;
  groupScrollFollow.followLatest=true;
  groupScrollFollow.lastUserMove=0;
  groupScrollFollow.touchY=null;
+ groupScrollFollow.gesture=false;
+ groupScrollFollow.blockAutoUntil=0;
+ groupScrollFollow.latestDistance=0;
  groupScrollFollow.scheduled=false;
  if(groupMediaResizeObserver)groupMediaResizeObserver.disconnect();
  groupScrollUpdateJump();
@@ -2101,22 +2108,26 @@ function groupScrollStop(){
  groupScrollFollow.followLatest=false;
  groupScrollFollow.scheduled=false;
  groupScrollFollow.touchY=null;
+ groupScrollFollow.gesture=false;
+ groupScrollFollow.blockAutoUntil=0;
  if(groupMediaResizeObserver)groupMediaResizeObserver.disconnect();
  const jump=$("chatGroupJumpToLatest");
  if(jump)jump.hidden=true;
 }
-function groupScrollPin(groupId=chatActiveGroup?.id){
- if(!groupId||groupScrollFollow.groupId!==groupId||!groupScrollFollow.followLatest||groupScrollFollow.scheduled)return;
- groupScrollFollow.scheduled=true;
+function groupScrollPin(groupId=chatActiveGroup?.id,forced=false){
+ const state=groupScrollFollow;
+ if(!groupId||state.groupId!==groupId||!state.followLatest||state.scheduled)return;
+ if(!forced&&(state.gesture||Date.now()<state.blockAutoUntil))return;
+ state.scheduled=true;
  requestAnimationFrame(()=>{
-  groupScrollFollow.scheduled=false;
+  state.scheduled=false;
   const root=$("chatGroupMessages");
-  if(!root||!chatActiveGroup||chatActiveGroup.id!==groupId||!groupScrollFollow.followLatest||groupScrollFollow.groupId!==groupId)return;
-  root.scrollTop=root.scrollHeight;
+  if(!root||!chatActiveGroup||chatActiveGroup.id!==groupId||state.groupId!==groupId||!state.followLatest)return;
+  if(!forced&&(state.gesture||Date.now()<state.blockAutoUntil))return;
+  const bottom=Math.max(0,root.scrollHeight-root.clientHeight);
+  if(Math.abs(root.scrollTop-bottom)>2)root.scrollTop=bottom;
+  state.latestDistance=0;
   groupScrollUpdateJump();
-  requestAnimationFrame(()=>{
-   if(chatActiveGroup?.id===groupId&&groupScrollFollow.groupId===groupId&&groupScrollFollow.followLatest)root.scrollTop=root.scrollHeight;
-  });
  });
 }
 function groupScrollWatchMedia(){
@@ -2130,18 +2141,21 @@ function groupScrollWatchMedia(){
  groupMediaResizeObserver.disconnect();
  // The most recent image messages are most likely to affect the open viewport.
  const frames=root.querySelectorAll(".chat-media-frame");
- for(const frame of Array.from(frames).slice(-12))groupMediaResizeObserver.observe(frame);
+ for(const frame of Array.from(frames).slice(-6))groupMediaResizeObserver.observe(frame);
 }
 function groupScrollTrackIntent(){
+ const state=groupScrollFollow;
  const root=$("chatGroupMessages");
- if(!root||!chatActiveGroup||groupScrollFollow.groupId!==chatActiveGroup.id)return;
+ if(!root||!chatActiveGroup||state.groupId!==chatActiveGroup.id)return;
  const distance=Math.max(0,root.scrollHeight-root.scrollTop-root.clientHeight);
- // Natural momentum scrolling can reach the bottom after finger release.
- if(distance<65){groupScrollFollow.followLatest=true}
- else if(Date.now()-groupScrollFollow.lastUserMove<=800){groupScrollFollow.followLatest=distance<90}
- else return;
+ state.latestDistance=distance;
+ // Scroll events must never write scrollTop: doing so steals momentum gestures.
+ if(distance<32&&!state.gesture){
+  state.followLatest=true;
+ }else if(state.gesture||Date.now()<state.blockAutoUntil){
+  state.followLatest=false;
+ }
  groupScrollUpdateJump();
- if(groupScrollFollow.followLatest)groupScrollPin();
 }
 function groupScrollWireUserGestures(){
  const root=$("chatGroupMessages");
@@ -2158,24 +2172,45 @@ function groupScrollWireUserGestures(){
  }
  jump?.addEventListener("click",()=>{
   groupScrollFollow.followLatest=true;
-  groupScrollPin();
+  groupScrollFollow.gesture=false;
+  groupScrollFollow.blockAutoUntil=0;
+  groupScrollPin(chatActiveGroup?.id,true);
   groupScrollUpdateJump();
  });
+ const beginGesture=()=>{
+  groupScrollFollow.gesture=true;
+  groupScrollFollow.followLatest=false;
+  groupScrollFollow.lastUserMove=Date.now();
+  groupScrollFollow.blockAutoUntil=Date.now()+900;
+ };
+ const endGesture=()=>{
+  groupScrollFollow.gesture=false;
+  groupScrollFollow.touchY=null;
+  groupScrollFollow.blockAutoUntil=Date.now()+450;
+  // Native momentum stays in control; only the user's own return to bottom
+  // (or explicit jump button) will re-enable auto-follow.
+  groupScrollTrackIntent();
+ };
  root.addEventListener("touchstart",e=>{
-  if(e.touches.length===1)groupScrollFollow.touchY=e.touches[0].clientY;
+  if(e.touches.length!==1)return;
+  groupScrollFollow.touchY=e.touches[0].clientY;
+  beginGesture();
  },{passive:true});
  root.addEventListener("touchmove",e=>{
   if(e.touches.length!==1||groupScrollFollow.touchY===null)return;
-  if(Math.abs(e.touches[0].clientY-groupScrollFollow.touchY)>7){
+  if(Math.abs(e.touches[0].clientY-groupScrollFollow.touchY)>5){
    groupScrollFollow.lastUserMove=Date.now();
+   groupScrollFollow.blockAutoUntil=Date.now()+900;
   }
  },{passive:true});
- root.addEventListener("touchend",()=>{groupScrollFollow.touchY=null},{passive:true});
- root.addEventListener("touchcancel",()=>{groupScrollFollow.touchY=null},{passive:true});
- root.addEventListener("wheel",()=>{groupScrollFollow.lastUserMove=Date.now()},{passive:true});
+ root.addEventListener("touchend",endGesture,{passive:true});
+ root.addEventListener("touchcancel",endGesture,{passive:true});
+ root.addEventListener("wheel",()=>{beginGesture();groupScrollFollow.gesture=false},{passive:true});
  root.addEventListener("scroll",groupScrollTrackIntent,{passive:true});
  root.addEventListener("keydown",e=>{
-  if(["ArrowUp","ArrowDown","PageUp","PageDown","Home","End"," "].includes(e.key))groupScrollFollow.lastUserMove=Date.now();
+  if(["ArrowUp","ArrowDown","PageUp","PageDown","Home","End"," "].includes(e.key)){
+   beginGesture();groupScrollFollow.gesture=false;
+  }
  });
  // iOS Safari dynamically changes the viewport when its browser bars move.
  const keepLatestAfterViewportChange=()=>{if(groupScrollFollow.followLatest)groupScrollPin()};
@@ -2194,7 +2229,9 @@ async function groupOpen(group){
  $("chatGroupTitle").textContent=group.name;
  $("chatGroups").hidden=true;$("chatGroupTools").hidden=true;$("chatModeSwitch").hidden=true;
  $("chatGroupConversation").hidden=false;document.body.classList.add("chat-open");
- $("chatGroupMessages").replaceChildren();$("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
+ $("chatGroupMessages").replaceChildren();delete $("chatGroupMessages").dataset.loaded;
+ $("chatGroupMessages").style.overflowAnchor="auto";
+ $("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
  if(!groupShowPrefetchedMessages(group.id))groupShowCachedMessages(group.id);
  groupScrollPin(group.id);
  groupReceiptStart(group.id);
@@ -2261,7 +2298,8 @@ function groupRenderMessages(items){
  if(canPrepend&&!groupScrollFollow.followLatest)
   root.scrollTop=beforeTop+Math.max(0,root.scrollHeight-beforeHeight);
  root.dataset.renderContext=context;
- if(nearBottom||!root.dataset.loaded||groupScrollFollow.followLatest)root.scrollTop=root.scrollHeight;
+ if(groupScrollFollow.followLatest&&!groupScrollFollow.gesture&&Date.now()>=groupScrollFollow.blockAutoUntil)
+  root.scrollTop=Math.max(0,root.scrollHeight-root.clientHeight);
  root.dataset.loaded="1";
  groupScrollWatchMedia();
  groupScrollPin();
@@ -2585,7 +2623,7 @@ showWelcomeAuth();
     document.documentElement.dataset.theme=mode;
     document.documentElement.style.colorScheme=mode;
     const meta=document.querySelector('meta[name="theme-color"]');
-    if(meta)meta.setAttribute("content",mode==="dark"?"#000000":"#ffffff");
+    if(meta)meta.setAttribute("content",mode==="dark"?"#11151c":"#f6f8fb");
     document.querySelectorAll("[data-appearance]").forEach(button=>{
       const active=button.dataset.appearance===selected;
       button.setAttribute("aria-pressed",String(active));

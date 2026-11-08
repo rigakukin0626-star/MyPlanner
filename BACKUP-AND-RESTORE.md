@@ -121,3 +121,14 @@ Supabase SQL Editor. It was NOT automatically applied.
 - No Supabase SQL, Auth, chat message, Storage or reminder data changes. The v176 group read receipts SQL remains an independent prerequisite if not yet applied.
 - v182 changes local PWA cache names and JS/CSS query strings only; service worker keeps authenticated media uncached.
 - Real-device FPS and latency have not been measured; syntax/static tests are not performance benchmarks.
+
+
+## v183 — Group scroll gestures, cohesive dark theme and 100 UI refinements
+
+- Snapshot to restore: `backup-before-ios26-scroll-v183` at main SHA `e3aeff974da6a292eed9728fd8ec64c3c50842c7`.
+- Development: `fix-ios26-scroll-dark-v183`.
+- Detailed 100-row before/after report: `OPTIMIZATION-REPORT-v183.md`.
+- Group chat: stop automatic bottom pin immediately on user touch; do not write scrollTop from scroll listeners; respect momentum; only one rAF for explicit/eligible pinned scrolling; preserve explicit jump-to-latest.
+- Dark theme: harmonize graphite background, cards, conversations, text, and frosted dock; the 100 CSS rules are individually numbered and correspond to the report.
+- Authenticated photo loading and all pre-existing Supabase data remain intact. No SQL migration is required.
+- Mobile Safari device validation is still needed; cannot claim a measured FPS improvement from static tests.
