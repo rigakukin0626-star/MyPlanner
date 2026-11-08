@@ -196,9 +196,12 @@
   if(!btn)return;
   event.preventDefault();
   event.stopImmediatePropagation();
-  recover();
-  try{if(typeof switchPlannerPage==="function")switchPlannerPage(btn.dataset.target);else show(btn.dataset.target)}
-  catch(error){console.error("Navigation recovery:",error);show(btn.dataset.target)}
+  try{
+   // The regular navigator already has the correct DOM hierarchy.
+   // Do a full recovery pass only if the main app failed to initialize.
+   if(typeof switchPlannerPage==="function")switchPlannerPage(btn.dataset.target);
+   else{recover();show(btn.dataset.target)}
+  }catch(error){console.error("Navigation recovery:",error);recover();show(btn.dataset.target)}
  },true);
 })();
 </script>
