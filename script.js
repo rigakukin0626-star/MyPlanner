@@ -876,6 +876,7 @@ function chatClearMediaWarmup(){
  chatPhotoWarmTasks.clear();
  groupPrefetchedMessages.clear();
  groupMessagePreloadTasks.clear();
+ groupPrefetchScheduled.clear();
 }
 function chatHasWarmedPhoto(path){
  const image=chatWarmedPhotos.get(path);
@@ -907,6 +908,7 @@ function chatWarmPhoto(path){
 }
 const groupPrefetchedMessages=new Map();
 const groupMessagePreloadTasks=new Map();
+const groupPrefetchScheduled=new Set();
 function groupPrefetchKey(userId,groupId){return userId+":"+groupId}
 function groupPrefetchRecent(group,photoLimit=1){
  const userId=currentUser?.id,groupId=group?.id;
@@ -943,10 +945,15 @@ function groupPrefetchRecent(group,photoLimit=1){
 function groupQueueMediaPrefetch(groups,maxGroups=2){
  if(!currentUser||document.hidden||navigator.connection?.saveData||!Array.isArray(groups)||!groups.length)return;
  const selected=groups.slice().sort((a,b)=>Date.parse(b.previewTime||0)-Date.parse(a.previewTime||0)).slice(0,maxGroups);
- selected.forEach((group,i)=>setTimeout(()=>{
-  if(!currentUser||chatActiveGroup||document.hidden)return;
-  void groupPrefetchRecent(group,i===0?2:1);
- },i*180+80));
+ selected.forEach((group,i)=>{
+  if(groupPrefetchScheduled.has(group.id))return;
+  groupPrefetchScheduled.add(group.id);
+  setTimeout(()=>{
+   groupPrefetchScheduled.delete(group.id);
+   if(!currentUser||chatActiveGroup||document.hidden)return;
+   void groupPrefetchRecent(group,i===0?2:1);
+  },i*180+80);
+ });
 }
 function groupShowPrefetchedMessages(groupId){
  const userId=currentUser?.id;
@@ -1574,6 +1581,7 @@ async function groupWarmListCache(){
   const old=new Map(existing.map(g=>[g.id,g]));
   const merged=groups.map(g=>({...old.get(g.id),...g}));
   localStorage.setItem(groupListCacheKey,JSON.stringify({userId,groups:merged}));
+  groupQueueMediaPrefetch(merged,1);
  }catch(error){console.warn("Group list warmup unavailable",error);groupListWarmedFor=null}
 }
 
@@ -1762,6 +1770,7 @@ function groupRenderList(groups){
   btn.append(side);btn.addEventListener("click",()=>groupOpen(group));fragment.append(btn);
  }
  root.replaceChildren(fragment);
+ groupQueueMediaPrefetch(groups,2);
 }
 function groupShowCachedList(){
  if(!currentUser||chatActiveGroup)return;
@@ -1974,7 +1983,7 @@ async function groupOpen(group){
  $("chatGroups").hidden=true;$("chatGroupTools").hidden=true;$("chatModeSwitch").hidden=true;
  $("chatGroupConversation").hidden=false;document.body.classList.add("chat-open");
  $("chatGroupMessages").replaceChildren();$("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
- groupShowCachedMessages(group.id);
+ if(!groupShowPrefetchedMessages(group.id))groupShowCachedMessages(group.id);
  groupReceiptStart(group.id);
  groupChannel=supabaseClient.channel("group-"+group.id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+group.id},()=>groupScheduleRefresh())
