@@ -37,6 +37,7 @@ const recordMoney=x=>nativeMoney(x.amount,recordCurrency(x));
 const recordTargetMoney=x=>x.kind==='transfer'&&x.toAmount!=null?nativeMoney(x.toAmount,account(x.to)?.currency||'JPY'):'';
 const nativeMoney=(amount,code)=>{
  const c=CURRENCIES.includes(code)?code:'JPY';
+ if(c==='CNY')return '¥'+new Intl.NumberFormat('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(amount)||0);
  return new Intl.NumberFormat('ja-JP',{style:'currency',currency:c,maximumFractionDigits:c==='JPY'||c==='KRW'?0:2}).format(Number(amount)||0);
 };
 const displayCode=()=>doc.preferences?.display||'JPY';
@@ -168,7 +169,7 @@ function render(){
 }
 function dialog(title,body,onSave,after){
  const box=document.createElement('dialog');box.className='fin-dialog';
- box.innerHTML='<form><header><h2>'+title+'</h2><button type="button" data-close aria-label="Close"><svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></header>'+body+'<footer><button type="button" data-close>'+t('cancel')+'</button><button type="submit">'+t('save')+'</button></footer></form>';
+ box.innerHTML='<form><header><h2>'+title+'</h2><button type="button" data-close aria-label="Close"><svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></header><div class="fin-dialog-fields">'+body+'</div><footer><button type="button" data-close>'+t('cancel')+'</button><button type="submit">'+t('save')+'</button></footer></form>';
  document.body.append(box);modal=box;
  box.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>box.close());
  box.querySelector('form').onsubmit=e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.currentTarget));try{if(onSave(v)!==false){box.close();save()}}catch(err){alert(err.message||t('invalid'))}};

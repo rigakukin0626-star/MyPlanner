@@ -1,0 +1,8 @@
+/* v202: always-visible modal actions on iPhone, scroll only form fields */
+.fin-dialog{box-sizing:border-box;max-height:min(85dvh,760px);overflow:hidden;padding:18px 20px 0}
+.fin-dialog form{display:flex;flex-direction:column;gap:0;max-height:calc(min(85dvh,760px) - 20px);min-height:0;overflow:hidden}
+.fin-dialog form>header{flex:0 0 auto;padding:0 46px 14px 0;min-height:48px}
+.fin-dialog .fin-dialog-fields{display:flex;flex-direction:column;gap:14px;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:8px 1px 16px;scrollbar-width:thin}
+.fin-dialog form>footer{display:flex;flex:0 0 auto;gap:10px;margin:0 -20px;padding:13px 20px max(16px,env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -8px 24px rgba(30,40,60,.035);z-index:2}
+.fin-dialog form>footer button{min-height:48px}
+@media(max-height:650px){.fin-dialog{max-height:90dvh}.fin-dialog form{max-height:calc(90dvh - 20px)}}
