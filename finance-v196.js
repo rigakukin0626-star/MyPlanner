@@ -148,21 +148,44 @@ function dialog(title,body,onSave,after){
 }
 function addAccount(existing){
  const options=['bank','cash','broker','credit','other'].map(k=>[k,t(k)]);
- dialog(existing?t('edit'):t('addAccount'),field(t('name'),'name','text',existing?.name||'','maxlength="70"')+pick(t('type'),'type',options,existing?.type||'bank')+
- (existing?'':field(t('opening'),'opening','number',0,'step="1"'))+
- '<label class="fin-field"><span>'+t('dueDay')+'</span><input name="dueDay" type="number" min="1" max="28" value="'+(existing?.dueDay||'')+'"></label>',v=>{
+ const current=existing?.currency||'JPY';
+ const rateHTML='<label class="fin-field fin-account-rate"><span>'+ct('rate')+' · 1 '+current+' = JPY</span><input name="accountRate" type="number" min="0.000001" max="9999999" step="any" value="'+(rate(current)||'')+'"></label>';
+ dialog(existing?t('edit'):t('addAccount'),
+  field(t('name'),'name','text',existing?.name||'','maxlength="70"')+
+  pick(t('type'),'type',options,existing?.type||'bank')+
+  pick(ct('account'),'currency',currencyOptions(),current)+
+  (existing?'':field(t('opening'),'opening','number',0,'step="any" min="0"')+rateHTML)+
+  '<label class="fin-field"><span>'+t('dueDay')+'</span><input name="dueDay" type="number" min="1" max="28" value="'+(existing?.dueDay||'')+'"></label>',
+ v=>{
   if(!v.name.trim()||(!existing&&!number(v.opening,true)))return false;
-  const day=v.dueDay?Number(v.dueDay):null;
-  if(existing){existing.name=v.name.trim().slice(0,70);existing.dueDay=day}
-  else doc.accounts.push({id:id(),name:v.name.trim().slice(0,70),type:v.type,opening:Number(v.opening),dueDay:day});
+  const due=v.dueDay?Number(v.dueDay):null;
+  if(due!==null&&(!Number.isInteger(due)||due<1||due>28))return false;
+  if(existing){existing.name=v.name.trim().slice(0,70);existing.dueDay=due;return true}
+  if(!CURRENCIES.includes(v.currency))return false;
+  if(v.currency!=='JPY'&&rate(v.currency)===null){
+   if(!number(v.accountRate)||Number(v.accountRate)>=1e7){alert(ct('missing'));return false}
+   doc.preferences.rates[v.currency]=Number(v.accountRate);
+  }
+  doc.accounts.push({id:id(),name:v.name.trim().slice(0,70),type:v.type,currency:v.currency,opening:Number(v.opening),dueDay:due});
  },box=>{
   if(existing){
    box.querySelector('[name="type"]').disabled=true;
+   box.querySelector('[name="currency"]').disabled=true;
    box.querySelector('form').insertAdjacentHTML('beforeend','<button type="button" class="fin-danger">'+t('delete')+'</button>');
    box.querySelector('.fin-danger').onclick=()=>{
     if(doc.transactions.some(x=>x.from===existing.id||x.to===existing.id)||doc.trades.some(x=>x.account===existing.id))return alert(t('different'));
     if(confirm(t('confirm'))){doc.accounts=doc.accounts.filter(a=>a.id!==existing.id);box.close();save()}
    };
+  }else{
+   const picker=box.querySelector('[name="currency"]'),input=box.querySelector('[name="accountRate"]'),label=box.querySelector('.fin-account-rate span');
+   const update=()=>{
+    const code=picker.value,currentRate=rate(code);
+    label.textContent=ct('rate')+' · 1 '+code+' = JPY';
+    input.value=currentRate||'';input.disabled=currentRate!==null;
+    input.required=currentRate===null;
+    input.closest('label').hidden=code==='JPY';
+   };
+   picker.addEventListener('change',update);update();
   }
  });
 }
@@ -176,39 +199,89 @@ function reconcile(a){
 function addTx(){
  if(!doc.accounts.length)return alert(t('noAccounts'));
  const opts=accountOpts(),initial=opts[0][0];
- dialog(t('addTx'),pick(t('type'),'kind',[['expense',t('expense')],['income',t('income')],['transfer',t('transfer')]],'expense')+field(t('amount'),'amount','number','','min="1" step="1"')+
- pick(t('from'),'from',opts,initial)+'<div class="fin-destination">'+pick(t('to'),'to',opts,opts[1]?.[0]||initial)+'</div>'+
- pick(t('category'),'category',catKeys.map(k=>[k,t(k)]),'food')+field(t('date'),'date','date',nowDate())+
- '<label class="fin-field"><span>'+t('note')+'</span><input name="note" maxlength="140"></label>',v=>{
-  if(!number(v.amount)||!account(v.from))return false;
-  if(v.kind==='transfer'&&(!account(v.to)||v.to===v.from))return alert(t('different')),false;
-  doc.transactions.push({id:id(),kind:v.kind,from:v.kind==='income'?null:v.from,to:v.kind==='income'?v.from:v.kind==='transfer'?v.to:null,amount:Number(v.amount),date:v.date,created:Date.now(),category:v.category,note:(v.note||'').trim().slice(0,140)});
+ dialog(t('addTx'),
+  pick(t('type'),'kind',[['expense',t('expense')],['income',t('income')],['transfer',t('transfer')]],'expense')+
+  field(t('amount'),'amount','number','','min="0.000001" step="any"')+
+  pick(t('from'),'from',opts,initial)+
+  '<div class="fin-destination">'+pick(t('to'),'to',opts,opts[1]?.[0]||initial)+'<p class="fin-note fin-exchange-preview"></p></div>'+
+  pick(t('category'),'category',catKeys.map(k=>[k,t(k)]),'food')+
+  field(t('date'),'date','date',nowDate())+
+  '<label class="fin-field"><span>'+t('note')+'</span><input name="note" maxlength="140"></label>',
+ v=>{
+  const from=account(v.from),target=account(v.to),n=Number(v.amount);
+  if(!number(n)||!from||!v.date||!['income','expense','transfer'].includes(v.kind))return false;
+  const fromRate=rate(from.currency);
+  if(fromRate===null){alert(ct('missing'));return false}
+  if(v.kind==='transfer'&&(!target||target.id===from.id)){alert(t('different'));return false}
+  const toRate=v.kind==='transfer'?rate(target.currency):null;
+  if(v.kind==='transfer'&&toRate===null){alert(ct('missing'));return false}
+  const toAmount=v.kind==='transfer'?Number((n*fromRate/toRate).toFixed(6)):null;
+  doc.transactions.push({
+   id:id(),kind:v.kind,from:v.kind==='income'?null:from.id,
+   to:v.kind==='income'?from.id:v.kind==='transfer'?target.id:null,
+   amount:n,toAmount,fx:fromRate,jpy:Number((n*fromRate).toFixed(6)),
+   date:v.date,created:Date.now(),category:v.category,note:(v.note||'').trim().slice(0,140)
+  });
  },box=>{
-  const kind=box.querySelector('[name="kind"]'),cat=box.querySelector('[name="category"]'),target=box.querySelector('.fin-destination');
-  const update=()=>{target.hidden=kind.value!=='transfer';cat.closest('label').hidden=kind.value==='transfer';cat.innerHTML=(kind.value==='income'?['salary','refund','other']:catKeys).map(k=>'<option value="'+k+'">'+t(k)+'</option>').join('')};
-  kind.onchange=update;update();
+  const kind=box.querySelector('[name="kind"]'),cat=box.querySelector('[name="category"]'),
+   target=box.querySelector('.fin-destination'),from=box.querySelector('[name="from"]'),
+   to=box.querySelector('[name="to"]'),amount=box.querySelector('[name="amount"]'),
+   preview=box.querySelector('.fin-exchange-preview'),amountLabel=amount.closest('label').querySelector('span');
+  const update=()=>{
+   target.hidden=kind.value!=='transfer';cat.closest('label').hidden=kind.value==='transfer';
+   cat.innerHTML=(kind.value==='income'?['salary','refund','other']:catKeys).map(k=>'<option value="'+k+'">'+t(k)+'</option>').join('');
+   updateFX();
+  };
+  const updateFX=()=>{
+   const source=account(from.value),dest=account(to.value);
+   amountLabel.textContent=t('amount')+' · '+(source?.currency||'JPY');
+   if(kind.value==='transfer'&&source&&dest){
+    const fromRate=rate(source.currency),toRate=rate(dest.currency),value=Number(amount.value||0);
+    preview.textContent=fromRate&&toRate?nativeMoney(value*fromRate/toRate,dest.currency):ct('missing');
+   }
+  };
+  kind.addEventListener('change',update);
+  from.addEventListener('change',updateFX);to.addEventListener('change',updateFX);
+  amount.addEventListener('input',updateFX);update();
  });
 }
 function addHolding(x){
- dialog(x?t('price'):t('addHolding'),field(t('ticker'),'symbol','text',x?.symbol||'','maxlength="20"')+field(t('name'),'name','text',x?.name||'','maxlength="70"')+
- pick(t('type'),'currency',[['JPY','JPY'],['USD','USD']],x?.currency||'JPY')+
- (x?'':field(t('qty'),'openingQty','number',0,'min="0" step="0.0001"')+field(t('cost'),'cost','number',0,'min="0" step="0.0001"'))+
- field(t('price'),'price','number',x?.price||0,'min="0" step="0.0001"')+field(t('fx'),'fx','number',x?.fx||1,'min="0.0001" step="0.0001"'),v=>{
-  if(!v.symbol.trim()||!number(v.price,true)||!number(v.fx)||(!x&&(!number(v.openingQty,true)||!number(v.cost,true))))return false;
+ const current=x?.currency||'JPY',defaultFX=x?.fx||rate(current)||'';
+ dialog(x?t('price'):t('addHolding'),
+  field(t('ticker'),'symbol','text',x?.symbol||'','maxlength="20"')+
+  field(t('name'),'name','text',x?.name||'','maxlength="70"')+
+  pick(t('type'),'currency',currencyOptions(),current)+
+  (x?'':field(t('qty'),'openingQty','number',0,'min="0" step="0.0001"')+
+    field(t('cost'),'cost','number',0,'min="0" step="0.0001"'))+
+  field(t('price'),'price','number',x?.price||0,'min="0" step="0.0001"')+
+  field(t('fx'),'fx','number',defaultFX,'min="0.000001" step="any"'),
+ v=>{
+  if(!v.symbol.trim()||!CURRENCIES.includes(v.currency)||!number(v.price,true)||!number(v.fx)||
+     (!x&&(!number(v.openingQty,true)||!number(v.cost,true))))return false;
   if(x)Object.assign(x,{name:v.name.trim().slice(0,70),symbol:v.symbol.trim().slice(0,20),currency:v.currency,price:Number(v.price),fx:Number(v.fx)});
   else doc.holdings.push({id:id(),name:v.name.trim().slice(0,70),symbol:v.symbol.trim().slice(0,20),currency:v.currency,openingQty:Number(v.openingQty),cost:Number(v.cost),price:Number(v.price),fx:Number(v.fx)});
+ },box=>{
+  const select=box.querySelector('[name="currency"]'),rateInput=box.querySelector('[name="fx"]');
+  select.addEventListener('change',()=>{rateInput.value=rate(select.value)||''});
  });
 }
 function addTrade(){
  if(!doc.holdings.length||!doc.accounts.some(a=>!credit(a)))return alert(t('noHoldings'));
- dialog(t('addTrade'),pick(t('ticker'),'holding',doc.holdings.map(x=>[x.id,x.symbol+' '+x.name]))+
- pick(t('type'),'side',[['buy',t('buy')],['sell',t('sell')]])+
- field(t('qty'),'qty','number','','min="0.0001" step="0.0001"')+field(t('price'),'price','number','','min="0" step="0.0001"')+
- field(t('fees'),'fees','number',0,'min="0" step="1"')+pick(t('accounts'),'account',doc.accounts.filter(a=>!credit(a)).map(a=>[a.id,a.name]))+
- field(t('date'),'date','date',nowDate()),v=>{
-  const x=holding(v.holding);if(!x||!number(v.qty)||!number(v.price,true)||!number(v.fees,true))return false;
+ dialog(t('addTrade'),
+  pick(t('ticker'),'holding',doc.holdings.map(x=>[x.id,x.symbol+' '+x.name]))+
+  pick(t('type'),'side',[['buy',t('buy')],['sell',t('sell')]])+
+  field(t('qty'),'qty','number','','min="0.0001" step="0.0001"')+
+  field(t('price'),'price','number','','min="0" step="0.0001"')+
+  field(t('fees'),'fees','number',0,'min="0" step="1"')+
+  pick(t('accounts'),'account',doc.accounts.filter(a=>!credit(a)).map(a=>[a.id,a.name]))+
+  field(t('date'),'date','date',nowDate()),v=>{
+  const x=holding(v.holding),a=account(v.account);
+  if(!x||!a||credit(a)||!number(v.qty)||!number(v.price,true)||!number(v.fees,true))return false;
   if(v.side==='sell'&&Number(v.qty)>qty(x)+1e-8)return alert(t('noSell')),false;
-  doc.trades.push({id:id(),holding:x.id,side:v.side,qty:Number(v.qty),price:Number(v.price),fees:Number(v.fees),fx:x.fx,account:v.account,date:v.date});
+  const accountFX=rate(a.currency);
+  if(accountFX===null){alert(ct('missing'));return false}
+  doc.trades.push({id:id(),holding:x.id,side:v.side,qty:Number(v.qty),price:Number(v.price),
+   fees:Number(v.fees),fx:x.fx,accountFx:accountFX,account:v.account,date:v.date});
  });
 }
 function addBudget(category){
