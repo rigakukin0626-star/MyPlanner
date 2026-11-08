@@ -1,0 +1,25 @@
+/* My Planner v195 — fix iOS 26 Safari's excessive chat shift when the keyboard opens.
+   The old top/height measured only the viewport. WebKit may still pan the
+   fixed conversation itself. JS now measures its *actual* bottom edge and
+   compensates only for the excess shift, without guessing keyboard height. */
+:root{--chat-anchor-correction:0px}
+@media(max-width:719px){
+  body[data-active-page="chat"] #pageChat .chat-conversation:not([hidden]){
+    top:calc(var(--chat-visible-top,0px) + var(--chat-anchor-correction,0px))!important;
+    height:var(--chat-visible-height,100dvh)!important;
+    max-height:var(--chat-visible-height,100dvh)!important;
+    bottom:auto!important;
+    transition:none!important;
+    animation:none!important;
+  }
+  /* Keep the composer in normal flex flow INSIDE the measured chat viewport.
+     Never position it independently relative to the keyboard or body. */
+  body.chat-open #pageChat .chat-conversation:not([hidden]) .chat-send{
+    position:relative!important;
+    inset:auto!important;
+    flex-shrink:0!important;
+  }
+  body.chat-keyboard-open #pageChat .chat-conversation:not([hidden]) .chat-send{
+    padding-bottom:8px!important;
+  }
+}

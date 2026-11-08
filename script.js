@@ -2758,7 +2758,48 @@ showWelcomeAuth();
  let raf=0, lastHeight=0, lastTop=-1, wasOpen=false;
  let knownWidth=window.innerWidth, baseline=window.visualViewport?.height||window.innerHeight;
  let focusAnchor=null, settleTimer=0;
+ // WebKit can pan fixed descendants when the keyboard opens even though the
+ // page itself reports scrollY=0. A measured correction (not a guessed keyboard
+ // height) keeps the entire conversation above the software keyboard.
+ let renderCorrection=0, anchorRaf=0, recheckTimeout=0, anchorAgainRaf=0;
  const activeField=()=>fields.includes(document.activeElement)?document.activeElement:null;
+ const activeConversation=()=>{
+  const group=document.getElementById("chatGroupConversation");
+  const direct=document.getElementById("chatConversation");
+  return group&&!group.hidden?group:direct&&!direct.hidden?direct:null;
+ };
+ const measureChatAnchor=()=>{
+  anchorRaf=0;
+  const panel=activeConversation(),vp=window.visualViewport;
+  if(!panel||!document.body.classList.contains("chat-open")||!vp)return;
+  const r=panel.getBoundingClientRect();
+  if(!r.height||!Number.isFinite(r.bottom))return;
+  const desiredBottom=vp.offsetTop+vp.height;
+  const error=desiredBottom-r.bottom;
+  // Do not respond to subpixel noise and avoid runaway compensation.
+  if(Math.abs(error)>3&&Math.abs(error)<window.innerHeight*1.5){
+   renderCorrection=Math.max(-window.innerHeight,Math.min(window.innerHeight,renderCorrection+error));
+   root.style.setProperty("--chat-anchor-correction",renderCorrection+"px");
+  }
+ };
+ const scheduleChatAnchor=()=>{
+  if(anchorRaf)return;
+  // Read after CSS visual-viewport variables have painted (iOS Safari sometimes
+  // moves the *rendered* fixed layer only after that paint).
+  anchorRaf=requestAnimationFrame(()=>{
+   anchorRaf=0;
+   anchorAgainRaf=requestAnimationFrame(()=>{
+    anchorAgainRaf=0;
+    measureChatAnchor();
+   });
+  });
+ };
+ const recheckChatAnchor=()=>{
+  if(recheckTimeout)clearTimeout(recheckTimeout);
+  recheckTimeout=setTimeout(()=>{
+   recheckTimeout=0;scheduleChatAnchor();
+  },250);
+ };
  const messageList=field=>document.getElementById(field?.id==="chatGroupMessageInput"?"chatGroupMessages":"chatMessages");
  const scrollMessages=field=>{
   const list=messageList(field);
@@ -2801,6 +2842,12 @@ showWelcomeAuth();
   if(keyboardOpen&&focused&&focusAnchor?.field===field&&
      focusAnchor.follow&&(resized||repositioned||!wasOpen))scheduleStablePin();
   if(!keyboardOpen&&settleTimer){clearTimeout(settleTimer);settleTimer=0}
+  if(chatOpened&&activeConversation()){
+   scheduleChatAnchor();
+   if(keyboardOpen&&!wasOpen)recheckChatAnchor();
+  }else if(renderCorrection){
+   renderCorrection=0;root.style.setProperty("--chat-anchor-correction","0px");
+  }
   wasOpen=keyboardOpen;
  };
  const updateViewport=()=>{
@@ -2831,11 +2878,13 @@ showWelcomeAuth();
    const distance=list?Math.max(0,list.scrollHeight-list.scrollTop-list.clientHeight):Infinity;
    focusAnchor={field:input,follow:distance<140};
    updateViewport();
+   recheckChatAnchor();
   });
   input.addEventListener("blur",()=>{
    if(focusAnchor?.field===input)focusAnchor=null;
    if(settleTimer){clearTimeout(settleTimer);settleTimer=0}
    updateViewport();
+   recheckChatAnchor();
   });
   // A manual swipe to read older messages must never be undone by
   // keyboard viewport resize or keyboard switching.
@@ -2856,7 +2905,13 @@ showWelcomeAuth();
  window.visualViewport?.addEventListener("resize",updateViewport,{passive:true});
  window.visualViewport?.addEventListener("scroll",updateViewport,{passive:true});
  window.addEventListener("resize",updateViewport,{passive:true});
- window.addEventListener("orientationchange",updateViewport,{passive:true});
+ // iOS 26 can pan the visual layer while scrollY remains unchanged; when
+ // a normal document scroll does occur, re-measure rather than scrollTo(0,0).
+ window.addEventListener("scroll",scheduleChatAnchor,{passive:true});
+ window.addEventListener("orientationchange",()=>{
+  renderCorrection=0;root.style.setProperty("--chat-anchor-correction","0px");
+  updateViewport();recheckChatAnchor();
+ },{passive:true});
  document.addEventListener("visibilitychange",()=>{if(!document.hidden)updateViewport()});
  applyViewport();
 })();
