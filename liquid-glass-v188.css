@@ -1,0 +1,259 @@
+/* My Planner v188 — content-sized LINE/WeChat bubbles and refractive dock edges.
+   Fix v187's grid/max-content conflict without changing media or scrolling code.
+*/
+:root{
+  --v188-glass-surface:rgba(246,250,255,.035);
+  --v188-glass-border:rgba(255,255,255,.49);
+  --v188-glass-selected:rgba(255,255,255,.13);
+  --v188-menu-fill:rgba(248,251,255,.12);
+  --v188-menu-rim:rgba(255,255,255,.44);
+}
+html[data-theme="dark"]{
+  --v188-glass-surface:rgba(22,28,41,.13);
+  --v188-glass-border:rgba(234,245,255,.22);
+  --v188-glass-selected:rgba(141,185,249,.14);
+  --v188-menu-fill:rgba(22,29,41,.23);
+  --v188-menu-rim:rgba(227,240,255,.17);
+}
+
+/* The previous grid's minmax(0,1fr) + width:max-content collapsed the
+   intrinsic text width, painting text over a tiny pill. Use flex sizing instead.
+   Date input, chat image frame and quote cards are intentionally excluded. */
+#pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-start!important;
+  align-items:stretch!important;
+  flex:0 0 auto!important;
+  align-content:normal!important;
+  grid-template-columns:none!important;
+  grid-template-rows:none!important;
+  width:fit-content!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:auto!important;
+  max-width:min(80%,380px)!important;
+  padding:9px 13px 8px!important;
+  gap:3px!important;
+  font-size:15px!important;
+  line-height:1.43!important;
+  border-radius:18px 18px 18px 7px!important;
+  overflow:visible!important;
+}
+#pageChat .chat-messages .chat-bubble.mine:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+  align-self:flex-end!important;
+  border-radius:18px 18px 7px 18px!important;
+}
+#pageChat .chat-messages .chat-bubble:not(.mine):not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+  align-self:flex-start!important;
+}
+#pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo))>span{
+  display:block!important;
+  flex:0 1 auto!important;
+  min-width:0!important;
+  width:auto!important;
+  max-width:100%!important;
+  line-height:1.43!important;
+  white-space:pre-wrap!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+}
+#pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo))>small{
+  position:static!important;
+  display:block!important;
+  flex:0 0 auto!important;
+  grid-column:auto!important;
+  grid-row:auto!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:100%!important;
+  min-height:0!important;
+  margin:2px 0 0!important;
+  padding:0!important;
+  justify-self:auto!important;
+  align-self:flex-end!important;
+  text-align:right!important;
+  line-height:1.3!important;
+  font-size:10.5px!important;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap!important;
+}
+@media(max-width:719px){
+  #pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+    max-width:calc(100% - 94px)!important;
+  }
+}
+/* Reserve avatar gutter only where one is actually drawn. */
+#pageChat .chat-messages .chat-bubble.chat-with-avatar:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+  max-width:calc(100% - 94px)!important;
+}
+
+/* Replies also size to their actual quote/text: JS no longer imposes 246px.
+   Keep a modest minimum so the quoted snippet and its time can fit. */
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  flex:0 0 auto!important;
+  width:fit-content!important;
+  min-width:168px!important;
+  min-height:0!important;
+  max-width:min(80%,calc(100% - 94px),340px)!important;
+  height:auto!important;
+  padding:10px 12px 9px!important;
+  gap:5px!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble>.chat-reply-stack{
+  display:flex!important;
+  flex-direction:column!important;
+  min-width:0!important;
+  max-width:100%!important;
+  width:auto!important;
+  height:auto!important;
+  gap:6px!important;
+}
+#pageChat .chat-messages .chat-reply-stack>.chat-quoted-message,
+#pageChat .chat-messages .chat-reply-stack>.chat-reply-text{
+  min-width:0!important;
+  width:auto!important;
+  max-width:100%!important;
+}
+#pageChat .chat-messages .chat-reply-stack>.chat-reply-text{
+  font-size:15px!important;
+  line-height:1.43!important;
+  white-space:pre-wrap!important;
+  overflow-wrap:anywhere!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble>small{
+  flex:0 0 auto!important;
+  width:auto!important;
+  min-height:0!important;
+  max-width:100%!important;
+  margin:4px 0 0 auto!important;
+  align-self:flex-end!important;
+  text-align:right!important;
+  line-height:1.3!important;
+}
+/* Preserve media dimensions and the sender/receiver avatar positions. */
+
+/* An iOS-like liquid rim needs BOTH transparency and edge refraction.
+   These two noninteractive overlays create corner glints, tiny highlights and
+   a curved inner contour without applying blur to the message scroll layer. */
+.bottom-tabs{
+  background:var(--v188-glass-surface)!important;
+  border:1px solid var(--v188-glass-border)!important;
+  border-radius:30px!important;
+  -webkit-backdrop-filter:blur(8px) saturate(145%)!important;
+  backdrop-filter:blur(8px) saturate(145%)!important;
+  box-shadow:
+    inset 0 1.2px 0 rgba(255,255,255,.50),
+    inset 0 -1px 0 rgba(80,120,169,.09),
+    0 6px 17px rgba(23,44,78,.10)!important;
+  overflow:hidden!important;
+  isolation:isolate;
+}
+html[data-theme="dark"] .bottom-tabs{
+  background:var(--v188-glass-surface)!important;
+  border-color:var(--v188-glass-border)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -1px 0 rgba(0,0,0,.22),
+    0 9px 24px rgba(0,0,0,.28)!important;
+}
+.bottom-tabs::before{
+  content:"";
+  position:absolute;
+  inset:1px;
+  border-radius:29px;
+  z-index:0;
+  pointer-events:none!important;
+  background:
+    radial-gradient(ellipse 24% 60% at 9% -6%,rgba(255,255,255,.66),transparent 83%),
+    radial-gradient(ellipse 25% 70% at 96% 105%,rgba(113,179,241,.17),transparent 85%),
+    linear-gradient(155deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,0) 40%,rgba(255,255,255,.035) 85%,rgba(255,255,255,.13) 100%)!important;
+}
+.bottom-tabs::after{
+  content:"";
+  position:absolute;
+  inset:2px;
+  border-radius:27px;
+  pointer-events:none!important;
+  z-index:0;
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,.39),
+    inset -1px -1px 0 rgba(107,145,190,.15),
+    inset 0 6px 9px -9px rgba(255,255,255,.90),
+    inset 0 -5px 9px -9px rgba(70,94,139,.38)!important;
+}
+html[data-theme="dark"] .bottom-tabs::before{
+  background:
+    radial-gradient(ellipse 24% 65% at 10% -6%,rgba(255,255,255,.23),transparent 84%),
+    radial-gradient(ellipse 28% 70% at 100% 105%,rgba(115,167,248,.12),transparent 85%),
+    linear-gradient(150deg,rgba(255,255,255,.035),transparent 45%,rgba(255,255,255,.025) 100%)!important;
+}
+html[data-theme="dark"] .bottom-tabs::after{
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.12),
+             inset -1px -1px 0 rgba(3,9,22,.24)!important;
+}
+.bottom-tabs .tab{position:relative;z-index:1}
+.bottom-tabs .tab.active{
+  background:var(--v188-glass-selected)!important;
+  border-color:rgba(255,255,255,.27)!important;
+  border-radius:23px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.33),
+             inset 0 -1px 0 rgba(85,131,191,.08)!important;
+}
+html[data-theme="dark"] .bottom-tabs .tab.active{
+  border-color:rgba(234,245,255,.12)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.11)!important;
+}
+
+/* Menus, circle actions and language switch carry the same light glass edges. */
+#pageChat .line-popup-menu:not([hidden]),
+body>.chat-context-menu.chat-message-popover:not([hidden]){
+  background:var(--v188-menu-fill)!important;
+  border:1px solid var(--v188-menu-rim)!important;
+  border-radius:25px!important;
+  -webkit-backdrop-filter:blur(17px) saturate(150%)!important;
+  backdrop-filter:blur(17px) saturate(150%)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.39),
+    0 11px 32px rgba(14,32,67,.15)!important;
+}
+html[data-theme="dark"] #pageChat .line-popup-menu:not([hidden]),
+html[data-theme="dark"] body>.chat-context-menu.chat-message-popover:not([hidden]){
+  background:var(--v188-menu-fill)!important;
+  border-color:var(--v188-menu-rim)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.11),
+             0 14px 35px rgba(0,0,0,.35)!important;
+}
+#pageChat :is(.chat-header-add,#linePrivateMore,#lineGroupMore),
+.language-picker select{
+  background:rgba(248,251,255,.13)!important;
+  border:1px solid var(--v188-glass-border)!important;
+  -webkit-backdrop-filter:blur(10px) saturate(145%)!important;
+  backdrop-filter:blur(10px) saturate(145%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.43),
+             0 3px 10px rgba(18,40,80,.06)!important;
+}
+html[data-theme="dark"] #pageChat :is(.chat-header-add,#linePrivateMore,#lineGroupMore),
+html[data-theme="dark"] .language-picker select{
+  background:rgba(32,42,62,.23)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),
+             0 4px 11px rgba(0,0,0,.20)!important;
+}
+
+/* Chat page may hide the dock; do not undo its visibility logic. */
+body:has(#chatConversation:not([hidden])) .bottom-tabs,
+body:has(#chatGroupConversation:not([hidden])) .bottom-tabs,
+body.chat-open.chat-input-focused .bottom-tabs{display:none!important}
+@media(prefers-reduced-transparency:reduce){
+  .bottom-tabs,.language-picker select,
+  #pageChat :is(.chat-header-add,#linePrivateMore,#lineGroupMore),
+  #pageChat .line-popup-menu:not([hidden]),
+  body>.chat-context-menu.chat-message-popover:not([hidden]){
+    background:var(--surface)!important;
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+  }
+}
