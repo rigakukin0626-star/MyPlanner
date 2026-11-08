@@ -1992,6 +1992,13 @@ function groupWarmPanels(group){
 */
 const groupScrollFollow={groupId:null,followLatest:false,lastUserMove:0,scheduled:false,touchY:null};
 let groupMediaResizeObserver=null;
+function groupScrollUpdateJump(){
+ const button=$("chatGroupJumpToLatest");
+ const root=$("chatGroupMessages");
+ if(!button||!root||!chatActiveGroup){if(button)button.hidden=true;return}
+ const distance=root.scrollHeight-root.scrollTop-root.clientHeight;
+ button.hidden=groupScrollFollow.followLatest||distance<170;
+}
 function groupScrollBegin(groupId){
  groupScrollFollow.groupId=groupId;
  groupScrollFollow.followLatest=true;
@@ -1999,6 +2006,7 @@ function groupScrollBegin(groupId){
  groupScrollFollow.touchY=null;
  groupScrollFollow.scheduled=false;
  if(groupMediaResizeObserver)groupMediaResizeObserver.disconnect();
+ groupScrollUpdateJump();
 }
 function groupScrollStop(){
  groupScrollFollow.groupId=null;
@@ -2006,6 +2014,7 @@ function groupScrollStop(){
  groupScrollFollow.scheduled=false;
  groupScrollFollow.touchY=null;
  if(groupMediaResizeObserver)groupMediaResizeObserver.disconnect();
+ groupScrollUpdateJump();
 }
 function groupScrollPin(groupId=chatActiveGroup?.id){
  if(!groupId||groupScrollFollow.groupId!==groupId||!groupScrollFollow.followLatest||groupScrollFollow.scheduled)return;
@@ -2015,6 +2024,7 @@ function groupScrollPin(groupId=chatActiveGroup?.id){
   const root=$("chatGroupMessages");
   if(!root||!chatActiveGroup||chatActiveGroup.id!==groupId||!groupScrollFollow.followLatest||groupScrollFollow.groupId!==groupId)return;
   root.scrollTop=root.scrollHeight;
+  groupScrollUpdateJump();
   requestAnimationFrame(()=>{
    if(chatActiveGroup?.id===groupId&&groupScrollFollow.groupId===groupId&&groupScrollFollow.followLatest)root.scrollTop=root.scrollHeight;
   });
@@ -2039,11 +2049,27 @@ function groupScrollTrackIntent(){
  if(Date.now()-groupScrollFollow.lastUserMove>800)return;
  const distance=Math.max(0,root.scrollHeight-root.scrollTop-root.clientHeight);
  groupScrollFollow.followLatest=distance<90;
+ groupScrollUpdateJump();
  if(groupScrollFollow.followLatest)groupScrollPin();
 }
 function groupScrollWireUserGestures(){
  const root=$("chatGroupMessages");
  if(!root)return;
+ const conv=$("chatGroupConversation");
+ let jump=$("chatGroupJumpToLatest");
+ if(!jump&&conv){
+  jump=document.createElement("button");
+  jump.id="chatGroupJumpToLatest";jump.className="chat-jump-to-latest";
+  jump.type="button";jump.hidden=true;
+  jump.setAttribute("aria-label",chatText("跳到最新消息","最新メッセージへ","Jump to latest"));
+  jump.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  conv.append(jump);
+ }
+ jump?.addEventListener("click",()=>{
+  groupScrollFollow.followLatest=true;
+  groupScrollPin();
+  groupScrollUpdateJump();
+ });
  root.addEventListener("touchstart",e=>{
   if(e.touches.length===1)groupScrollFollow.touchY=e.touches[0].clientY;
  },{passive:true});
@@ -2135,6 +2161,7 @@ function groupRenderMessages(items){
  root.dataset.loaded="1";
  groupScrollWatchMedia();
  groupScrollPin();
+ groupScrollUpdateJump();
  groupReceiptPaint();
 }
 async function groupLoadMessages(){
