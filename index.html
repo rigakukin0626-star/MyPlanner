@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#f6f8fb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="My Planner">
@@ -19,7 +19,7 @@
     const dark=pref==="dark"||(pref!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.dataset.theme=dark?"dark":"light";
     document.documentElement.style.colorScheme=dark?"dark":"light";
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content",dark?"#000000":"#ffffff");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content",dark?"#11151c":"#f6f8fb");
   } catch(e) {}
   </script>
   <link rel="stylesheet" href="minimal.css?v=182">
