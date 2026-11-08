@@ -1781,7 +1781,7 @@ body>.chat-context-menu.chat-message-popover>.chat-context-option{min-height:44p
 /* v183 088 日历 | 点击反馈 */
 .calendar-day:active{background:var(--ios-tap);transform:scale(.96)}
 /* v183 089 日历 | 有任务日期 */
-.calendar-day.has-task::after{background:var(--accent);width:5px;height:5px}
+.calendar-day.has-tasks::after{background:var(--accent);width:5px;height:5px}
 /* v183 090 日历 | 任务说明 */
 .calendar-hint{margin-top:14px;color:var(--muted);font-size:12px}
 /* v183 091 设置 | 设置标题 */
