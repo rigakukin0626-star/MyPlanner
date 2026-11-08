@@ -1,0 +1,30 @@
+/* My Planner v192 — Quick menu stacking repair.
+   Root cause: the frosted private/group selected pill creates its own stacking
+   context. It could paint over the preceding chat header's absolutely
+   positioned popup. Keep the entire header above list filters while
+   preserving the menu's click targets and Liquid Glass appearance. */
+#pageChat .chat-panel{
+  overflow:visible!important;
+}
+#pageChat .chat-app-header{
+  position:relative!important;
+  z-index:35!important;
+  isolation:isolate;
+  overflow:visible!important;
+}
+#pageChat #lineQuickMenu:not([hidden]){
+  position:absolute;
+  z-index:130!important;
+  isolation:isolate;
+}
+/* Sibling content must stay behind the menu — even when a selected chip
+   uses backdrop-filter and therefore creates a new stacking context. */
+#pageChat .chat-mode-switch{
+  position:relative;
+  z-index:1;
+}
+#pageChat .chat-list-search{
+  position:relative;
+  z-index:0;
+}
+/* Do not interfere with full-screen chat or full-screen action panels. */
