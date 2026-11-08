@@ -31,7 +31,7 @@ function rate(code){
  return Number.isFinite(v)&&v>0&&v<1e7?v:null;
 }
 const toJPY=(n,code)=>{const fx=rate(code);return fx===null?NaN:Number(n||0)*fx};
-const bookedJPY=x=>x.jpy!=null&&Number.isFinite(Number(x.jpy))?Number(x.jpy):(Number(x.amount)||0);
+const bookedJPY=x=>x.jpy!=null&&Number.isFinite(Number(x.jpy))?Number(x.jpy):(x.fx===null?NaN:(Number(x.amount)||0));
 const recordCurrency=x=>account(x.from||x.to)?.currency||'JPY';
 const recordMoney=x=>nativeMoney(x.amount,recordCurrency(x));
 const recordTargetMoney=x=>x.kind==='transfer'&&x.toAmount!=null?nativeMoney(x.toAmount,account(x.to)?.currency||'JPY'):'';
@@ -70,7 +70,7 @@ function read(){try{const d=JSON.parse(localStorage.getItem(BASE+owner)||'null')
 function metadata(){localStorage.setItem(META+owner,JSON.stringify({revision,dirty}))}
 function save(){
  const x=totals(),date=nowDate(),prev=doc.snapshots.at(-1);
- if(prev?.date===date)prev.value=x.net;else doc.snapshots.push({date,value:x.net});
+ if(Number.isFinite(x.net)){if(prev?.date===date)prev.value=x.net;else doc.snapshots.push({date,value:x.net});}
  doc.snapshots=doc.snapshots.slice(-366);dirty=true;
  localStorage.setItem(BASE+owner,JSON.stringify(doc));metadata();
  if(cloud==='synced')schedulePush();render();
@@ -220,15 +220,15 @@ function addTx(){
   const from=account(v.from),target=account(v.to),n=Number(v.amount);
   if(!number(n)||!from||!v.date||!['income','expense','transfer'].includes(v.kind))return false;
   const fromRate=rate(from.currency);
-  if(fromRate===null){alert(ct('missing'));return false}
+  // Foreign currency transactions are valid without FX conversion.
   if(v.kind==='transfer'&&(!target||target.id===from.id)){alert(t('different'));return false}
   const toRate=v.kind==='transfer'?rate(target.currency):null;
-  if(v.kind==='transfer'&&toRate===null){alert(ct('missing'));return false}
-  const toAmount=v.kind==='transfer'?Number((n*fromRate/toRate).toFixed(6)):null;
+  if(v.kind==='transfer'&&from.currency!==target.currency&&(fromRate===null||toRate===null)){alert(ct('missing'));return false}
+  const toAmount=v.kind==='transfer'?(from.currency===target.currency?n:Number((n*fromRate/toRate).toFixed(6))):null;
   doc.transactions.push({
    id:id(),kind:v.kind,from:v.kind==='income'?null:from.id,
    to:v.kind==='income'?from.id:v.kind==='transfer'?target.id:null,
-   amount:n,toAmount,fx:fromRate,jpy:Number((n*fromRate).toFixed(6)),
+   amount:n,toAmount,fx:fromRate,jpy:fromRate===null?null:Number((n*fromRate).toFixed(6)),
    date:v.date,created:Date.now(),category:v.category,note:(v.note||'').trim().slice(0,140)
   });
  },box=>{
