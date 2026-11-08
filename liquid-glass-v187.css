@@ -1,0 +1,167 @@
+/* My Planner v187 | LINE-inspired clearer glass and compact chat messages.
+   Presentation-only rules: chat media dimensions, scroll logic and date inputs are untouched. */
+:root{
+  --v187-dock-fill:rgba(241,247,255,.055);
+  --v187-dock-rim:rgba(255,255,255,.35);
+  --v187-dock-active:rgba(255,255,255,.12);
+  --v187-menu-fill:rgba(250,252,255,.18);
+  --v187-menu-stroke:rgba(255,255,255,.38);
+}
+html[data-theme="dark"]{
+  --v187-dock-fill:rgba(16,22,33,.12);
+  --v187-dock-rim:rgba(240,247,255,.17);
+  --v187-dock-active:rgba(122,170,240,.12);
+  --v187-menu-fill:rgba(22,27,38,.31);
+  --v187-menu-stroke:rgba(230,242,255,.17);
+}
+
+/* 1. Floating bottom dock: deliberately reveal the content behind it. */
+.bottom-tabs{
+  background:var(--v187-dock-fill)!important;
+  border-color:var(--v187-dock-rim)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.17),
+             0 4px 13px rgba(26,44,77,.08)!important;
+  -webkit-backdrop-filter:blur(5px) saturate(115%)!important;
+  backdrop-filter:blur(5px) saturate(115%)!important;
+}
+.bottom-tabs::before{
+  background:linear-gradient(145deg,rgba(255,255,255,.045),transparent 52%)!important;
+}
+html[data-theme="dark"] .bottom-tabs{
+  background:var(--v187-dock-fill)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),
+             0 6px 18px rgba(0,0,0,.22)!important;
+}
+.bottom-tabs .tab.active{
+  background:var(--v187-dock-active)!important;
+  border-color:var(--v187-dock-rim)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16)!important;
+}
+.bottom-tabs .tab .tab-icon,
+.bottom-tabs .tab.active .tab-icon{
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+/* 2. Small floating controls: less milky, still readable. */
+.language-picker select{
+  background:rgba(240,247,255,.13)!important;
+  border-color:var(--v187-dock-rim)!important;
+  -webkit-backdrop-filter:blur(7px) saturate(118%)!important;
+  backdrop-filter:blur(7px) saturate(118%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20),
+             0 3px 10px rgba(30,56,96,.045)!important;
+}
+html[data-theme="dark"] .language-picker select{
+  background:rgba(31,39,55,.19)!important;
+}
+/* Menus: translucent glass, not a solid gray overlay. Keep readable text. */
+#pageChat .line-popup-menu:not([hidden]),
+body>.chat-context-menu.chat-message-popover:not([hidden]){
+  background:var(--v187-menu-fill)!important;
+  border:1px solid var(--v187-menu-stroke)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.19),
+             0 12px 32px rgba(14,34,68,.15)!important;
+  -webkit-backdrop-filter:blur(12px) saturate(128%)!important;
+  backdrop-filter:blur(12px) saturate(128%)!important;
+}
+html[data-theme="dark"] #pageChat .line-popup-menu:not([hidden]),
+html[data-theme="dark"] body>.chat-context-menu.chat-message-popover:not([hidden]){
+  background:var(--v187-menu-fill)!important;
+  border-color:var(--v187-menu-stroke)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),
+             0 15px 34px rgba(0,0,0,.33)!important;
+}
+/* The menu icons are glass too; avoid opaque squares inside the popup. */
+#pageChat .line-popup-menu .line-menu-icon{
+  background:rgba(113,156,227,.12)!important;
+  border:1px solid rgba(136,173,230,.14);
+  border-radius:12px;
+}
+
+/* 3. Only simple text bubbles. Exclude quoted replies and media;
+   those have separate measured layouts and image-loading safeguards. */
+#pageChat .chat-messages{
+  gap:9px!important;
+}
+#pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:auto auto!important;
+  align-content:start!important;
+  width:max-content!important;
+  min-width:108px!important;
+  min-height:0!important;
+  max-width:min(82%,420px)!important;
+  height:auto!important;
+  padding:9px 12px 8px!important;
+  row-gap:3px!important;
+  font-size:15px;
+  line-height:1.42;
+  border-radius:18px 18px 18px 7px!important;
+}
+#pageChat .chat-messages .chat-bubble.mine:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+  border-radius:18px 18px 7px 18px!important;
+}
+#pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo))>span{
+  line-height:1.42!important;
+}
+#pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo))>small{
+  grid-row:2;
+  justify-self:end;
+  align-self:end;
+  min-height:0!important;
+  margin:0!important;
+  font-size:10.5px!important;
+  line-height:1.35!important;
+  white-space:nowrap;
+  text-align:right;
+}
+/* If an avatar is shown, leave its overlap clearance intact. */
+#pageChat .chat-messages .chat-bubble.chat-with-avatar:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+  max-width:calc(100% - 92px)!important;
+}
+/* Reply preview: shorter line spacing and quieter quote panel.
+   A separate one-line JS width adjustment limits the excessively-wide outer box. */
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble{
+  padding:10px 11px 9px!important;
+  line-height:1.4!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble>.chat-reply-stack{
+  gap:6px!important;
+}
+#pageChat .chat-messages .chat-reply-stack>.chat-quoted-message{
+  padding:8px 10px!important;
+  border-radius:11px!important;
+}
+#pageChat .chat-messages .chat-reply-stack>.chat-reply-text{
+  font-size:15px!important;
+  line-height:1.4!important;
+}
+#pageChat .chat-messages .chat-bubble.chat-reply-bubble>small{
+  min-height:0!important;
+  margin:5px 0 0!important;
+  line-height:15px!important;
+}
+@media(max-width:719px){
+  #pageChat .chat-messages .chat-bubble:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+    min-width:104px!important;
+    max-width:calc(100% - 90px)!important;
+  }
+}
+/* Preserve the correct full-screen chat behavior while input is focused. */
+body:has(#chatConversation:not([hidden])) .bottom-tabs,
+body:has(#chatGroupConversation:not([hidden])) .bottom-tabs,
+body.chat-open.chat-input-focused .bottom-tabs{
+  display:none!important;
+}
+/* System accessibility setting intentionally wins over the glass treatment. */
+@media(prefers-reduced-transparency:reduce){
+  .bottom-tabs,.language-picker select,
+  #pageChat .line-popup-menu:not([hidden]),
+  body>.chat-context-menu.chat-message-popover:not([hidden]){
+    background:var(--surface)!important;
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+  }
+}

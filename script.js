@@ -1184,7 +1184,7 @@ function chatSetReply(item){
 }
 function chatMarkReplyBubble(bubble){
  bubble.classList.add("chat-reply-bubble");
- const critical={display:"block",height:"auto",minHeight:"0px",maxHeight:"none",width:"min(280px, calc(100% - 92px))",boxSizing:"border-box",overflow:"visible"};
+ const critical={display:"block",height:"auto",minHeight:"0px",maxHeight:"none",width:"min(246px, calc(100% - 92px))",boxSizing:"border-box",overflow:"visible"};
  for(const [key,value] of Object.entries(critical))
   bubble.style.setProperty(key.replace(/[A-Z]/g,x=>"-"+x.toLowerCase()),value,"important");
 }
