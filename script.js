@@ -2153,8 +2153,12 @@ function groupRenderMessages(items){
  const canAppend=oldIds.length>0&&root.dataset.renderContext===context
    &&visibleItems.length>=oldIds.length
    &&oldIds.every((id,i)=>id===String(visibleItems[i].id));
+ const canPrepend=!canAppend&&oldIds.length>0&&root.dataset.renderContext===context
+   &&visibleItems.length>=oldIds.length
+   &&oldIds.every((id,i)=>id===String(visibleItems[visibleItems.length-oldIds.length+i].id));
  const fragment=document.createDocumentFragment();
- const incoming=canAppend?visibleItems.slice(oldIds.length):visibleItems;
+ const incoming=canAppend?visibleItems.slice(oldIds.length)
+  :canPrepend?visibleItems.slice(0,visibleItems.length-oldIds.length):visibleItems;
  for(const item of incoming){
   const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.dataset.groupMessageCreated=item.created_at;bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");chatBubbleAvatar(bubble,item.sender_id,true);
   const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):(chatRemarkFor(item.sender_id)||item.sender_id.slice(0,8));
@@ -2174,8 +2178,13 @@ function groupRenderMessages(items){
   const time=document.createElement("small");time.className="chat-clock";time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});time.dataset.baseClock=time.textContent;
   bubble.append(body,time);groupMessageActions(bubble,item);fragment.append(bubble);
  }
+ const beforeHeight=root.scrollHeight;
+ const beforeTop=root.scrollTop;
  if(canAppend)root.append(fragment);
+ else if(canPrepend)root.prepend(fragment);
  else root.replaceChildren(fragment);
+ if(canPrepend&&!groupScrollFollow.followLatest)
+  root.scrollTop=beforeTop+Math.max(0,root.scrollHeight-beforeHeight);
  root.dataset.renderContext=context;
  if(nearBottom||!root.dataset.loaded||groupScrollFollow.followLatest)root.scrollTop=root.scrollHeight;
  root.dataset.loaded="1";
