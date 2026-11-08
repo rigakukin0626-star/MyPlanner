@@ -41,6 +41,24 @@ const nativeMoney=(amount,code)=>{
  return new Intl.NumberFormat('ja-JP',{style:'currency',currency:c,maximumFractionDigits:c==='JPY'||c==='KRW'?0:2}).format(Number(amount)||0);
 };
 const displayCode=()=>doc.preferences?.display||'JPY';
+const currencyValue=(amount,code,target=selectedRecordCurrency())=>{
+ const n=Number(amount)||0;if(n===0)return 0;
+ if(code===target)return n;
+ const source=rate(code),dest=rate(target);
+ return source===null||dest===null?NaN:n*source/dest;
+};
+const currencyMoney=value=>Number.isFinite(value)?nativeMoney(value,selectedRecordCurrency()):'—';
+const nativeTotals=()=>{
+ const b=balances();let assets=0,debt=0;
+ for(const a of doc.accounts){const v=currencyValue(b.get(a.id),a.currency);if(credit(a))debt+=v;else assets+=v}
+ for(const holding of doc.holdings){const v=priceValue(holding),r=rate(selectedRecordCurrency());assets+=v===0?0:r===null?NaN:v/r}
+ return {assets,debt,net:assets-debt};
+};
+const nativeMonthData=(ym=nowDate().slice(0,7))=>doc.transactions.filter(x=>x.date.startsWith(ym)).reduce((sum,x)=>{
+ if(x.kind==='income'||x.kind==='expense')sum[x.kind]+=currencyValue(x.amount,account(x.from||x.to)?.currency||'JPY');
+ return sum;
+},{income:0,expense:0});
+
 const converted=jpy=>{
  const code=selectedRecordCurrency(),fx=rate(code);
  if(!Number.isFinite(jpy))return '—';
@@ -91,7 +109,7 @@ const pick=(label,name,choices,selected)=>'<label class="fin-field"><span>'+labe
 const accountOpts=()=>doc.accounts.map(a=>[a.id,a.name]);
 function accounts(){
  const b=balances();
- return section(t('accounts'),button('＋ '+t('addAccount'),'account'),doc.accounts.map(a=>'<button class="fin-account" data-fin-account="'+h(a.id)+'"><span class="fin-emblem">'+(credit(a)?'▣':a.type==='broker'?'↗':currencySymbol(a.currency||'JPY'))+'</span><span class="fin-account-name"><b>'+h(a.name)+'</b><small>'+t(a.type)+' · '+h(a.currency||'JPY')+(a.dueDay?' · '+a.dueDay:'')+'</small></span><strong class="fin-account-amount"><span>'+nativeMoney(b.get(a.id),a.currency)+'</span>'+((a.currency||'JPY')!=='JPY'?'<small>≈ '+yen(toJPY(b.get(a.id),a.currency))+'</small>':'')+'</strong></button>').join('')||'<p class="fin-empty">'+t('noAccounts')+'</p>');
+ return section(t('accounts'),button('＋ '+t('addAccount'),'account'),doc.accounts.map(a=>'<button class="fin-account" data-fin-account="'+h(a.id)+'"><span class="fin-emblem">'+(credit(a)?'▣':a.type==='broker'?'↗':currencySymbol(a.currency||'JPY'))+'</span><span class="fin-account-name"><b>'+h(a.name)+'</b><small>'+t(a.type)+' · '+h(a.currency||'JPY')+(a.dueDay?' · '+a.dueDay:'')+'</small></span><strong class="fin-account-amount"><span>'+nativeMoney(b.get(a.id),a.currency)+'</span>'+((a.currency||'JPY')!==selectedRecordCurrency()?'<small>≈ '+currencyMoney(currencyValue(b.get(a.id),a.currency))+'</small>':'')+'</strong></button>').join('')||'<p class="fin-empty">'+t('noAccounts')+'</p>');
 }
 function entries(limit=80){
  return section(t('transactions'),button('＋ '+t('addTx'),'tx'),doc.transactions.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created).slice(0,limit).map(x=>{
@@ -100,10 +118,11 @@ function entries(limit=80){
  }).join('')||'<p class="fin-empty">'+t('noData')+'</p>');
 }
 function cashFlow(){
- const m=monthData();return section(t('perMonth'),'', '<div class="fin-stats"><div><small>'+t('income')+'</small><b class="fin-positive">+'+yen(m.income)+'</b></div><div><small>'+t('expense')+'</small><b>−'+yen(m.expense)+'</b></div></div><div class="fin-actions">'+button('＋ '+t('addTx'),'tx')+button('＋ '+t('addAccount'),'account')+'</div>');
+ const m=nativeMonthData();return section(t('perMonth'),'', '<div class="fin-stats"><div><small>'+t('income')+'</small><b class="fin-positive">+'+currencyMoney(m.income)+'</b></div><div><small>'+t('expense')+'</small><b>−'+currencyMoney(m.expense)+'</b></div></div><div class="fin-actions">'+button('＋ '+t('addTx'),'tx')+button('＋ '+t('addAccount'),'account')+'</div>');
 }
 function bars(){
- const rows=[];for(let i=5;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');rows.push({k,values:monthData(k)})}
+ const rows=[];for(let i=5;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');rows.push({k,values:nativeMonthData(k)})}
+ if(rows.some(x=>!Number.isFinite(x.values.income)||!Number.isFinite(x.values.expense)))return section(t('chart'),'','<p class="fin-note">—</p>');
  const max=Math.max(1,...rows.flatMap(x=>[x.values.income,x.values.expense]));
  return section(t('chart'),'', '<div class="fin-bars">'+rows.map(x=>'<div><div class="fin-bar"><i style="height:'+Math.max(2,x.values.income/max*100)+'%"></i><b style="height:'+Math.max(2,x.values.expense/max*100)+'%"></b></div><small>'+x.k.slice(-2)+'</small></div>').join('')+'</div><p class="fin-note">'+t('income')+' / '+t('expense')+'</p>');
 }
@@ -162,7 +181,7 @@ function settings(){
 }
 function render(){
  const root=document.getElementById('financeRoot');if(!root)return;
- const x=totals(),summary='<div class="fin-hero"><small>'+t('net')+'</small><strong>'+yen(x.net)+'</strong><div><span>'+t('assets')+'<b>'+yen(x.assets)+'</b></span><span>'+t('debt')+'<b>'+yen(x.debt)+'</b></span></div></div>';
+ const x=nativeTotals(),summary='<div class="fin-hero"><small>'+t('net')+'</small><strong>'+currencyMoney(x.net)+'</strong><div><span>'+t('assets')+'<b>'+currencyMoney(x.assets)+'</b></span><span>'+t('debt')+'<b>'+currencyMoney(x.debt)+'</b></span></div></div>';
  root.innerHTML='<header class="fin-head"><div><p>MY PLANNER / FINANCE</p><h1>'+t('title')+'</h1></div><label class="fin-record-currency">'+option('recordCurrency',currencyOptions(),selectedRecordCurrency())+'</label></header><div class="fin-tabs">'+['overview','history','invest','budgets','manage'].map(k=>'<button data-fin-pane="'+k+'" class="'+(k===pane?'active':'')+'">'+t(k)+'</button>').join('')+'</div>'+
  (pane==='overview'?summary+alerts()+cashFlow()+accounts()+bars()+netChart()+categoryBreakdown()+entries(7):pane==='history'?entries():pane==='invest'?summary+portfolio():pane==='budgets'?budgetView():settings()+accounts());
  const label=document.getElementById('tabFinanceLabel');if(label)label.textContent=t('title');
@@ -213,7 +232,7 @@ function reconcile(a){
 }
 function addTx(){
  if(!doc.accounts.length)return alert(t('noAccounts'));
- const opts=accountOpts(),initial=opts[0][0];
+ const opts=accountOpts(),initial=(opts.find(([key])=>account(key)?.currency===selectedRecordCurrency())||opts[0])[0];
  dialog(t('addTx'),
   pick(t('type'),'kind',[['expense',t('expense')],['income',t('income')],['transfer',t('transfer')]],'expense')+
   field(t('amount'),'amount','number','','min="0.000001" step="any"')+
@@ -249,7 +268,7 @@ function addTx(){
   };
   const updateFX=()=>{
    const source=account(from.value),dest=account(to.value);
-   amountLabel.textContent=t('amount')+' · '+(source?.currency||'JPY');
+   amountLabel.textContent=(language==='zh'?'金额':language==='ja'?'金額':'Amount')+' · '+(source?.currency||selectedRecordCurrency());
    if(kind.value==='transfer'&&source&&dest){
     const fromRate=rate(source.currency),toRate=rate(dest.currency),value=Number(amount.value||0);
     preview.textContent=fromRate&&toRate?nativeMoney(value*fromRate/toRate,dest.currency):ct('missing');

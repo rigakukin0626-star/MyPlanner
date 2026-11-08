@@ -1,0 +1,4 @@
+dialog.fin-dialog :is(input,select,textarea):focus{outline:none!important;box-shadow:0 0 0 1px rgba(63,123,208,.3)!important;border-color:rgba(63,123,208,.42)!important}
+dialog.fin-dialog button:focus{outline:none!important;box-shadow:none!important}
+dialog.fin-dialog button:focus-visible{outline:2px solid rgba(63,123,208,.45)!important;outline-offset:2px}
+dialog.fin-dialog header button[data-close]:focus,dialog.fin-dialog header button[data-close]:focus-visible{outline:none!important;box-shadow:none!important}
