@@ -2808,10 +2808,10 @@ showWelcomeAuth();
   const repositioned=lastTop<0||Math.abs(top-lastTop)>1;
   if(resized){root.style.setProperty("--chat-visible-height",height+"px");lastHeight=height}
   if(repositioned){root.style.setProperty("--chat-visible-top",top+"px");lastTop=top}
-  // The iOS viewport can be vertically panned on input focus. The bottom
-  // coordinate is height + offsetTop; anchoring the overlay at zero avoids
-  // leaving a blank strip at the top or losing the composer above the keyboard.
-  if(resized||repositioned)root.style.setProperty("--chat-overlay-height",(height+top)+"px");
+  // Use one consistent visual-viewport coordinate space for TOP and HEIGHT.
+  // Combining the two into a height anchored at zero pushed the header out of
+  // the visible iOS Safari viewport whenever WebKit auto-panned the keyboard.
+  // CSS v210 consumes --chat-visible-top and --chat-visible-height directly.
   document.body.classList.toggle("chat-input-focused",focused);
   document.body.classList.toggle("chat-keyboard-open",keyboardOpen);
   // Do not force scroll in the focus handler AND again during keyboard entry.
@@ -2835,7 +2835,8 @@ showWelcomeAuth();
  const grow=input=>{
   input.style.height="auto";
   const height=Math.min(116,Math.max(40,input.scrollHeight));
-  if(input.offsetHeight!==height)input.style.height=height+"px";
+  input.style.height=height+"px";
+  input.style.overflowY=input.scrollHeight>116?"auto":"hidden";
  };
  const scheduleGrow=input=>{
   if(scheduledGrow.has(input))return;
@@ -2885,7 +2886,9 @@ showWelcomeAuth();
  window.addEventListener("resize",updateViewport,{passive:true});
  // iOS 26 can pan the visual layer while scrollY remains unchanged; when
  // a normal document scroll does occur, re-measure rather than scrollTo(0,0).
- window.addEventListener("scroll",scheduleChatAnchor,{passive:true});
+ // A conversation is an isolated fixed overlay. Page-level scroll during
+ // keyboard focus should not reposition the composer or force an anchor jump.
+ window.addEventListener("scroll",updateViewport,{passive:true});
  window.addEventListener("orientationchange",()=>{
   renderCorrection=0;root.style.setProperty("--chat-anchor-correction","0px");
   updateViewport();recheckChatAnchor();
