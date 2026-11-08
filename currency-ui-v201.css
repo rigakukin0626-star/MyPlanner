@@ -8,3 +8,5 @@
 .fin-dialog header button[data-close]:focus-visible{outline:2px solid var(--accent)}
 .fin-dialog header button[data-close] svg{display:block;flex-shrink:0}
 .fin-dialog .fin-modal-currency{display:none}
+
+.fin-dialog form>header{padding-right:46px;min-height:42px}
