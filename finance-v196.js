@@ -109,7 +109,7 @@ const pick=(label,name,choices,selected)=>'<label class="fin-field"><span>'+labe
 const accountOpts=()=>doc.accounts.map(a=>[a.id,a.name]);
 function accounts(){
  const b=balances();
- return section(t('accounts'),button('＋ '+t('addAccount'),'account'),doc.accounts.map(a=>'<button class="fin-account" data-fin-account="'+h(a.id)+'"><span class="fin-emblem">'+(credit(a)?'▣':a.type==='broker'?'↗':currencySymbol(a.currency||'JPY'))+'</span><span class="fin-account-name"><b>'+h(a.name)+'</b><small>'+t(a.type)+' · '+h(a.currency||'JPY')+(a.dueDay?' · '+a.dueDay:'')+'</small></span><strong class="fin-account-amount"><span>'+nativeMoney(b.get(a.id),a.currency)+'</span>'+((a.currency||'JPY')!==selectedRecordCurrency()?'<small>≈ '+currencyMoney(currencyValue(b.get(a.id),a.currency))+'</small>':'')+'</strong></button>').join('')||'<p class="fin-empty">'+t('noAccounts')+'</p>');
+ return section(t('accounts'),button('＋ '+t('addAccount'),'account'),doc.accounts.map(a=>'<button class="fin-account" data-fin-account="'+h(a.id)+'"><span class="fin-emblem">'+(credit(a)?'▣':a.type==='broker'?'↗':currencySymbol(a.currency||'JPY'))+'</span><span class="fin-account-name"><b>'+h(a.name)+'</b><small>'+t(a.type)+' · '+h(a.currency||'JPY')+(a.dueDay?' · '+a.dueDay:'')+'</small></span><strong class="fin-account-amount"><span>'+nativeMoney(b.get(a.id),a.currency)+'</span>'+''+'</strong></button>').join('')||'<p class="fin-empty">'+t('noAccounts')+'</p>');
 }
 function entries(limit=80){
  return section(t('transactions'),button('＋ '+t('addTx'),'tx'),doc.transactions.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created).slice(0,limit).map(x=>{
@@ -202,23 +202,33 @@ function addAccount(existing){
   pick(t('type'),'type',options,existing?.type||'bank')+
   '<input type="hidden" name="currency" value="'+h(current)+'">'+
   (existing?'':field(t('opening'),'opening','number',0,'step="any" min="0"'))+
-  '<label class="fin-field"><span>'+t('dueDay')+'</span><input name="dueDay" type="number" min="1" max="28" value="'+(existing?.dueDay||'')+'"></label>',
+  '<label class="fin-field fin-credit-due"'+((existing?.type||'bank')==='credit'?'':' hidden')+'><span>'+t('dueDay')+'</span><input name="dueDay" type="number" min="1" max="28" value="'+(existing?.dueDay||'')+'"></label>',
  v=>{
   if(!v.name.trim()||(!existing&&!number(v.opening,true)))return false;
-  const due=v.dueDay?Number(v.dueDay):null;
+  const due=(existing?.type||v.type)==='credit'&&v.dueDay?Number(v.dueDay):null;
   if(due!==null&&(!Number.isInteger(due)||due<1||due>28))return false;
   if(existing){existing.name=v.name.trim().slice(0,70);existing.dueDay=due;return true}
   if(!CURRENCIES.includes(v.currency))return false;
   doc.preferences.record=v.currency;
   doc.accounts.push({id:id(),name:v.name.trim().slice(0,70),type:v.type,currency:v.currency,opening:Number(v.opening),dueDay:due});
  },box=>{
+  const typeField=box.querySelector('[name="type"]'),dueField=box.querySelector('.fin-credit-due');
+  const syncDue=()=>{dueField.hidden=typeField.value!=='credit';if(dueField.hidden)dueField.querySelector('input').value=''};
+  typeField.addEventListener('change',syncDue);syncDue();
   if(existing){
    box.querySelector('[name="type"]').disabled=true;
    box.querySelector('[name="currency"]').disabled=true;
    box.querySelector('form').insertAdjacentHTML('beforeend','<button type="button" class="fin-danger">'+t('delete')+'</button>');
    box.querySelector('.fin-danger').onclick=()=>{
-    if(doc.transactions.some(x=>x.from===existing.id||x.to===existing.id)||doc.trades.some(x=>x.account===existing.id))return alert(t('different'));
-    if(confirm(t('confirm'))){doc.accounts=doc.accounts.filter(a=>a.id!==existing.id);box.close();save()}
+    const tx=doc.transactions.filter(x=>x.from===existing.id||x.to===existing.id).length;
+    const trades=doc.trades.filter(x=>x.account===existing.id).length;
+    const warning=language==='zh'?'确定删除「'+existing.name+'」吗？'+(tx||trades?'\n将同时删除关联的 '+tx+' 条流水和 '+trades+' 条交易记录。':'')+'\n删除后无法恢复。':language==='ja'?'「'+existing.name+'」を削除しますか？関連する履歴 '+tx+' 件、売買 '+trades+' 件も削除されます。':'Delete "'+existing.name+'"? '+tx+' linked records and '+trades+' trades will also be removed.';
+    if(confirm(warning)){
+     doc.transactions=doc.transactions.filter(x=>x.from!==existing.id&&x.to!==existing.id);
+     doc.trades=doc.trades.filter(x=>x.account!==existing.id);
+     doc.accounts=doc.accounts.filter(a=>a.id!==existing.id);
+     box.close();save();
+    }
    };
   }
  });
@@ -427,7 +437,7 @@ function action(what,value){
  else if(what==='useCloud')useCloud();
  else if(what==='guest'){const d=localStorage.getItem(BASE+'guest');if(d&&confirm(t('replace'))){doc=JSON.parse(d);ensurePrefs();save()}}
  else if(what==='delete'&&confirm(t('confirm'))){doc.transactions=doc.transactions.filter(x=>x.id!==value);save()}
- else if(what==='accountDetail'){const a=account(value);if(a)dialog(t('accounts'),'<p class="fin-balance">'+nativeMoney(balances().get(a.id),a.currency)+((a.currency||'JPY')!=='JPY'?'<small class="fin-account-converted">≈ '+yen(toJPY(balances().get(a.id),a.currency))+'</small>':'')+'</p><div class="fin-actions">'+button(t('edit'),'editAccount')+button(t('reconcile'),'reconcile')+'</div>',()=>true,b=>{b.querySelector('[data-fin-action="editAccount"]').onclick=()=>{b.close();addAccount(a)};b.querySelector('[data-fin-action="reconcile"]').onclick=()=>{b.close();reconcile(a)}})}
+ else if(what==='accountDetail'){const a=account(value);if(a)dialog(t('accounts'),'<p class="fin-balance">'+nativeMoney(balances().get(a.id),a.currency)+''+'</p><div class="fin-actions">'+button(t('edit'),'editAccount')+button(t('reconcile'),'reconcile')+'</div>',()=>true,b=>{b.querySelector('[data-fin-action="editAccount"]').onclick=()=>{b.close();addAccount(a)};b.querySelector('[data-fin-action="reconcile"]').onclick=()=>{b.close();reconcile(a)}})}
  else if(what==='holdingDetail'){const x=holding(value);if(x)addHolding(x)}
  else if(what==='budgetDetail')addBudget(value);
 }
