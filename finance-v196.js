@@ -37,7 +37,7 @@ const recordMoney=x=>nativeMoney(x.amount,recordCurrency(x));
 const recordTargetMoney=x=>x.kind==='transfer'&&x.toAmount!=null?nativeMoney(x.toAmount,account(x.to)?.currency||'JPY'):'';
 const nativeMoney=(amount,code)=>{
  const c=CURRENCIES.includes(code)?code:'JPY';
- if(c==='CNY')return '¥'+new Intl.NumberFormat('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(amount)||0);
+ if(c==='CNY'){const n=Number(amount)||0;return (n<0?'−':'')+'¥'+new Intl.NumberFormat('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Math.abs(n))}
  return new Intl.NumberFormat('ja-JP',{style:'currency',currency:c,maximumFractionDigits:c==='JPY'||c==='KRW'?0:2}).format(Number(amount)||0);
 };
 const displayCode=()=>doc.preferences?.display||'JPY';
@@ -58,6 +58,11 @@ const nativeMonthData=(ym=nowDate().slice(0,7))=>doc.transactions.filter(x=>x.da
  if(x.kind==='income'||x.kind==='expense')sum[x.kind]+=currencyValue(x.amount,account(x.from||x.to)?.currency||'JPY');
  return sum;
 },{income:0,expense:0});
+const conversionNote=()=>language==='zh'?'其他币种缺少汇率，无法准确合计。':language==='ja'?'他通貨の為替レートがないため合計できません。':'Some currencies lack exchange rates; totals are unavailable.';
+const spentFor=(category,currency,month=nowDate().slice(0,7))=>
+ doc.transactions.filter(x=>x.kind==='expense'&&x.category===category&&x.date.startsWith(month))
+ .reduce((sum,x)=>sum+currencyValue(x.amount,account(x.from)?.currency||'JPY',currency),0);
+const budgetCurrency=b=>CURRENCIES.includes(b?.currency)?b.currency:'JPY';
 
 const converted=jpy=>{
  const code=selectedRecordCurrency(),fx=rate(code);
@@ -127,9 +132,18 @@ function bars(){
  return section(t('chart'),'', '<div class="fin-bars">'+rows.map(x=>'<div><div class="fin-bar"><i style="height:'+Math.max(2,x.values.income/max*100)+'%"></i><b style="height:'+Math.max(2,x.values.expense/max*100)+'%"></b></div><small>'+x.k.slice(-2)+'</small></div>').join('')+'</div><p class="fin-note">'+t('income')+' / '+t('expense')+'</p>');
 }
 function categoryBreakdown(){
- const totals={};doc.transactions.filter(x=>x.kind==='expense'&&x.date.startsWith(nowDate().slice(0,7))).forEach(x=>{totals[x.category||'other']=(totals[x.category||'other']||0)+bookedJPY(x)});
- const rows=Object.entries(totals).sort((a,b)=>b[1]-a[1]),max=Math.max(1,...rows.map(x=>x[1]));
- return section(t('spending'),'',rows.map(([k,v])=>'<div class="fin-category"><div><span>'+t(k)+'</span><strong>'+yen(v)+'</strong></div><i><b style="width:'+v/max*100+'%"></b></i></div>').join('')||'<p class="fin-empty">'+t('noData')+'</p>');
+ const totals={},target=selectedRecordCurrency();
+ for(const x of doc.transactions){
+  if(x.kind!=='expense'||!x.date.startsWith(nowDate().slice(0,7)))continue;
+  const category=x.category||'other',v=currencyValue(x.amount,account(x.from)?.currency||'JPY',target);
+  totals[category]=(totals[category]||0)+v;
+ }
+ const rows=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+ if(rows.some(([,v])=>!Number.isFinite(v)))return section(t('spending'),'','<p class="fin-note">'+conversionNote()+'</p>');
+ const max=Math.max(1,...rows.map(([,v])=>v));
+ return section(t('spending'),'',
+  rows.map(([k,v])=>'<div class="fin-category"><div><span>'+t(k)+'</span><strong>'+currencyMoney(v)+'</strong></div><i><b style="width:'+Math.min(100,Math.max(0,v/max*100))+'%"></b></i></div>').join('')
+  ||'<p class="fin-empty">'+t('noData')+'</p>');
 }
 function netChart(){
  const x=doc.snapshots.slice(-45);if(x.length<2)return '';
@@ -141,16 +155,28 @@ function portfolio(){
  return section(t('invest'),button('＋ '+t('addHolding'),'holding'),'<p class="fin-note">'+t('manual')+'</p>'+doc.holdings.map(x=>'<button class="fin-account" data-fin-holding="'+h(x.id)+'"><span class="fin-emblem">↗</span><span class="fin-account-name"><b>'+h(x.symbol)+' · '+h(x.name)+'</b><small>'+qty(x)+' × '+x.price+' '+h(x.currency)+' / FX '+x.fx+'</small></span><strong>'+yen(priceValue(x))+'</strong></button>').join('')+'<div class="fin-actions">'+button(t('addTrade'),'trade')+'</div>')+accounts();
 }
 function budgetView(){
- const m=nowDate().slice(0,7);
- const body=doc.budgets.map(b=>{const used=doc.transactions.filter(x=>x.kind==='expense'&&x.category===b.category&&x.date.startsWith(m)).reduce((n,x)=>n+bookedJPY(x),0);
- return '<button class="fin-budget" data-fin-budget="'+h(b.category)+'"><div><strong>'+t(b.category)+'</strong><small>'+yen(used)+' / '+yen(b.limit)+'</small></div><div class="fin-track"><span class="'+(used>b.limit?'over':'')+'" style="width:'+Math.min(100,used/b.limit*100)+'%"></span></div></button>';
+ const month=nowDate().slice(0,7);
+ const body=doc.budgets.map(b=>{
+  const currency=budgetCurrency(b),used=spentFor(b.category,currency,month);
+  const valid=Number.isFinite(used),pct=valid?Math.min(100,Math.max(0,used/Number(b.limit)*100)):0;
+  return '<button class="fin-budget" data-fin-budget="'+h(b.category)+'"><div><strong>'+t(b.category)+' · '+h(currency)+'</strong><small>'+(valid?nativeMoney(used,currency):'—')+' / '+nativeMoney(b.limit,currency)+'</small></div>'+
+   '<div class="fin-track"><span class="'+(valid&&used>b.limit?'over':'')+'" style="width:'+pct+'%"></span></div></button>';
  }).join('');
- return section(t('budgets'),button('＋ '+t('budgets'),'budget'),body||'<p class="fin-empty">'+t('noData')+'</p>')+categoryBreakdown();
+ return section(t('budgets'),button('＋ '+t('budgets'),'budget'),
+  body||'<p class="fin-empty">'+t('noData')+'</p>')+categoryBreakdown();
 }
 function alerts(){
- const d=new Date().getDate(),due=doc.accounts.filter(a=>credit(a)&&a.dueDay&&balances().get(a.id)>0&&((a.dueDay-d+28)%28)<=7);
- const over=doc.budgets.filter(b=>doc.transactions.filter(x=>x.kind==='expense'&&x.category===b.category&&x.date.startsWith(nowDate().slice(0,7))).reduce((n,x)=>n+bookedJPY(x),0)>b.limit);
- return (due.length?'<p class="fin-alert">'+t('due')+' · '+due.map(a=>h(a.name)).join(', ')+'</p>':'')+(over.length?'<p class="fin-alert">'+t('over')+'</p>':'');
+ const today=new Date(),now=Date.UTC(today.getFullYear(),today.getMonth(),today.getDate());
+ const due=doc.accounts.filter(a=>{
+  if(!credit(a)||!a.dueDay||balances().get(a.id)<=0)return false;
+  let year=today.getFullYear(),month=today.getMonth();
+  if(a.dueDay<today.getDate()){month++;if(month===12){year++;month=0}}
+  const days=(Date.UTC(year,month,a.dueDay)-now)/86400000;
+  return days>=0&&days<=7;
+ });
+ const over=doc.budgets.filter(b=>{const used=spentFor(b.category,budgetCurrency(b));return Number.isFinite(used)&&used>b.limit});
+ return (due.length?'<p class="fin-alert">'+t('due')+' · '+due.map(a=>h(a.name)).join(', ')+'</p>':'')+
+ (over.length?'<p class="fin-alert">'+t('over')+'</p>':'');
 }
 function manualRates(){
  return section(ct('rate'),'','<p class="fin-note">'+ct('hint')+'</p><div class="fin-rate-list">'+CURRENCIES.filter(c=>c!=='JPY').map(c=>
@@ -281,7 +307,7 @@ function addTx(){
    amountLabel.textContent=(language==='zh'?'金额':language==='ja'?'金額':'Amount')+' · '+(source?.currency||selectedRecordCurrency());
    if(kind.value==='transfer'&&source&&dest){
     const fromRate=rate(source.currency),toRate=rate(dest.currency),value=Number(amount.value||0);
-    preview.textContent=fromRate&&toRate?nativeMoney(value*fromRate/toRate,dest.currency):ct('missing');
+    preview.textContent=source.currency===dest.currency?nativeMoney(value,dest.currency):fromRate&&toRate?nativeMoney(value*fromRate/toRate,dest.currency):ct('missing');
    }
   };
   kind.addEventListener('change',update);
@@ -330,11 +356,15 @@ function addTrade(){
 }
 function addBudget(category){
  const old=doc.budgets.find(b=>b.category===category);
- dialog(t('budgets'),pick(t('category'),'category',catKeys.map(k=>[k,t(k)]),category||'food')+field(t('limit'),'limit','number',old?.limit||10000,'min="1" step="1"'),v=>{
-  if(!number(v.limit))return false;
-  doc.budgets=doc.budgets.filter(b=>b.category!==v.category);
-  doc.budgets.push({category:v.category,limit:Number(v.limit)});
- });
+ const currency=old?budgetCurrency(old):selectedRecordCurrency();
+ dialog(t('budgets')+' · '+h(currency),
+  pick(t('category'),'category',catKeys.map(k=>[k,t(k)]),category||'food')+
+  field(t('limit'),'limit','number',old?.limit||10000,'min="0.01" step="any"'),v=>{
+   if(!number(v.limit))return false;
+   const previous=doc.budgets.find(b=>b.category===v.category),code=previous?budgetCurrency(previous):currency;
+   doc.budgets=doc.budgets.filter(b=>b.category!==v.category);
+   doc.budgets.push({category:v.category,limit:Number(v.limit),currency:code});
+  });
 }
 function download(name,content,type){
  const url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
