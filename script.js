@@ -990,11 +990,12 @@ async function chatGetSignedImageUrl(path){
  chatImageUrlRequests.set(path,request);
  try{return await request}finally{chatImageUrlRequests.delete(path)}
 }
-function chatAttachStoredPhoto(node,path,isGroup=false){
- const wrap=document.createElement("span");wrap.className="chat-media-frame";
+function chatAttachStoredPhoto(node,path,isGroup=false,priority=false){
+ const wrap=document.createElement("span");wrap.className="chat-media-frame chat-media-pending";
  const img=document.createElement("img");img.className="chat-photo";
  const warmed=chatWarmedPhotos.get(path);
- img.loading=chatHasWarmedPhoto(path)?"eager":"lazy";img.decoding="async";
+ img.loading=priority||chatHasWarmedPhoto(path)?"eager":"lazy";img.decoding="async";
+ if(priority)img.fetchPriority="high";
  if(warmed?.naturalWidth){img.width=warmed.naturalWidth;img.height=warmed.naturalHeight;}
  img.alt=chatText("照片加载中…","写真を読み込み中…","Loading photo...");
  const retry=document.createElement("button");retry.type="button";retry.className="chat-photo-retry";retry.hidden=true;
@@ -1004,7 +1005,7 @@ function chatAttachStoredPhoto(node,path,isGroup=false){
  let activeRequest=0;
  const failed=(error)=>{
   if(!wrap.isConnected)return;
-  img.hidden=true;retry.hidden=false;wrap.classList.remove("chat-media-ready");
+  img.hidden=true;retry.hidden=false;wrap.classList.remove("chat-media-ready","chat-media-pending");
   img.onerror=null;img.onload=null;img.removeAttribute("src");
   const details=String(error?.cause?.signed||"")+" "+String(error?.cause?.download||"")+" "+String(error?.message||"");
   const denied=/401|403|unauthori[sz]ed|permission|row.level|rls|not allowed|access denied/i.test(details);
@@ -1024,7 +1025,7 @@ function chatAttachStoredPhoto(node,path,isGroup=false){
    }else failed(new Error("Image download or decoding failed"));
   };
   img.onload=()=>{
-   wrap.classList.add("chat-media-ready");
+   wrap.classList.remove("chat-media-pending");wrap.classList.add("chat-media-ready");
    img.alt=chatText("聊天照片","チャット写真","Chat photo");
    if(!isGroup&&Date.now()<chatAutoScrollUntil)chatScrollToLatest();
   };
@@ -1032,6 +1033,7 @@ function chatAttachStoredPhoto(node,path,isGroup=false){
  };
  const load=(force=false)=>{
   const id=++activeRequest;
+  wrap.classList.add("chat-media-pending");wrap.classList.remove("chat-media-ready");
   retry.hidden=true;img.hidden=false;
   if(force){
    const old=chatImageUrlCache.get(path);
@@ -2006,6 +2008,8 @@ function groupRenderMessages(items){
  const root=$("chatGroupMessages"),nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<140;
  const hidden=groupHiddenIds(chatActiveGroup?.id);
  const visibleItems=items.filter(item=>!hidden.has(String(item.id)));
+ const priorityImages=new Set(visibleItems.filter(item=>typeof item.body==="string"&&
+  item.body.startsWith("[myplanner-group-image]:")).slice(-2).map(item=>String(item.id)));
  const oldNodes=[...root.children];
  const oldIds=oldNodes.map(node=>node.dataset.groupMessageId);
  const context=uiLanguage+"|"+[...new Set(visibleItems.map(item=>item.sender_id))]
@@ -2024,7 +2028,7 @@ function groupRenderMessages(items){
   if(item.body.startsWith("[myplanner-group-image]:")){
    const path=item.body.slice("[myplanner-group-image]:".length);
    if(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp|gif)$/i.test(path)){
-    chatAttachStoredPhoto(body,path,true);
+    chatAttachStoredPhoto(body,path,true,priorityImages.has(String(item.id)));
 
    }else body.textContent=chatText("照片无效","無効な画像","Invalid photo");
   }else{
