@@ -1422,7 +1422,7 @@ function chatRenderMessages(){
    for(let i=0;i<pending.length;i++){
     const m=pending[i][1];
     const state=m.status==="failed"?chatText("发送失败","送信失敗","Failed"):m.status==="uncertain"?chatText("发送超时·待确认","送信確認中","Delivery unconfirmed"):m.status==="sent"?"":chatText("发送中…","送信中…","Sending...");
-    const text=new Date(m.createdAt).toLocaleString()+(state?" · "+state:"");
+    const text=formatChatClock(m.createdAt)+(state?" · "+state:"");
     const clock=root.children[confirmed.length+i].querySelector(":scope > small");
     if(clock&&clock.textContent!==text)clock.textContent=text;
    }
@@ -1448,7 +1448,7 @@ function chatRenderMessages(){
   if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}
   else chatDisplayBody(body,item.body);
   const time=document.createElement("small");
-  const sentAt=new Date(item.createdAt).toLocaleString();
+  const sentAt=formatChatClock(item.createdAt);
   const state=item.status==="failed"?chatText("发送失败","送信失敗","Failed"):item.status==="uncertain"?chatText("发送超时·待确认","送信確認中","Delivery unconfirmed"):item.status==="sent"?"":chatText("发送中…","送信中…","Sending...");
   time.textContent=sentAt+(state?" · "+state:"");
   div.append(body,time);fragment.append(div);
@@ -1618,9 +1618,9 @@ $("chatSendForm").addEventListener("submit",async e=>{
  const body=reply?CHAT_REPLY_PREFIX+JSON.stringify({id:reply.id,quote:chatQuoteText(reply.body),text:textBody}):textBody;
  const key="pending-"+Date.now()+"-"+Math.random().toString(36).slice(2);
  chatPending.set(key,{peer,body,status:"sending",serverId:null,createdAt:Date.now()});
- input.value="";chatReplyTarget=null;chatUpdateReplyPreview();
- // Always render from the local pending queue first; network work starts afterward.
- chatRenderMessages();
+ input.value="";input.style.height="40px";input.scrollTop=0;chatReplyTarget=null;chatUpdateReplyPreview();chatAutoScrollUntil=Date.now()+850;
+ // Render locally without waiting on the network, then reveal the last bubble.
+ chatRenderMessages();chatScrollToLatest();
  try{
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),12000);
@@ -2284,8 +2284,21 @@ function groupRenderMessages(items){
  const visibleItems=items.filter(item=>!hidden.has(String(item.id)));
  const priorityImages=new Set(visibleItems.filter(item=>typeof item.body==="string"&&
   item.body.startsWith("[myplanner-group-image]:")).slice(-2).map(item=>String(item.id)));
- const oldNodes=[...root.children];
+ /* Ignore temporary sends when comparing the visible server-message prefix.
+    This preserves existing photo nodes rather than rebuilding the whole list. */
+ const localPreviews=[...root.children].filter(node=>node.dataset.localSendBody!==undefined);
+ const oldNodes=[...root.children].filter(node=>node.dataset.groupMessageId!==undefined);
  const oldIds=oldNodes.map(node=>node.dataset.groupMessageId);
+ const freshItems=visibleItems.filter(item=>!oldIds.includes(String(item.id)));
+ const usedMatches=new Set();
+ const keepLocal=localPreviews.filter(node=>{
+  const sentAt=Number(node.dataset.localSendAt||0);
+  const match=freshItems.find(item=>!usedMatches.has(String(item.id))&&
+   item.sender_id===currentUser?.id&&item.body===node.dataset.localSendBody&&
+   Math.abs(Date.parse(item.created_at)-sentAt)<90000);
+  if(!match)return true;
+  usedMatches.add(String(match.id));return false;
+ });
  const context=uiLanguage+"|"+[...new Set(visibleItems.map(item=>item.sender_id))]
    .map(id=>id+":"+chatRemarkFor(id)).join(",");
  const canAppend=oldIds.length>0&&root.dataset.renderContext===context
@@ -2318,9 +2331,13 @@ function groupRenderMessages(items){
  }
  const beforeHeight=root.scrollHeight;
  const beforeTop=root.scrollTop;
- if(canAppend)root.append(fragment);
- else if(canPrepend)root.prepend(fragment);
- else root.replaceChildren(fragment);
+ if(canAppend){
+  for(const node of localPreviews)if(!keepLocal.includes(node))node.remove();
+  root.insertBefore(fragment,keepLocal[0]||null);
+ }else if(canPrepend){
+  for(const node of localPreviews)if(!keepLocal.includes(node))node.remove();
+  root.prepend(fragment);
+ }else root.replaceChildren(fragment,...keepLocal);
  if(canPrepend&&!groupScrollFollow.followLatest)
   root.scrollTop=beforeTop+Math.max(0,root.scrollHeight-beforeHeight);
  root.dataset.renderContext=context;
@@ -2606,14 +2623,26 @@ $("chatGroupSendForm").addEventListener("submit",async event=>{
  const groupId=chatActiveGroup.id;
  const reply=groupReplyTarget?.groupId===groupId?groupReplyTarget:null;
  const body=reply?GROUP_REPLY_PREFIX+JSON.stringify({id:reply.id,quote:groupQuote(reply.body),text:textBody}):textBody;
- input.value="";groupReplyTarget=null;groupUpdateReplyPreview();
+ input.value="";input.style.height="40px";input.scrollTop=0;groupReplyTarget=null;groupUpdateReplyPreview();
  const root=$("chatGroupMessages"),bubble=document.createElement("div");bubble.className="chat-bubble mine";
- const label=document.createElement("span");label.textContent=body;
- const time=document.createElement("small");time.textContent=new Date().toLocaleString()+" · "+chatText("发送中…","送信中…","Sending...");
- bubble.append(label,time);root.append(bubble);root.scrollTop=root.scrollHeight;
+ const localSentAt=Date.now();
+ bubble.dataset.localSendAt=String(localSentAt);bubble.dataset.localSendBody=body;
+ chatBubbleAvatar(bubble,currentUser.id,true);
+ const parsedReply=groupParseReply(body),label=document.createElement(parsedReply?"div":"span");
+ if(parsedReply){chatMarkReplyBubble(bubble);chatBuildReplyBody(label,parsedReply)}
+ else label.textContent=textBody;
+ const time=document.createElement("small");time.className="chat-clock";
+ time.textContent=formatChatClock(localSentAt)+" · "+chatText("发送中…","送信中…","Sending...");
+ bubble.append(label,time);
+ // Sending is an intentional return to latest; manual scrolling can disengage.
+ if(groupScrollFollow.groupId===groupId){
+  groupScrollFollow.followLatest=true;groupScrollFollow.gesture=false;groupScrollFollow.blockAutoUntil=0;
+ }
+ root.append(bubble);root.scrollTop=root.scrollHeight;groupScrollPin(groupId,true);
  const {error}=await supabaseClient.from("chat_group_messages").insert({group_id:groupId,sender_id:currentUser.id,body});
- if(error){time.textContent=chatText("发送失败","送信失敗","Failed");groupError(error);return}
- time.textContent=new Date().toLocaleString();groupLastSignature="";groupLoadMessages();
+ if(chatActiveGroup?.id!==groupId)return;
+ if(error){time.textContent=formatChatClock(localSentAt)+" · "+chatText("发送失败","送信失敗","Failed");groupError(error);return}
+ time.textContent=formatChatClock(localSentAt);groupLastSignature="";void groupLoadMessages();groupScheduleRefresh();
 });
 setInterval(()=>{if(!document.hidden&&document.body.dataset.activePage==="chat"&&chatActiveGroup)groupLoadMessages()},5000);
 /* Chat V43: LINE-style friend management drawer. */
@@ -2768,6 +2797,12 @@ showWelcomeAuth();
  };
  for(const input of fields){
   grow(input);
+  const sendButton=input.form?.querySelector('button[type="submit"]');
+  // Pointerdown should not steal keyboard focus from the active composer.
+  // click/submit activation is still delivered by the pointer event model.
+  sendButton?.addEventListener("pointerdown",event=>{
+   if(document.activeElement===input&&event.isPrimary&&event.cancelable)event.preventDefault();
+  },{passive:false});
   input.addEventListener("input",()=>scheduleGrow(input),{passive:true});
   input.addEventListener("focus",()=>{
    updateViewport();
