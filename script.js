@@ -900,7 +900,7 @@ function chatWarmPhoto(path){
   if(currentUser?.id!==userId||!image.naturalWidth)return false;
   chatWarmedPhotos.set(path,image);
   // Bound retained decoded bitmaps to avoid iPhone memory pressure.
-  while(chatWarmedPhotos.size>5)chatWarmedPhotos.delete(chatWarmedPhotos.keys().next().value);
+  while(chatWarmedPhotos.size>3)chatWarmedPhotos.delete(chatWarmedPhotos.keys().next().value);
   return true;
  })().catch(()=>false).finally(()=>{chatPhotoWarmTasks.delete(path)});
  chatPhotoWarmTasks.set(path,task);
