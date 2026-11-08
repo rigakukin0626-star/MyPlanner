@@ -1,0 +1,16 @@
+/* v194 — keyboard-opening stability for iOS Safari / PWA. */
+@media(max-width:719px){
+ /* The conversation is already a fixed fullscreen layer. Prevent the body
+    underneath from becoming a second scroll surface during Safari focus. */
+ body.chat-open{overflow:hidden!important;overscroll-behavior:none!important}
+ /* Avoid accidental animations of the viewport-sized chat panel itself. */
+ body.chat-open #pageChat .chat-conversation:not([hidden]){
+  transition:none!important;
+  animation:none!important;
+ }
+ /* iOS otherwise auto-zooms small textareas on focus. */
+ body.chat-open #pageChat .chat-send textarea{
+  font-size:16px!important;
+  scroll-behavior:auto!important;
+ }
+}

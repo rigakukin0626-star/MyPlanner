@@ -2757,11 +2757,23 @@ showWelcomeAuth();
  const root=document.documentElement;
  let raf=0, lastHeight=0, lastTop=-1, wasOpen=false;
  let knownWidth=window.innerWidth, baseline=window.visualViewport?.height||window.innerHeight;
+ let focusAnchor=null, settleTimer=0;
  const activeField=()=>fields.includes(document.activeElement)?document.activeElement:null;
- const scrollMessages=(field)=>{
-  const id=field?.id==="chatGroupMessageInput"?"chatGroupMessages":"chatMessages";
-  const list=document.getElementById(id);
-  if(list)list.scrollTop=list.scrollHeight;
+ const messageList=field=>document.getElementById(field?.id==="chatGroupMessageInput"?"chatGroupMessages":"chatMessages");
+ const scrollMessages=field=>{
+  const list=messageList(field);
+  if(list)list.scrollTop=Math.max(0,list.scrollHeight-list.clientHeight);
+ };
+ const scheduleStablePin=()=>{
+  if(settleTimer)clearTimeout(settleTimer);
+  if(!focusAnchor?.follow)return;
+  const current=focusAnchor;
+  settleTimer=setTimeout(()=>{
+   settleTimer=0;
+   if(focusAnchor!==current||!current.follow||activeField()!==current.field||
+      !document.body.classList.contains("chat-open")||!wasOpen)return;
+   requestAnimationFrame(()=>{if(focusAnchor===current&&current.follow)scrollMessages(current.field)});
+  },130);
  };
  const applyViewport=()=>{
   raf=0;
@@ -2769,16 +2781,26 @@ showWelcomeAuth();
   const height=Math.max(1,Math.round(vv?.height||window.innerHeight));
   const top=Math.max(0,Math.round(vv?.offsetTop||0));
   const field=activeField();
-  const focused=Boolean(field&&document.body.classList.contains("chat-open"));
-  if(knownWidth!==window.innerWidth){knownWidth=window.innerWidth;baseline=height}
-  if(!focused&&height>baseline)baseline=height;
+  const chatOpened=document.body.classList.contains("chat-open");
+  const focused=Boolean(field&&chatOpened);
+  if(knownWidth!==window.innerWidth){knownWidth=window.innerWidth;baseline=Math.max(height,window.innerHeight);focusAnchor=null}
+  if(!focused&&!wasOpen&&height>baseline)baseline=height;
   const hiddenPixels=Math.max(0,window.innerHeight-height-top,baseline-height-top);
-  const keyboardOpen=focused&&hiddenPixels>100;
-  if(height!==lastHeight){root.style.setProperty("--chat-visible-height",height+"px");lastHeight=height}
-  if(top!==lastTop){root.style.setProperty("--chat-visible-top",top+"px");lastTop=top}
+  // A hysteresis avoids switching bottom safe-area padding repeatedly while
+  // Safari animates the keyboard and moves its own browser toolbar.
+  const keyboardOpen=chatOpened&&(focused||wasOpen)&&hiddenPixels>(wasOpen?100:155);
+  const resized=lastHeight===0||Math.abs(height-lastHeight)>1;
+  const repositioned=lastTop<0||Math.abs(top-lastTop)>1;
+  if(resized){root.style.setProperty("--chat-visible-height",height+"px");lastHeight=height}
+  if(repositioned){root.style.setProperty("--chat-visible-top",top+"px");lastTop=top}
   document.body.classList.toggle("chat-input-focused",focused);
   document.body.classList.toggle("chat-keyboard-open",keyboardOpen);
-  if(keyboardOpen&&!wasOpen)requestAnimationFrame(()=>scrollMessages(field));
+  // Do not force scroll in the focus handler AND again during keyboard entry.
+  // Follow only when the reader was already near the most recent message;
+  // pin once when the visual viewport finishes settling.
+  if(keyboardOpen&&focused&&focusAnchor?.field===field&&
+     focusAnchor.follow&&(resized||repositioned||!wasOpen))scheduleStablePin();
+  if(!keyboardOpen&&settleTimer){clearTimeout(settleTimer);settleTimer=0}
   wasOpen=keyboardOpen;
  };
  const updateViewport=()=>{
@@ -2805,10 +2827,25 @@ showWelcomeAuth();
   },{passive:false});
   input.addEventListener("input",()=>scheduleGrow(input),{passive:true});
   input.addEventListener("focus",()=>{
+   const list=messageList(input);
+   const distance=list?Math.max(0,list.scrollHeight-list.scrollTop-list.clientHeight):Infinity;
+   focusAnchor={field:input,follow:distance<140};
    updateViewport();
-   requestAnimationFrame(()=>scrollMessages(input));
   });
-  input.addEventListener("blur",updateViewport);
+  input.addEventListener("blur",()=>{
+   if(focusAnchor?.field===input)focusAnchor=null;
+   if(settleTimer){clearTimeout(settleTimer);settleTimer=0}
+   updateViewport();
+  });
+  // A manual swipe to read older messages must never be undone by
+  // keyboard viewport resize or keyboard switching.
+  const list=messageList(input);
+  list?.addEventListener("touchstart",()=>{
+   if(focusAnchor?.field===input)focusAnchor.follow=false;
+  },{passive:true});
+  list?.addEventListener("wheel",()=>{
+   if(focusAnchor?.field===input)focusAnchor.follow=false;
+  },{passive:true});
   input.addEventListener("keydown",event=>{
    if(event.key==="Enter"&&(event.ctrlKey||event.metaKey)&&!event.isComposing){
     event.preventDefault();input.form?.requestSubmit();
