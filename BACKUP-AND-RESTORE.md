@@ -86,3 +86,15 @@ Supabase SQL Editor. It was NOT automatically applied.
 - Long-press actions now have fixed, viewport-aware positioning near their message and dismiss on scroll.
 - No Supabase, user data, messages, storage or RLS policies were modified by this change.
 - Browser-based mobile viewport layout regression passed for alternating received/sent replies; live iOS Safari validation remains necessary.
+
+## v180 — In-memory preloading of recent group messages and private photos
+
+- Baseline main SHA: `c7c1fe94b14f9f4e854ed2d219009a965d399308`.
+- Safe rollback branch: `backup-before-media-prefetch-v180`.
+- Development branch: `feat-group-media-prefetch-v180`.
+- When the group list is visible (and during initial signed-in warmup), the app quietly prefetches recent messages for at most two groups, and authenticated image downloads for a maximum of two recent images in the first group and one in the second.
+- Prefetched message rows and decoded image bitmaps stay in bounded, signed-in browser memory; no public Storage bucket, offline persistent image cache or third-party proxy is introduced. Warm images and blob URLs are cleared on sign-out or account switch.
+- Entering a warm group uses prefetched messages immediately while refreshing the latest state from Supabase. Cold starts and large images may still require networking; this is best-effort, not guaranteed zero-latency.
+- Group list renders as soon as groups are returned, before read counts and previews finish. Recent images are eagerly painted; other historic images stay lazy-loaded to conserve bandwidth.
+- Added a quiet photo placeholder, capped large media height, and reduced timestamp whitespace without reintroducing media bubble backgrounds.
+- This release requires no SQL migration and does not modify existing messages, members, or Storage objects.
