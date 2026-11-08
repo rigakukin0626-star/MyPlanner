@@ -1,0 +1,43 @@
+/* Finance v196 — Liquid Glass surface, native iOS sizing */
+#pageFinance{padding:14px 5px calc(140px + env(safe-area-inset-bottom));max-width:760px;margin:auto}
+#financeRoot{display:grid;gap:16px;color:var(--ink)}
+.fin-head{display:flex;justify-content:space-between;align-items:center;padding:6px}
+.fin-head p{margin:0;font-size:10px;letter-spacing:.14em;color:var(--muted)}.fin-head h1{font-size:29px;margin:5px 0}
+.fin-head>span{display:grid;place-items:center;width:45px;height:45px;border-radius:50%;color:var(--accent-ink);background:rgba(152,183,231,.17);border:1px solid rgba(255,255,255,.5);font-size:25px}
+.fin-tabs{display:flex;gap:3px;background:rgba(151,182,222,.11);padding:5px;border-radius:20px}
+.fin-tabs button{min-width:0;flex:1;padding:10px 2px;background:transparent;border:1px solid transparent;color:var(--muted);font-size:12px;border-radius:16px;font-weight:600}
+.fin-tabs .active{background:rgba(255,255,255,.27);border-color:rgba(255,255,255,.6);color:var(--accent-ink)}
+.fin-card,.fin-hero{background:rgba(255,255,255,.62);border:1px solid rgba(155,176,211,.16);border-radius:25px;padding:19px;box-shadow:0 7px 23px rgba(34,61,106,.04)}
+.fin-hero{background:linear-gradient(140deg,rgba(160,193,243,.29),rgba(255,255,255,.46))}
+.fin-hero>small{color:var(--muted)}.fin-hero>strong{display:block;font-size:clamp(27px,7vw,42px);letter-spacing:-.045em;overflow-wrap:anywhere;margin:6px 0 16px}
+.fin-hero>div,.fin-stats{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.fin-hero>div{border-top:1px solid rgba(151,172,209,.17);padding-top:14px}.fin-hero span,.fin-stats small{font-size:12px;color:var(--muted)}
+.fin-hero b,.fin-stats b{display:block;font-size:18px;color:var(--ink);margin-top:6px;overflow-wrap:anywhere}
+.fin-stats b{font-size:22px}.fin-positive{color:#208b66!important}
+.fin-section-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:17px}.fin-section-title h2{font-size:19px;margin:0}
+.fin-small{background:rgba(154,187,237,.17);border:1px solid rgba(135,171,222,.23);border-radius:999px;padding:8px 11px;color:var(--accent-ink);font-size:12px;font-weight:650}
+.fin-actions{display:flex;gap:10px;margin-top:15px}.fin-actions button{flex:1;min-width:0;min-height:44px;padding:8px;border-radius:15px}
+.fin-actions button:first-child{background:var(--accent);color:#fff}
+.fin-account{width:100%;display:flex;align-items:center;gap:11px;text-align:left;background:transparent;border:0;border-bottom:1px solid rgba(150,178,220,.17);color:var(--ink);padding:12px 0}
+.fin-emblem{width:42px;height:42px;flex-shrink:0;display:grid;place-items:center;background:rgba(126,168,228,.14);color:var(--accent-ink);border-radius:14px;font-size:21px}
+.fin-account-name{min-width:0;flex:1;display:grid;gap:4px}.fin-account-name b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}.fin-account-name small{color:var(--muted);font-size:11px}
+.fin-account>strong{white-space:nowrap;font-size:14px}.fin-empty,.fin-note{color:var(--muted);font-size:12px;line-height:1.6}
+.fin-entry{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(150,178,220,.16);padding:12px 0}
+.fin-entry>span:first-child{display:grid;gap:4px;min-width:0}.fin-entry b{font-size:14px}.fin-entry small{font-size:11px;color:var(--muted)}
+.fin-entry>span:last-child{display:flex;align-items:center;gap:7px}.fin-entry strong{font-size:13px;white-space:nowrap}.fin-entry button{border:0;background:none;color:var(--muted);font-size:22px;padding:5px}
+.fin-bars{display:grid;grid-template-columns:repeat(6,1fr);height:135px;gap:9px}.fin-bars>div{display:grid;grid-template-rows:1fr auto;text-align:center;gap:5px;color:var(--muted);font-size:12px}
+.fin-bar{display:flex;align-items:end;justify-content:center;gap:4px;height:100%}.fin-bar i,.fin-bar b{background:#7babf5;display:block;width:12px;max-width:38%;border-radius:5px 5px 0 0}.fin-bar b{background:#eeb48f}.fin-trend{width:100%;height:auto}
+.fin-category{margin:12px 0}.fin-category>div,.fin-budget>div:first-child{display:flex;justify-content:space-between;gap:8px;font-size:13px}
+.fin-category i,.fin-track{display:block;border-radius:99px;background:rgba(134,166,218,.15);height:7px;overflow:hidden;margin-top:8px}
+.fin-category i b,.fin-track span{display:block;height:100%;background:#5990e8;border-radius:99px}.fin-track .over{background:#e39a79}
+.fin-budget{width:100%;padding:13px 0;border:0;border-bottom:1px solid rgba(150,178,220,.16);background:none;color:var(--ink);text-align:left}
+.fin-alert{padding:12px;border-radius:15px;background:rgba(231,177,115,.13);border:1px solid rgba(216,159,100,.23);font-size:13px}
+.fin-sync{font-size:13px;color:var(--accent-ink)}
+.fin-dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:23px;width:min(94vw,445px);max-height:85dvh;padding:20px;overflow-y:auto}
+.fin-dialog::backdrop{background:rgba(7,19,39,.46);backdrop-filter:blur(8px)}
+.fin-dialog form{display:grid;gap:14px}.fin-dialog header{display:flex;align-items:center;justify-content:space-between}.fin-dialog header h2{margin:0;font-size:21px}.fin-dialog header button{font-size:26px;background:none;border:0;color:var(--muted)}
+.fin-field{display:grid;gap:7px;font-size:12px;font-weight:650}.fin-field input,.fin-field select{min-height:44px;width:100%;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:8px 12px;color:var(--ink);font-size:16px}
+.fin-dialog footer{display:flex;gap:10px;margin-top:4px}.fin-dialog footer button{flex:1;min-height:46px;background:var(--field);border:1px solid var(--line);border-radius:14px;color:var(--ink)}.fin-dialog footer button:last-child{background:var(--accent);color:#fff}
+.fin-danger{border:0;background:none;color:#dc6060;padding:12px}.fin-balance{font-weight:800;font-size:27px}
+html[data-theme="dark"] .fin-card{background:rgba(35,44,59,.67)}html[data-theme="dark"] .fin-hero{background:linear-gradient(145deg,rgba(50,79,123,.49),rgba(30,41,59,.71))}
+@media(max-width:719px){#pageFinance{padding:12px 1px calc(130px + env(safe-area-inset-bottom))}.fin-hero,.fin-card{padding:17px}.bottom-tabs .tab{min-width:0!important;flex:1 1 0!important}.bottom-tabs .tab>span:last-child{font-size:clamp(8px,2.3vw,11px)!important;white-space:nowrap}}

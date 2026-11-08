@@ -1,0 +1,6 @@
+# v196 Assets — Local-first finance management
+Backup branch: backup/pre-v196-finance-20261108, base 90561c20c285f5e7ae48f00bb2d9556e5684995d.
+Delivered: separate Assets page, bank/cash/brokerage/credit accounts, ledger-based balances, income/expenses/transfers, credit-debt calculation, monthly spending by category, six-month bar chart, net-worth snapshots, monthly budgets/alerts, credit due-day alert, manual investment holdings and trades with FX, JSON backup import/export, CSV export, Chinese/Japanese/English UI, light/dark visual glass design.
+Cloud sync code uses Supabase Auth and revision-checked finance_documents. SQL migration supplied but NOT RUN, because no Supabase connector is installed. Until applied, data stays in unencrypted localStorage on this device. Never enter passwords or card numbers. Stock quotes and automatic bank feeds NOT connected.
+Portfolio trade cash moves through selected cash account; opening positions have quantity/cost and marked-to-market value. No investment double-counting if broker opening balance is cash only.
+No changes to previous chat, push, group, task logic.
