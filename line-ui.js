@@ -341,6 +341,7 @@
  // DOM for changing language is already rebuilt by the original module.
  // Re-localize the additional labels after a picker change, without network IO.
  $("languageSelect")?.addEventListener("change",()=>queueMicrotask(refreshLanguage));
+ window.closeAllChatNavigationMenus=()=>{closePopup();closeGroupMenu();closePrivateMenu();closeScreen()};
  window.refreshLineChatNavigation=refreshLanguage;
  refreshLanguage();
 })();
