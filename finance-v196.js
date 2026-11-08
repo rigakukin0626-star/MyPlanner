@@ -326,7 +326,28 @@ function importJSON(){
  file.onchange=async()=>{try{
   const f=file.files?.[0];if(!f||f.size>2000000)throw Error('Invalid backup');
   const x=JSON.parse(await f.text()),d=x.doc;
-  if(x.format!=='mpfinance-v196'||d.version!==1||!['accounts','transactions','holdings','trades','budgets','snapshots'].every(k=>Array.isArray(d[k])&&d[k].length<30000))throw Error('Invalid backup');
+  if(x.format!=='mpfinance-v196'||!d||d.version!==1||
+   !['accounts','transactions','holdings','trades','budgets','snapshots'].every(k=>Array.isArray(d[k])&&d[k].length<30000))throw Error('Invalid backup');
+  const finite=(v,nonnegative=false)=>Number.isFinite(Number(v))&&Math.abs(Number(v))<1e12&&(!nonnegative||Number(v)>=0);
+  const currencyOf=a=>a.currency||'JPY';
+  const importedRates=d.preferences?.rates||{};
+  const rateFor=c=>c==='JPY'?1:Number(importedRates[c]);
+  if(d.preferences?.display&&!CURRENCIES.includes(d.preferences.display))throw Error('Invalid display currency');
+  if(d.accounts.some(a=>!a||typeof a.id!=='string'||typeof a.name!=='string'||
+    !['bank','cash','broker','credit','other'].includes(a.type)||
+    !CURRENCIES.includes(currencyOf(a))||!finite(a.opening,true)||
+    !(rateFor(currencyOf(a))>0&&rateFor(currencyOf(a))<1e7)))throw Error('Invalid account or FX rate');
+  if(d.transactions.some(z=>!z||typeof z.id!=='string'||typeof z.date!=='string'||
+    !['income','expense','transfer','adjust'].includes(z.kind)||!finite(z.amount,z.kind!=='adjust')||
+    (z.jpy!=null&&!finite(z.jpy,true))||
+    (z.toAmount!=null&&!finite(z.toAmount,true))))throw Error('Invalid transaction');
+  if(d.holdings.some(z=>!z||typeof z.id!=='string'||!CURRENCIES.includes(z.currency||'JPY')||
+    !finite(z.openingQty,true)||!finite(z.price,true)||!finite(z.fx,true)||Number(z.fx)<=0))throw Error('Invalid holding');
+  if(d.trades.some(z=>!z||!['buy','sell'].includes(z.side)||!finite(z.qty,true)||
+    !finite(z.price,true)||!finite(z.fx,true)||!finite(z.fees,true)||
+    (z.accountFx!=null&&!finite(z.accountFx,true))))throw Error('Invalid trade');
+  if(d.budgets.some(z=>!z||typeof z.category!=='string'||!finite(z.limit,true)||Number(z.limit)<=0))throw Error('Invalid budget');
+  if(d.snapshots.some(z=>!z||typeof z.date!=='string'||!finite(z.value)))throw Error('Invalid snapshot');
   if(!confirm(t('replace')))return;
   doc=d;ensurePrefs();save();
  }catch(e){alert(e.message||t('invalid'))}};
