@@ -1043,8 +1043,8 @@ function chatAttachStoredPhoto(node,path,isGroup=false,priority=false){
    chatFitMediaFrame(wrap,img);
    wrap.classList.remove("chat-media-pending");wrap.classList.add("chat-media-ready");
    img.alt=chatText("聊天照片","チャット写真","Chat photo");
-   if(isGroup)groupScrollPin();
-   else if(Date.now()<chatAutoScrollUntil)chatScrollToLatest();
+   if(isGroup&&wrap.isConnected)groupScrollPin();
+   else if(!isGroup&&Date.now()<chatAutoScrollUntil)chatScrollToLatest();
   };
   img.hidden=false;retry.hidden=true;img.src=url;
  };
@@ -2062,9 +2062,11 @@ function groupScrollWatchMedia(){
 function groupScrollTrackIntent(){
  const root=$("chatGroupMessages");
  if(!root||!chatActiveGroup||groupScrollFollow.groupId!==chatActiveGroup.id)return;
- if(Date.now()-groupScrollFollow.lastUserMove>800)return;
  const distance=Math.max(0,root.scrollHeight-root.scrollTop-root.clientHeight);
- groupScrollFollow.followLatest=distance<90;
+ // Natural momentum scrolling can reach the bottom after finger release.
+ if(distance<65){groupScrollFollow.followLatest=true}
+ else if(Date.now()-groupScrollFollow.lastUserMove<=800){groupScrollFollow.followLatest=distance<90}
+ else return;
  groupScrollUpdateJump();
  if(groupScrollFollow.followLatest)groupScrollPin();
 }
