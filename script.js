@@ -1049,7 +1049,10 @@ function chatAttachStoredPhoto(node,path,isGroup=false,priority=false){
  const warmed=chatWarmedPhotos.get(path);
  img.loading=priority||chatHasWarmedPhoto(path)?"eager":"lazy";img.decoding="async";
  if(priority)img.fetchPriority="high";
- if(warmed?.naturalWidth){img.width=warmed.naturalWidth;img.height=warmed.naturalHeight;}
+ if(warmed?.naturalWidth){
+  img.width=warmed.naturalWidth;img.height=warmed.naturalHeight;
+  chatFitMediaFrame(wrap,warmed); // Reserve the final size before painting.
+ }
  img.alt=chatText("照片加载中…","写真を読み込み中…","Loading photo...");
  const retry=document.createElement("button");retry.type="button";retry.className="chat-photo-retry";retry.hidden=true;
  retry.textContent=chatText("照片无法读取 · 点击重试","写真を読み込めません · 再試行","Photo unavailable · Retry");
@@ -2083,9 +2086,10 @@ let groupMediaResizeObserver=null;
 function groupScrollUpdateJump(){
  const button=$("chatGroupJumpToLatest");
  const root=$("chatGroupMessages");
- if(!button||!root||!chatActiveGroup){if(button)button.hidden=true;return}
+ if(!button||!root||!chatActiveGroup){if(button&&!button.hidden)button.hidden=true;return}
  const distance=root.scrollHeight-root.scrollTop-root.clientHeight;
- button.hidden=groupScrollFollow.followLatest||distance<170;
+ const shouldHide=groupScrollFollow.followLatest||distance<170;
+ if(button.hidden!==shouldHide)button.hidden=shouldHide;
 }
 function groupScrollBegin(groupId){
  groupScrollFollow.groupId=groupId;
@@ -2137,7 +2141,7 @@ function groupScrollWatchMedia(){
  groupMediaResizeObserver.disconnect();
  // The most recent image messages are most likely to affect the open viewport.
  const frames=root.querySelectorAll(".chat-media-frame");
- for(const frame of Array.from(frames).slice(-12))groupMediaResizeObserver.observe(frame);
+ for(const frame of Array.from(frames).slice(-6))groupMediaResizeObserver.observe(frame);
 }
 function groupScrollTrackIntent(){
  const state=groupScrollFollow;
