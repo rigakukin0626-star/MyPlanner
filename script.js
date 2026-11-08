@@ -990,6 +990,20 @@ async function chatGetSignedImageUrl(path){
  chatImageUrlRequests.set(path,request);
  try{return await request}finally{chatImageUrlRequests.delete(path)}
 }
+function chatFitMediaFrame(wrap,img){
+ // Display photos at their actual aspect ratio instead of leaving a wide,
+ // empty container around portrait pictures.
+ if(!wrap||!img?.naturalWidth||!img.naturalHeight)return;
+ const viewportHeight=window.visualViewport?.height||window.innerHeight;
+ const maxWidth=Math.max(130,Math.min(285,window.innerWidth*0.70));
+ const maxHeight=Math.max(200,Math.min(340,viewportHeight*0.53));
+ const scale=Math.min(1,maxWidth/img.naturalWidth,maxHeight/img.naturalHeight);
+ const width=Math.max(1,Math.round(img.naturalWidth*scale));
+ const height=Math.max(1,Math.round(img.naturalHeight*scale));
+ wrap.style.setProperty("width",width+"px","important");
+ img.style.setProperty("width",width+"px","important");
+ img.style.setProperty("height",height+"px","important");
+}
 function chatAttachStoredPhoto(node,path,isGroup=false,priority=false){
  const wrap=document.createElement("span");wrap.className="chat-media-frame chat-media-pending";
  const img=document.createElement("img");img.className="chat-photo";
@@ -1026,6 +1040,7 @@ function chatAttachStoredPhoto(node,path,isGroup=false,priority=false){
    }else failed(new Error("Image download or decoding failed"));
   };
   img.onload=()=>{
+   chatFitMediaFrame(wrap,img);
    wrap.classList.remove("chat-media-pending");wrap.classList.add("chat-media-ready");
    img.alt=chatText("聊天照片","チャット写真","Chat photo");
    if(isGroup)groupScrollPin();
@@ -2014,7 +2029,8 @@ function groupScrollStop(){
  groupScrollFollow.scheduled=false;
  groupScrollFollow.touchY=null;
  if(groupMediaResizeObserver)groupMediaResizeObserver.disconnect();
- groupScrollUpdateJump();
+ const jump=$("chatGroupJumpToLatest");
+ if(jump)jump.hidden=true;
 }
 function groupScrollPin(groupId=chatActiveGroup?.id){
  if(!groupId||groupScrollFollow.groupId!==groupId||!groupScrollFollow.followLatest||groupScrollFollow.scheduled)return;
