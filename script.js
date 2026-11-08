@@ -425,7 +425,29 @@ function renderLongTermCountdowns(){
  }
  const hint=$("longTermHint");if(hint)hint.textContent=all.length>5?tr(`近い予定を5件表示中（全${all.length}件）`,`按时间显示最近5项（共${all.length}项）`,`Showing the nearest 5 of ${all.length} plans`):tr("予定をタップして編集できます。","点击倒计时项目即可编辑。","Tap a countdown to edit its plan.");
 }
-function renderTasks(){const source=tasks.filter(t=>showLongTerm?t.date===null:t.date===selectedDate),visible=source.filter(t=>filter==="all"||(filter==="active"?!t.completed:t.completed));selectedDateTitle.textContent=showLongTerm?tr("長期予定","长期预定","Long-term Plans"):tr("予定","预定","Plans");$("taskCountLabel").textContent=tr(`${visible.length} 件`,`${visible.length} 项`,`${visible.length} tasks`);const taskFragment=document.createDocumentFragment();emptyState.hidden=visible.length>0;if(!visible.length){emptyState.querySelector("strong").textContent=filter==="all"?tr("タスクはまだありません","这里还很空","No tasks yet"):tr("該当するタスクはありません","没有符合条件的任务","No matching tasks");emptyState.querySelector("p").textContent=filter==="all"?tr("タスクを追加してみましょう","添加一项任务，开始安排吧。","Add a task to get started"):tr("フィルターを変更してください","试试切换筛选条件。","Try another filter")}const rank={high:0,medium:1,low:2};visible.sort((a,b)=>Number(a.completed)-Number(b.completed)||rank[a.priority]-rank[b.priority]);visible.forEach(task=>{const li=document.createElement("li");li.className="task-item"+(task.completed?" completed":"");const check=document.createElement("input");check.type="checkbox";check.className="task-check";check.checked=task.completed;check.setAttribute("aria-label","标记完成");check.addEventListener("change",()=>{task.completed=check.checked;saveTasks();renderOverview();renderTasks();if(showLongTerm)renderLongTermCountdowns()});const text=document.createElement("span");text.className="task-text";text.textContent=task.text;const badge=document.createElement("span");badge.className=`priority priority-${task.priority}`;badge.textContent=priorityName(task.priority);const reminder=document.createElement("span");reminder.className="task-reminder";reminder.textContent=task.reminderAt?"⏰ "+uiDateFormatter(uiLanguage==="en"?"en-US":uiLanguage==="ja"?"ja-JP":"zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(task.reminderAt))+(task.repeat&&task.repeat!=="none"?" · "+repeatName(task.repeat):""):"";const actions=document.createElement("div");actions.className="task-actions";const edit=document.createElement("button");edit.type="button";edit.className="task-action";edit.textContent=tr("編集","编辑","Edit");edit.addEventListener("click",()=>openEdit(task.id));const del=document.createElement("button");del.type="button";del.className="task-action";del.textContent=tr("削除","删除","Delete");del.addEventListener("click",()=>deleteTask(task.id));actions.append(edit,del);li.append(check,text,badge);if(showLongTerm&&task.reminderAt){const countdown=document.createElement("span");countdown.className="task-countdown";countdown.textContent=longTermCountdown(task.reminderAt,task.completed);li.append(countdown)}if(task.reminderAt)li.append(reminder);li.append(actions);taskFragment.appendChild(li)});taskList.replaceChildren(taskFragment)}
+function renderTasks(){const source=tasks.filter(t=>showLongTerm?t.date===null:t.date===selectedDate),visible=source.filter(t=>filter==="all"||(filter==="active"?!t.completed:t.completed));selectedDateTitle.textContent=showLongTerm?tr("長期予定","长期预定","Long-term Plans"):tr("予定","预定","Plans");$("taskCountLabel").textContent=tr(`${visible.length} 件`,`${visible.length} 项`,`${visible.length} tasks`);const taskFragment=document.createDocumentFragment();emptyState.hidden=visible.length>0;if(!visible.length){emptyState.querySelector("strong").textContent=filter==="all"?tr("タスクはまだありません","这里还很空","No tasks yet"):tr("該当するタスクはありません","没有符合条件的任务","No matching tasks");emptyState.querySelector("p").textContent=filter==="all"?tr("タスクを追加してみましょう","添加一项任务，开始安排吧。","Add a task to get started"):tr("フィルターを変更してください","试试切换筛选条件。","Try another filter")}const rank={high:0,medium:1,low:2};visible.sort((a,b)=>Number(a.completed)-Number(b.completed)||rank[a.priority]-rank[b.priority]);
+const signature=JSON.stringify([showLongTerm,selectedDate,filter,uiLanguage,todayKey,visible.map(t=>[t.id,t.text,t.date,t.completed,t.priority,t.reminderAt,t.repeat])]);
+if(taskList.dataset.renderSignature===signature&&taskList.children.length===visible.length)return;
+taskList.dataset.renderSignature=signature;
+visible.forEach(task=>{const li=document.createElement("li");li.dataset.taskId=String(task.id);li.className="task-item"+(task.completed?" completed":"");const check=document.createElement("input");check.type="checkbox";check.className="task-check";check.checked=task.completed;check.setAttribute("aria-label","标记完成");/* Task actions are delegated once on #taskList instead of per row. */const text=document.createElement("span");text.className="task-text";text.textContent=task.text;const badge=document.createElement("span");badge.className=`priority priority-${task.priority}`;badge.textContent=priorityName(task.priority);const reminder=document.createElement("span");reminder.className="task-reminder";reminder.textContent=task.reminderAt?"⏰ "+uiDateFormatter(uiLanguage==="en"?"en-US":uiLanguage==="ja"?"ja-JP":"zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(task.reminderAt))+(task.repeat&&task.repeat!=="none"?" · "+repeatName(task.repeat):""):"";const actions=document.createElement("div");actions.className="task-actions";const edit=document.createElement("button");edit.type="button";edit.className="task-action";edit.textContent=tr("編集","编辑","Edit");/* Delegated once, no per-item closure. */const del=document.createElement("button");del.type="button";del.className="task-action";del.textContent=tr("削除","删除","Delete");/* Delegated once, no per-item closure. */actions.append(edit,del);li.append(check,text,badge);if(showLongTerm&&task.reminderAt){const countdown=document.createElement("span");countdown.className="task-countdown";countdown.textContent=longTermCountdown(task.reminderAt,task.completed);li.append(countdown)}if(task.reminderAt)li.append(reminder);li.append(actions);taskFragment.appendChild(li)});taskList.replaceChildren(taskFragment)}
+taskList.addEventListener("change",event=>{
+ const check=event.target.closest(".task-check");
+ if(!check)return;
+ const id=check.closest(".task-item")?.dataset.taskId;
+ const task=tasks.find(t=>String(t.id)===id);
+ if(!task)return;
+ task.completed=check.checked;saveTasks();renderOverview();renderTasks();
+ if(showLongTerm)renderLongTermCountdowns();
+});
+taskList.addEventListener("click",event=>{
+ const button=event.target.closest(".task-action");
+ if(!button)return;
+ const row=button.closest(".task-item");
+ if(!row)return;
+ const id=row.dataset.taskId;
+ if(button===row.querySelector(".task-action"))openEdit(id);
+ else deleteTask(id);
+});
 taskForm.addEventListener("submit",e=>{e.preventDefault();const text=taskInput.value.trim();if(!text)return;if(showLongTerm&&!$("reminderInput").value){alert(tr("予定日を選択してください。","请选择预定日期。","Choose a plan date."));return;}if($("repeatInput").value!=="none"&&!$("reminderInput").value){alert(tr("繰り返し通知には日時が必要です。","重复提醒必须设置提醒时间","Choose a reminder time for recurring tasks."));return;}tasks.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),text,date:showLongTerm?null:selectedDate,completed:false,priority:priorityInput.value,reminderAt:$("reminderInput").value?(showLongTerm?longTermMidnight($("reminderInput").value):new Date($("reminderInput").value).toISOString()):null,repeat:$("repeatInput").value});saveTasks();taskInput.value="";priorityInput.value="medium";$("reminderInput").value="";$("repeatInput").value="none";taskInput.focus();render();updateLongTermFormMode()});
 function confirmDeleteDialog(){
  return new Promise(resolve=>{
@@ -2579,14 +2601,21 @@ showWelcomeAuth();
     if(sectionCount)sectionCount.textContent=uiLanguage==="zh"?total+(isGroup?" 个群聊":" 个会话"):uiLanguage==="ja"?total+" 件":total+(isGroup?" groups":" chats");
     wrap.hidden=Boolean(document.body.classList.contains("chat-open"));
   };
-  input.addEventListener("input",filter);
+  let filterFrame=0;
+  const scheduleFilter=()=>{
+    if(filterFrame)return;
+    filterFrame=requestAnimationFrame(()=>{filterFrame=0;filter()});
+  };
+  input.addEventListener("input",scheduleFilter,{passive:true});
   clear.addEventListener("click",()=>{input.value="";filter();input.focus()});
-  for(const root of [friends,groups])new MutationObserver(filter).observe(root,{childList:true});
-  new MutationObserver(filter).observe(document.body,{attributes:true,attributeFilter:["class"]});
+  // A single observer batches several consecutive list updates into one frame.
+  const observer=new MutationObserver(scheduleFilter);
+  for(const node of [friends,groups])observer.observe(node,{childList:true});
+  observer.observe(document.body,{attributes:true,attributeFilter:["class"]});
   for(const id of ["chatPrivateMode","chatGroupMode","chatGroupBack","chatBack"]){
-    document.getElementById(id)?.addEventListener("click",()=>queueMicrotask(filter));
+    document.getElementById(id)?.addEventListener("click",scheduleFilter);
   }
-  window.chatRefreshListHeader=filter;
+  window.chatRefreshListHeader=scheduleFilter;
   filter();
 })();
 
@@ -2628,13 +2657,20 @@ showWelcomeAuth();
  const updateViewport=()=>{
   if(!raf)raf=requestAnimationFrame(applyViewport);
  };
+ const scheduledGrow=new WeakSet();
  const grow=input=>{
-  input.style.height="0px";
-  input.style.height=Math.min(116,Math.max(40,input.scrollHeight))+"px";
+  input.style.height="auto";
+  const height=Math.min(116,Math.max(40,input.scrollHeight));
+  if(input.offsetHeight!==height)input.style.height=height+"px";
+ };
+ const scheduleGrow=input=>{
+  if(scheduledGrow.has(input))return;
+  scheduledGrow.add(input);
+  requestAnimationFrame(()=>{scheduledGrow.delete(input);grow(input)});
  };
  for(const input of fields){
   grow(input);
-  input.addEventListener("input",()=>{grow(input);},{passive:true});
+  input.addEventListener("input",()=>scheduleGrow(input),{passive:true});
   input.addEventListener("focus",()=>{
    updateViewport();
    requestAnimationFrame(()=>scrollMessages(input));
@@ -2645,7 +2681,7 @@ showWelcomeAuth();
     event.preventDefault();input.form?.requestSubmit();
    }
   });
-  input.form?.addEventListener("submit",()=>requestAnimationFrame(()=>grow(input)));
+  input.form?.addEventListener("submit",()=>scheduleGrow(input));
  }
  window.visualViewport?.addEventListener("resize",updateViewport,{passive:true});
  window.visualViewport?.addEventListener("scroll",updateViewport,{passive:true});
