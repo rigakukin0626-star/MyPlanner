@@ -34,7 +34,6 @@ body:not([data-active-page="chat"]){
     radial-gradient(ellipse 80% 44% at 8% 8%,var(--liquid-page-tint),transparent 72%),
     radial-gradient(ellipse 60% 35% at 94% 48%,rgba(117,166,215,.06),transparent 72%),
     var(--bg)!important;
-  background-attachment:fixed!important;
 }
 body:not([data-active-page="chat"]) .app-shell,
 body:not([data-active-page="chat"]) #appMain{background:transparent!important}
@@ -293,7 +292,7 @@ html[data-theme="dark"] #pageLongTerm .countdown-row{
   width:min(570px,calc(100% - 26px))!important;
   height:73px!important;
   padding:7px 8px!important;
-  display:flex!important;
+  display:flex;
   align-items:center!important;
   justify-content:space-around!important;
   gap:2px!important;
@@ -357,6 +356,10 @@ html[data-theme="dark"] .bottom-tabs::before{
   box-shadow:none!important;
 }
 .bottom-tabs .tab:active{transform:scale(.96)}
+/* Never overlay the dock on open private/group conversations. */
+body:has(#chatConversation:not([hidden])) .bottom-tabs,
+body:has(#chatGroupConversation:not([hidden])) .bottom-tabs,
+body.chat-open.chat-input-focused .bottom-tabs{display:none!important}
 /* LINE-like mini-popovers are translucent, without changing menu actions. */
 #pageChat .line-popup-menu:not([hidden]){
   background:var(--liquid-dock)!important;

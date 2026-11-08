@@ -13,3 +13,5 @@ Backup branch: `backup/pre-v185-liquid-glass-20261108` (commit `c1c68ece70315af6
 ## Restore
 
 Restore by reverting the v185 commit in GitHub, or compare with `backup/pre-v185-liquid-glass-20261108`. Existing user data is not changed by this CSS-only update.
+
+Post-commit guard: the floating dock remains hidden during an open chat conversation; the stylesheet uses a new v185.1 URL and service-worker cache to prevent stale CSS.
