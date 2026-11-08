@@ -7,11 +7,41 @@ zh:{title:'资产',overview:'总览',history:'流水',invest:'投资',budgets:'�
 ja:{title:'資産',overview:'概要',history:'取引',invest:'投資',budgets:'予算',manage:'管理',net:'純資産',assets:'総資産',debt:'負債',addAccount:'口座追加',addTx:'取引記録',addHolding:'銘柄追加',addTrade:'売買記録',accounts:'口座',transactions:'取引履歴',income:'収入',expense:'支出',transfer:'振替',adjust:'残高調整',bank:'銀行',cash:'現金',broker:'証券',credit:'クレジットカード',other:'その他',name:'名前',type:'種類',amount:'金額（円）',opening:'開始残高 / 未払額',actual:'現在の残高',date:'日付',note:'メモ',from:'支払口座',to:'入金口座',category:'カテゴリー',save:'保存',cancel:'キャンセル',delete:'削除',ticker:'銘柄コード',qty:'数量',price:'現在株価',cost:'取得単価',fx:'円換算レート',fees:'手数料',buy:'買付',sell:'売却',spending:'支出内訳',trend:'純資産推移',chart:'過去6か月の収支',food:'食費',transport:'交通',shopping:'買い物',housing:'家賃',utilities:'水道光熱・通信',medical:'医療',entertainment:'娯楽',salary:'給与',refund:'返金',noData:'データなし',noAccounts:'口座を登録してください',noHoldings:'保有銘柄なし',limit:'月間予算',used:'使用済み',remaining:'残り',dueDay:'毎月引落日（1–28）',due:'カードの引落日が近づいています。明細をご確認ください',over:'予算超過',local:'端末のみ保存',synced:'クラウド同期済み',missing:'Supabase の資産テーブルが未設定',failed:'同期失敗。端末に保存',conflict:'クラウドと端末のデータが競合',sync:'同期',useCloud:'クラウド版を使用',useDevice:'端末版をアップロード',export:'JSON バックアップ',import:'JSON 読込',csv:'CSV 出力',guest:'端末データを読込',manual:'株価・為替レートは手入力です。自動相場は未接続。',warning:'銀行パスワードを入力しないでください。同期前はバックアップしてください。',confirm:'削除しますか？',replace:'別のデータを上書きしますか？',invalid:'正しい数値を入力',different:'異なる口座を選択',reconcile:'残高照合',noSell:'売却数量が保有数量を超過',edit:'編集',perMonth:'今月'},
 en:{title:'Assets',overview:'Summary',history:'Records',invest:'Investing',budgets:'Budget',manage:'More',net:'Net worth',assets:'Assets',debt:'Liabilities',addAccount:'Add account',addTx:'New entry',addHolding:'Holding',addTrade:'New trade',accounts:'Accounts',transactions:'Transactions',income:'Income',expense:'Expense',transfer:'Transfer',adjust:'Reconcile',bank:'Bank',cash:'Cash',broker:'Brokerage',credit:'Credit card',other:'Other',name:'Name',type:'Type',amount:'Amount (JPY)',opening:'Opening balance / owed',actual:'Actual balance',date:'Date',note:'Note',from:'From account',to:'To account',category:'Category',save:'Save',cancel:'Cancel',delete:'Delete',ticker:'Ticker',qty:'Quantity',price:'Latest share price',cost:'Cost basis',fx:'JPY conversion rate',fees:'Fees',buy:'Buy',sell:'Sell',spending:'Spending by category',trend:'Net worth history',chart:'Six-month cash flow',food:'Food',transport:'Transport',shopping:'Shopping',housing:'Housing',utilities:'Utilities',medical:'Medical',entertainment:'Entertainment',salary:'Salary',refund:'Refund',noData:'No records yet',noAccounts:'Add an account first',noHoldings:'No holdings',limit:'Monthly limit',used:'Spent',remaining:'Remaining',dueDay:'Monthly due day (1–28)',due:'Card due date near. Verify your statement',over:'Budget exceeded',local:'Device only',synced:'Cloud synced',missing:'Supabase finance table not configured',failed:'Sync failed; saved on device',conflict:'Cloud and device data conflict',sync:'Sync',useCloud:'Use cloud data',useDevice:'Upload device data',export:'Export JSON backup',import:'Import JSON backup',csv:'Export CSV',guest:'Import guest records',manual:'Enter prices and FX rates manually.',warning:'Never enter banking passwords here. Export backups before cloud sync is available.',confirm:'Delete?',replace:'Overwrite another finance dataset?',invalid:'Enter a valid number',different:'Choose different accounts',reconcile:'Reconcile',noSell:'Cannot sell more shares than held',edit:'Edit',perMonth:'This month'}
 };
-const blank=()=>({version:1,accounts:[],transactions:[],holdings:[],trades:[],budgets:[],snapshots:[]});
+const CURRENCIES=['JPY','CNY','USD','EUR','TWD','HKD','KRW','GBP','SGD','AUD'];
+const currencyOptions=()=>CURRENCIES.map(c=>[c,c]);
+const currencyWords={
+ zh:{display:'显示币种',account:'账户币种',rate:'手动汇率',edit:'设置汇率',hint:'每 1 单位外币兑换多少日元。不是实时汇率。',missing:'请先设置该币种兑日元的汇率',info:'外币金额按手动汇率换算；实际银行汇率可能不同。'},
+ ja:{display:'表示通貨',account:'口座通貨',rate:'手動為替レート',edit:'レートの設定',hint:'外貨1単位＝何円かを入力。リアルタイムレートではありません。',missing:'先に円換算レートを設定してください',info:'換算は手動レートに基づき、実際の銀行レートと異なる場合があります。'},
+ en:{display:'Currency',account:'Account currency',rate:'Manual FX rates',edit:'Set exchange rate',hint:'JPY for one unit of currency. This is not a live exchange rate.',missing:'Set this currency’s JPY rate first',info:'Conversions use manual rates, not live bank rates.'}
+};
+const ct=k=>currencyWords[language]?.[k]||currencyWords.en[k]||k;
+const blank=()=>({version:1,accounts:[],transactions:[],holdings:[],trades:[],budgets:[],snapshots:[],preferences:{display:'JPY',rates:{JPY:1}}});
+function ensurePrefs(){
+ if(!doc.preferences||typeof doc.preferences!=='object')doc.preferences={display:'JPY',rates:{JPY:1}};
+ if(!doc.preferences.rates||typeof doc.preferences.rates!=='object')doc.preferences.rates={JPY:1};
+ doc.preferences.rates.JPY=1;
+ if(!CURRENCIES.includes(doc.preferences.display))doc.preferences.display='JPY';
+}
+function rate(code){
+ if(!code||code==='JPY')return 1;
+ const v=Number(doc.preferences?.rates?.[code]);
+ return Number.isFinite(v)&&v>0&&v<1e7?v:null;
+}
+const toJPY=(n,code)=>{const fx=rate(code);return fx===null?NaN:Number(n||0)*fx};
+const bookedJPY=x=>x.jpy!=null&&Number.isFinite(Number(x.jpy))?Number(x.jpy):(Number(x.amount)||0);
+const nativeMoney=(amount,code)=>{
+ const c=CURRENCIES.includes(code)?code:'JPY';
+ return new Intl.NumberFormat('ja-JP',{style:'currency',currency:c,maximumFractionDigits:c==='JPY'||c==='KRW'?0:2}).format(Number(amount)||0);
+};
+const displayCode=()=>doc.preferences?.display||'JPY';
+const converted=jpy=>{
+ const fx=rate(displayCode());
+ return Number.isFinite(jpy)&&fx!==null?nativeMoney(jpy/fx,displayCode()):'—';
+};
 let language='zh',owner='guest',doc=blank(),pane='overview',revision=null,dirty=false,cloud='local',remote=null,api=null,modal=null,busy=false,pushTimer=null;
 const t=k=>translations[language]?.[k]||translations.en[k]||k;
 const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const yen=v=>(Number(v)<0?'−':'')+'¥'+Math.abs(Math.round(Number(v)||0)).toLocaleString('ja-JP');
+const yen=converted;
 const id=()=>crypto.randomUUID?crypto.randomUUID():'f-'+Date.now()+Math.random().toString(36).slice(2);
 const number=(v,allowZero=false)=>Number.isFinite(Number(v))&&Number(v)>=(allowZero?0:0.000001)&&Number(v)<1e12;
 const nowDate=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
@@ -24,16 +54,16 @@ function balances(){
   const a=account(x.from),b=account(x.to),n=Number(x.amount)||0;
   if(x.kind==='income')change(b,credit(b)?-n:n);
   if(x.kind==='expense')change(a,credit(a)?n:-n);
-  if(x.kind==='transfer'){change(a,credit(a)?n:-n);change(b,credit(b)?-n:n)}
+  if(x.kind==='transfer'){const toAmount=x.toAmount==null?n:Number(x.toAmount);change(a,credit(a)?n:-n);change(b,credit(b)?-toAmount:toAmount)}
   if(x.kind==='adjust')change(a,n);
  }
- for(const x of doc.trades){const a=account(x.account);if(!a)continue;const gross=x.qty*x.price*x.fx;change(a,x.side==='buy'?-gross-x.fees:gross-x.fees)}
+ for(const x of doc.trades){const a=account(x.account);if(!a)continue;const gross=x.qty*x.price*x.fx;const accountFX=Number(x.accountFx)||1;change(a,(x.side==='buy'?-gross-x.fees:gross-x.fees)/accountFX)}
  return sums;
 }
 const qty=x=>doc.trades.filter(y=>y.holding===x.id).reduce((n,y)=>n+(y.side==='buy'?y.qty:-y.qty),Number(x.openingQty)||0);
 const priceValue=x=>qty(x)*x.price*x.fx;
-function totals(){const b=balances();let assets=0,debt=0;for(const a of doc.accounts){if(credit(a))debt+=b.get(a.id);else assets+=b.get(a.id)}for(const x of doc.holdings)assets+=priceValue(x);return {assets,debt,net:assets-debt}}
-function read(){try{const d=JSON.parse(localStorage.getItem(BASE+owner)||'null');doc=d&&d.version===1&&['accounts','transactions','holdings','trades','budgets','snapshots'].every(k=>Array.isArray(d[k]))?d:blank();const m=JSON.parse(localStorage.getItem(META+owner)||'null');revision=m?.revision??null;dirty=Boolean(m?.dirty)}catch(e){doc=blank();revision=null;dirty=false}}
+function totals(){const b=balances();let assets=0,debt=0;for(const a of doc.accounts){if(credit(a))debt+=toJPY(b.get(a.id),a.currency);else assets+=toJPY(b.get(a.id),a.currency)}for(const x of doc.holdings)assets+=priceValue(x);return {assets,debt,net:assets-debt}}
+function read(){try{const d=JSON.parse(localStorage.getItem(BASE+owner)||'null');doc=d&&d.version===1&&['accounts','transactions','holdings','trades','budgets','snapshots'].every(k=>Array.isArray(d[k]))?d:blank();ensurePrefs();const m=JSON.parse(localStorage.getItem(META+owner)||'null');revision=m?.revision??null;dirty=Boolean(m?.dirty)}catch(e){doc=blank();revision=null;dirty=false}}
 function metadata(){localStorage.setItem(META+owner,JSON.stringify({revision,dirty}))}
 function save(){
  const x=totals(),date=nowDate(),prev=doc.snapshots.at(-1);
@@ -43,7 +73,7 @@ function save(){
  if(cloud==='synced')schedulePush();render();
 }
 const hasRecords=()=>doc.accounts.length||doc.transactions.length||doc.holdings.length||doc.trades.length||doc.budgets.length;
-function monthData(ym=nowDate().slice(0,7)){return doc.transactions.filter(x=>x.date.startsWith(ym)).reduce((a,x)=>{if(x.kind==='income')a.income+=x.amount;if(x.kind==='expense')a.expense+=x.amount;return a},{income:0,expense:0})}
+function monthData(ym=nowDate().slice(0,7)){return doc.transactions.filter(x=>x.date.startsWith(ym)).reduce((a,x)=>{if(x.kind==='income')a.income+=bookedJPY(x);if(x.kind==='expense')a.expense+=bookedJPY(x);return a},{income:0,expense:0})}
 const section=(title,action,content)=>'<section class="fin-card"><div class="fin-section-title"><h2>'+title+'</h2>'+(action||'')+'</div>'+(content||'')+'</section>';
 const button=(label,act)=>'<button type="button" class="fin-small" data-fin-action="'+act+'">'+label+'</button>';
 const option=(name,choices,selected)=>'<select name="'+name+'" required>'+choices.map(([v,label])=>'<option value="'+h(v)+'" '+(v===selected?'selected':'')+'>'+h(label)+'</option>').join('')+'</select>';
@@ -52,12 +82,12 @@ const pick=(label,name,choices,selected)=>'<label class="fin-field"><span>'+labe
 const accountOpts=()=>doc.accounts.map(a=>[a.id,a.name]);
 function accounts(){
  const b=balances();
- return section(t('accounts'),button('＋ '+t('addAccount'),'account'),doc.accounts.map(a=>'<button class="fin-account" data-fin-account="'+h(a.id)+'"><span class="fin-emblem">'+(credit(a)?'▣':a.type==='broker'?'↗':'¥')+'</span><span class="fin-account-name"><b>'+h(a.name)+'</b><small>'+t(a.type)+(a.dueDay?' · '+a.dueDay:'')+'</small></span><strong>'+yen(b.get(a.id))+'</strong></button>').join('')||'<p class="fin-empty">'+t('noAccounts')+'</p>');
+ return section(t('accounts'),button('＋ '+t('addAccount'),'account'),doc.accounts.map(a=>'<button class="fin-account" data-fin-account="'+h(a.id)+'"><span class="fin-emblem">'+(credit(a)?'▣':a.type==='broker'?'↗':'¥')+'</span><span class="fin-account-name"><b>'+h(a.name)+'</b><small>'+t(a.type)+' · '+h(a.currency||'JPY')+(a.dueDay?' · '+a.dueDay:'')+'</small></span><strong>'+nativeMoney(b.get(a.id),a.currency)+'</strong></button>').join('')||'<p class="fin-empty">'+t('noAccounts')+'</p>');
 }
 function entries(limit=80){
  return section(t('transactions'),button('＋ '+t('addTx'),'tx'),doc.transactions.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created).slice(0,limit).map(x=>{
   const name=x.kind==='transfer'?(account(x.from)?.name||'?')+' → '+(account(x.to)?.name||'?'):(account(x.from||x.to)?.name||'?');
-  return '<div class="fin-entry"><span><b>'+h(x.note||t(x.category||x.kind))+'</b><small>'+h(x.date)+' · '+h(name)+'</small></span><span><strong class="'+(x.kind==='income'?'fin-positive':'')+'">'+(x.kind==='income'?'+':x.kind==='expense'?'−':'↔')+yen(x.amount)+'</strong><button data-fin-delete="'+h(x.id)+'" aria-label="'+t('delete')+'">×</button></span></div>';
+  return '<div class="fin-entry"><span><b>'+h(x.note||t(x.category||x.kind))+'</b><small>'+h(x.date)+' · '+h(name)+'</small></span><span><strong class="'+(x.kind==='income'?'fin-positive':'')+'">'+(x.kind==='income'?'+':x.kind==='expense'?'−':'↔')+yen(bookedJPY(x))+'</strong><button data-fin-delete="'+h(x.id)+'" aria-label="'+t('delete')+'">×</button></span></div>';
  }).join('')||'<p class="fin-empty">'+t('noData')+'</p>');
 }
 function cashFlow(){
@@ -69,7 +99,7 @@ function bars(){
  return section(t('chart'),'', '<div class="fin-bars">'+rows.map(x=>'<div><div class="fin-bar"><i style="height:'+Math.max(2,x.values.income/max*100)+'%"></i><b style="height:'+Math.max(2,x.values.expense/max*100)+'%"></b></div><small>'+x.k.slice(-2)+'</small></div>').join('')+'</div><p class="fin-note">'+t('income')+' / '+t('expense')+'</p>');
 }
 function categoryBreakdown(){
- const totals={};doc.transactions.filter(x=>x.kind==='expense'&&x.date.startsWith(nowDate().slice(0,7))).forEach(x=>{totals[x.category||'other']=(totals[x.category||'other']||0)+x.amount});
+ const totals={};doc.transactions.filter(x=>x.kind==='expense'&&x.date.startsWith(nowDate().slice(0,7))).forEach(x=>{totals[x.category||'other']=(totals[x.category||'other']||0)+bookedJPY(x)});
  const rows=Object.entries(totals).sort((a,b)=>b[1]-a[1]),max=Math.max(1,...rows.map(x=>x[1]));
  return section(t('spending'),'',rows.map(([k,v])=>'<div class="fin-category"><div><span>'+t(k)+'</span><strong>'+yen(v)+'</strong></div><i><b style="width:'+v/max*100+'%"></b></i></div>').join('')||'<p class="fin-empty">'+t('noData')+'</p>');
 }
@@ -84,14 +114,14 @@ function portfolio(){
 }
 function budgetView(){
  const m=nowDate().slice(0,7);
- const body=doc.budgets.map(b=>{const used=doc.transactions.filter(x=>x.kind==='expense'&&x.category===b.category&&x.date.startsWith(m)).reduce((n,x)=>n+x.amount,0);
+ const body=doc.budgets.map(b=>{const used=doc.transactions.filter(x=>x.kind==='expense'&&x.category===b.category&&x.date.startsWith(m)).reduce((n,x)=>n+bookedJPY(x),0);
  return '<button class="fin-budget" data-fin-budget="'+h(b.category)+'"><div><strong>'+t(b.category)+'</strong><small>'+yen(used)+' / '+yen(b.limit)+'</small></div><div class="fin-track"><span class="'+(used>b.limit?'over':'')+'" style="width:'+Math.min(100,used/b.limit*100)+'%"></span></div></button>';
  }).join('');
  return section(t('budgets'),button('＋ '+t('budgets'),'budget'),body||'<p class="fin-empty">'+t('noData')+'</p>')+categoryBreakdown();
 }
 function alerts(){
  const d=new Date().getDate(),due=doc.accounts.filter(a=>credit(a)&&a.dueDay&&balances().get(a.id)>0&&((a.dueDay-d+28)%28)<=7);
- const over=doc.budgets.filter(b=>doc.transactions.filter(x=>x.kind==='expense'&&x.category===b.category&&x.date.startsWith(nowDate().slice(0,7))).reduce((n,x)=>n+x.amount,0)>b.limit);
+ const over=doc.budgets.filter(b=>doc.transactions.filter(x=>x.kind==='expense'&&x.category===b.category&&x.date.startsWith(nowDate().slice(0,7))).reduce((n,x)=>n+bookedJPY(x),0)>b.limit);
  return (due.length?'<p class="fin-alert">'+t('due')+' · '+due.map(a=>h(a.name)).join(', ')+'</p>':'')+(over.length?'<p class="fin-alert">'+t('over')+'</p>':'');
 }
 function settings(){
