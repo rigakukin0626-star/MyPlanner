@@ -1,0 +1,10 @@
+/* v200: Recording currency is selected per account, not used for conversion. */
+#pageFinance .fin-record-currency select{height:43px;min-width:100px;max-width:136px;border-radius:999px;border:1px solid rgba(148,168,210,.28);padding:8px 12px;background:rgba(214,231,255,.28);color:var(--ink);font-size:14px;font-weight:750;backdrop-filter:blur(12px)}
+.fin-dialog form{position:relative}
+.fin-dialog .fin-modal-currency{position:absolute;top:17px;right:52px;max-width:132px}
+.fin-dialog .fin-modal-currency .fin-field{gap:3px}
+.fin-dialog .fin-modal-currency .fin-field>span{font-size:10px;white-space:nowrap}
+.fin-dialog .fin-modal-currency select{width:122px;max-width:100%;height:39px;padding:6px;font-size:13px;font-weight:700}
+.fin-dialog form>header{padding-right:178px;min-height:74px}
+.fin-dialog form>header h2{font-size:clamp(18px,5vw,26px);overflow-wrap:anywhere}
+@media(max-width:380px){.fin-dialog .fin-modal-currency{right:40px;max-width:108px}.fin-dialog .fin-modal-currency select{width:108px;font-size:12px}.fin-dialog form>header{padding-right:150px}}

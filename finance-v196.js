@@ -8,7 +8,9 @@ ja:{title:'資産',overview:'概要',history:'取引',invest:'投資',budgets:'�
 en:{title:'Assets',overview:'Summary',history:'Records',invest:'Investing',budgets:'Budget',manage:'More',net:'Net worth',assets:'Assets',debt:'Liabilities',addAccount:'Add account',addTx:'New entry',addHolding:'Holding',addTrade:'New trade',accounts:'Accounts',transactions:'Transactions',income:'Income',expense:'Expense',transfer:'Transfer',adjust:'Reconcile',bank:'Bank',cash:'Cash',broker:'Brokerage',credit:'Credit card',other:'Other',name:'Name',type:'Type',amount:'Amount (JPY)',opening:'Opening balance / owed',actual:'Actual balance',date:'Date',note:'Note',from:'From account',to:'To account',category:'Category',save:'Save',cancel:'Cancel',delete:'Delete',ticker:'Ticker',qty:'Quantity',price:'Latest share price',cost:'Cost basis',fx:'JPY conversion rate',fees:'Fees',buy:'Buy',sell:'Sell',spending:'Spending by category',trend:'Net worth history',chart:'Six-month cash flow',food:'Food',transport:'Transport',shopping:'Shopping',housing:'Housing',utilities:'Utilities',medical:'Medical',entertainment:'Entertainment',salary:'Salary',refund:'Refund',noData:'No records yet',noAccounts:'Add an account first',noHoldings:'No holdings',limit:'Monthly limit',used:'Spent',remaining:'Remaining',dueDay:'Monthly due day (1–28)',due:'Card due date near. Verify your statement',over:'Budget exceeded',local:'Device only',synced:'Cloud synced',missing:'Supabase finance table not configured',failed:'Sync failed; saved on device',conflict:'Cloud and device data conflict',sync:'Sync',useCloud:'Use cloud data',useDevice:'Upload device data',export:'Export JSON backup',import:'Import JSON backup',csv:'Export CSV',guest:'Import guest records',manual:'Enter prices and FX rates manually.',warning:'Never enter banking passwords here. Export backups before cloud sync is available.',confirm:'Delete?',replace:'Overwrite another finance dataset?',invalid:'Enter a valid number',different:'Choose different accounts',reconcile:'Reconcile',noSell:'Cannot sell more shares than held',edit:'Edit',perMonth:'This month'}
 };
 const CURRENCIES=['JPY','CNY','USD','EUR','TWD','HKD','KRW','GBP','SGD','AUD'];
-const currencyOptions=()=>CURRENCIES.map(c=>[c,c]);
+const currencySymbol=c=>({JPY:'¥',CNY:'¥',USD:'$',EUR:'€',TWD:'NT$',HKD:'HK$',KRW:'₩',GBP:'£',SGD:'S$',AUD:'A$'})[c]||c;
+const currencyOptions=()=>CURRENCIES.map(c=>[c,currencySymbol(c)+'  '+c]);
+const selectedRecordCurrency=()=>CURRENCIES.includes(doc.preferences?.record)?doc.preferences.record:'JPY';
 const currencyWords={
  zh:{display:'显示币种',account:'账户币种',rate:'手动汇率',edit:'设置汇率',hint:'每 1 单位外币兑换多少日元。不是实时汇率。',missing:'请先设置该币种兑日元的汇率',info:'外币金额按手动汇率换算；实际银行汇率可能不同。'},
  ja:{display:'表示通貨',account:'口座通貨',rate:'手動為替レート',edit:'レートの設定',hint:'外貨1単位＝何円かを入力。リアルタイムレートではありません。',missing:'先に円換算レートを設定してください',info:'換算は手動レートに基づき、実際の銀行レートと異なる場合があります。'},
@@ -21,6 +23,7 @@ function ensurePrefs(){
  if(!doc.preferences.rates||typeof doc.preferences.rates!=='object')doc.preferences.rates={JPY:1};
  doc.preferences.rates.JPY=1;
  if(!CURRENCIES.includes(doc.preferences.display))doc.preferences.display='JPY';
+ if(!CURRENCIES.includes(doc.preferences.record))doc.preferences.record='JPY';
 }
 function rate(code){
  if(!code||code==='JPY')return 1;
@@ -82,7 +85,7 @@ const pick=(label,name,choices,selected)=>'<label class="fin-field"><span>'+labe
 const accountOpts=()=>doc.accounts.map(a=>[a.id,a.name]);
 function accounts(){
  const b=balances();
- return section(t('accounts'),button('＋ '+t('addAccount'),'account'),doc.accounts.map(a=>'<button class="fin-account" data-fin-account="'+h(a.id)+'"><span class="fin-emblem">'+(credit(a)?'▣':a.type==='broker'?'↗':'¥')+'</span><span class="fin-account-name"><b>'+h(a.name)+'</b><small>'+t(a.type)+' · '+h(a.currency||'JPY')+(a.dueDay?' · '+a.dueDay:'')+'</small></span><strong class="fin-account-amount"><span>'+nativeMoney(b.get(a.id),a.currency)+'</span>'+((a.currency||'JPY')!=='JPY'?'<small>≈ '+yen(toJPY(b.get(a.id),a.currency))+'</small>':'')+'</strong></button>').join('')||'<p class="fin-empty">'+t('noAccounts')+'</p>');
+ return section(t('accounts'),button('＋ '+t('addAccount'),'account'),doc.accounts.map(a=>'<button class="fin-account" data-fin-account="'+h(a.id)+'"><span class="fin-emblem">'+(credit(a)?'▣':a.type==='broker'?'↗':currencySymbol(a.currency||'JPY'))+'</span><span class="fin-account-name"><b>'+h(a.name)+'</b><small>'+t(a.type)+' · '+h(a.currency||'JPY')+(a.dueDay?' · '+a.dueDay:'')+'</small></span><strong class="fin-account-amount"><span>'+nativeMoney(b.get(a.id),a.currency)+'</span>'+((a.currency||'JPY')!=='JPY'?'<small>≈ '+yen(toJPY(b.get(a.id),a.currency))+'</small>':'')+'</strong></button>').join('')||'<p class="fin-empty">'+t('noAccounts')+'</p>');
 }
 function entries(limit=80){
  return section(t('transactions'),button('＋ '+t('addTx'),'tx'),doc.transactions.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created).slice(0,limit).map(x=>{
@@ -146,7 +149,7 @@ function changeDisplay(currency){
 }
 function settings(){
  const status=cloud==='synced'?t('synced'):cloud==='missing'?t('missing'):cloud==='failed'?t('failed'):cloud==='conflict'?t('conflict'):t('local');
- return manualRates()+section(t('manage'),'','<p class="fin-note">'+t('warning')+'</p><p class="fin-sync">'+status+'</p><div class="fin-actions">'+button(t('sync'),'sync')+button(t('export'),'export')+'</div><div class="fin-actions">'+button(t('import'),'import')+button(t('csv'),'csv')+'</div>'+
+ return section(t('manage'),'','<p class="fin-note">'+t('warning')+'</p><p class="fin-sync">'+status+'</p><div class="fin-actions">'+button(t('sync'),'sync')+button(t('export'),'export')+'</div><div class="fin-actions">'+button(t('import'),'import')+button(t('csv'),'csv')+'</div>'+
  (cloud==='conflict'?'<div class="fin-actions">'+button(t('useCloud'),'useCloud')+button(t('useDevice'),'upload')+'</div>':'')+
  (cloud==='ready'?button(t('useDevice'),'upload'):'')+
  (owner!=='guest'&&localStorage.getItem(BASE+'guest')?button(t('guest'),'guest'):''));
@@ -154,7 +157,7 @@ function settings(){
 function render(){
  const root=document.getElementById('financeRoot');if(!root)return;
  const x=totals(),summary='<div class="fin-hero"><small>'+t('net')+'</small><strong>'+yen(x.net)+'</strong><div><span>'+t('assets')+'<b>'+yen(x.assets)+'</b></span><span>'+t('debt')+'<b>'+yen(x.debt)+'</b></span></div></div>';
- root.innerHTML='<header class="fin-head"><div><p>MY PLANNER / FINANCE</p><h1>'+t('title')+'</h1></div><span class="fin-base-badge">JPY</span></header><div class="fin-tabs">'+['overview','history','invest','budgets','manage'].map(k=>'<button data-fin-pane="'+k+'" class="'+(k===pane?'active':'')+'">'+t(k)+'</button>').join('')+'</div>'+
+ root.innerHTML='<header class="fin-head"><div><p>MY PLANNER / FINANCE</p><h1>'+t('title')+'</h1></div><label class="fin-record-currency">'+option('recordCurrency',currencyOptions(),selectedRecordCurrency())+'</label></header><div class="fin-tabs">'+['overview','history','invest','budgets','manage'].map(k=>'<button data-fin-pane="'+k+'" class="'+(k===pane?'active':'')+'">'+t(k)+'</button>').join('')+'</div>'+
  (pane==='overview'?summary+alerts()+cashFlow()+accounts()+bars()+netChart()+categoryBreakdown()+entries(7):pane==='history'?entries():pane==='invest'?summary+portfolio():pane==='budgets'?budgetView():settings()+accounts());
  const label=document.getElementById('tabFinanceLabel');if(label)label.textContent=t('title');
 }
@@ -168,13 +171,12 @@ function dialog(title,body,onSave,after){
 }
 function addAccount(existing){
  const options=['bank','cash','broker','credit','other'].map(k=>[k,t(k)]);
- const current=existing?.currency||'JPY';
- const rateHTML='<label class="fin-field fin-account-rate"><span>'+ct('rate')+' · 1 '+current+' = JPY</span><input name="accountRate" type="number" min="0.000001" max="9999999" step="any" value="'+(rate(current)||'')+'"></label>';
+ const current=existing?.currency||selectedRecordCurrency();
  dialog(existing?t('edit'):t('addAccount'),
   field(t('name'),'name','text',existing?.name||'','maxlength="70"')+
   pick(t('type'),'type',options,existing?.type||'bank')+
-  pick(ct('account'),'currency',currencyOptions(),current)+
-  (existing?'':field(t('opening'),'opening','number',0,'step="any" min="0"')+rateHTML)+
+  '<div class="fin-modal-currency">'+pick(ct('account'),'currency',currencyOptions(),current)+'</div>'+
+  (existing?'':field(t('opening'),'opening','number',0,'step="any" min="0"'))+
   '<label class="fin-field"><span>'+t('dueDay')+'</span><input name="dueDay" type="number" min="1" max="28" value="'+(existing?.dueDay||'')+'"></label>',
  v=>{
   if(!v.name.trim()||(!existing&&!number(v.opening,true)))return false;
@@ -182,10 +184,7 @@ function addAccount(existing){
   if(due!==null&&(!Number.isInteger(due)||due<1||due>28))return false;
   if(existing){existing.name=v.name.trim().slice(0,70);existing.dueDay=due;return true}
   if(!CURRENCIES.includes(v.currency))return false;
-  if(v.currency!=='JPY'&&rate(v.currency)===null){
-   if(!number(v.accountRate)||Number(v.accountRate)>=1e7){alert(ct('missing'));return false}
-   doc.preferences.rates[v.currency]=Number(v.accountRate);
-  }
+  doc.preferences.record=v.currency;
   doc.accounts.push({id:id(),name:v.name.trim().slice(0,70),type:v.type,currency:v.currency,opening:Number(v.opening),dueDay:due});
  },box=>{
   if(existing){
@@ -196,16 +195,6 @@ function addAccount(existing){
     if(doc.transactions.some(x=>x.from===existing.id||x.to===existing.id)||doc.trades.some(x=>x.account===existing.id))return alert(t('different'));
     if(confirm(t('confirm'))){doc.accounts=doc.accounts.filter(a=>a.id!==existing.id);box.close();save()}
    };
-  }else{
-   const picker=box.querySelector('[name="currency"]'),input=box.querySelector('[name="accountRate"]'),label=box.querySelector('.fin-account-rate span');
-   const update=()=>{
-    const code=picker.value,currentRate=rate(code);
-    label.textContent=ct('rate')+' · 1 '+code+' = JPY';
-    input.value=currentRate||'';input.disabled=currentRate!==null;
-    input.required=currentRate===null;
-    input.closest('label').hidden=code==='JPY';
-   };
-   picker.addEventListener('change',update);update();
   }
  });
 }
@@ -418,7 +407,7 @@ function action(what,value){
  else if(what==='budgetDetail')addBudget(value);
 }
 function bind(){
- // Account currency is selected on creation; no global display-currency control.
+ document.getElementById('financeRoot')?.addEventListener('change',e=>{if(e.target?.name==='recordCurrency'){ensurePrefs();doc.preferences.record=e.target.value;save()}});
  document.getElementById('financeRoot')?.addEventListener('click',e=>{
   const p=e.target.closest('[data-fin-pane]');if(p){pane=p.dataset.finPane;render();return}
   const a=e.target.closest('[data-fin-action]');if(a){action(a.dataset.finAction);return}
