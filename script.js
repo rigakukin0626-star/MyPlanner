@@ -1825,6 +1825,15 @@ async function groupLoadList(force=false){
   if(ids.length){const result=await supabaseClient.from("chat_groups").select("id,name,created_by").in("id",ids);if(result.error)throw result.error;groups=result.data||[]}
   if(currentUser?.id!==userId||chatMode!=="group"||chatActiveGroup)return;
   groupListLastLoaded=Date.now();
+  // Show the list as soon as group metadata arrives. Unread/last-message
+  // previews can update separately; a slow preview query must not block taps.
+  let saved=[];
+  try{
+   const previous=JSON.parse(localStorage.getItem(groupListCacheKey)||"null");
+   if(previous?.userId===userId&&Array.isArray(previous.groups))saved=previous.groups;
+  }catch{}
+  const byId=new Map(saved.map(g=>[g.id,g]));
+  groupRenderList(groups.map(group=>({...byId.get(group.id),...group})));
   const enriched=await groupFetchPreviews(groups);
   if(currentUser?.id!==userId||chatMode!=="group"||chatActiveGroup)return;
   groupRenderList(enriched);
