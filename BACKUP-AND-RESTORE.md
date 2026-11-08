@@ -132,3 +132,15 @@ Supabase SQL Editor. It was NOT automatically applied.
 - Dark theme: harmonize graphite background, cards, conversations, text, and frosted dock; the 100 CSS rules are individually numbered and correspond to the report.
 - Authenticated photo loading and all pre-existing Supabase data remain intact. No SQL migration is required.
 - Mobile Safari device validation is still needed; cannot claim a measured FPS improvement from static tests.
+
+## v184 — Balanced grouped surfaces and selective iOS-like glass
+
+- Pre-change baseline main commit `75ddbe0687ff2c992f04b9d9efeab4f7a17d9d50`; backup branch `backup-before-balanced-glass-v184`; work branch `feat-balanced-glass-v184`.
+- Light mode: unified soft off-white outer canvas (#f7f8fa), consistent semitransparent white grouped surfaces, and subdued hairline edges. The old white rectangular background behind friend/group lists is now transparent; the list is framed by the app canvas instead of a separate white slab.
+- Settings: appearance and account panels share padding, radius, background and border treatment; cloud-sync section and username field use light grouped fields instead of mixed white/gray blocks.
+- Dark mode: matching charcoal surfaces and less contrast between list rows and the page background.
+- Small, selected controls (chat add/more, language selector, calendar arrows, selected appearance and return-to-latest) use a subtle glass fill, border highlight, low-cost 6px local backdrop blur; bottom dock has a restrained 8px blur. Full-page blur, media blur and persistent animations are intentionally avoided.
+- The primary Send/Save buttons remain opaque and readable. Existing scroll behavior, media load, accounts, data and push functionality remain unchanged.
+- Browser theme-color on first paint and runtime is aligned with the refined palette; PWA cache version v184.
+- Native iOS browser toolbar remains under Safari's control and cannot be completely styled by a web app.
+- Requires actual light/dark iPhone Safari device testing for visual correctness and performance; code tests alone cannot guarantee a native Liquid Glass rendering.
