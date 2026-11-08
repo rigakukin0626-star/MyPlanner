@@ -1,0 +1,408 @@
+/* My Planner v185 — real see-through Liquid Glass for task surfaces and floating dock.
+   Deliberately scoped: no changes to conversation scroll/keyboard layout or app data.
+   Backdrop blur belongs on small floating controls; the large task cards remain inexpensive.
+*/
+:root{
+  --liquid-page-tint:rgba(86,145,230,.10);
+  --liquid-panel:rgba(255,255,255,.79);
+  --liquid-panel-border:rgba(107,140,189,.15);
+  --liquid-control:rgba(255,255,255,.36);
+  --liquid-control-border:rgba(255,255,255,.75);
+  --liquid-rim:rgba(255,255,255,.92);
+  --liquid-glow:rgba(35,75,140,.09);
+  --liquid-dock:rgba(246,250,255,.33);
+  --liquid-dock-edge:rgba(255,255,255,.74);
+  --liquid-dock-active:rgba(255,255,255,.35);
+  --liquid-ink:var(--ink);
+  --liquid-muted:var(--muted);
+}
+html[data-theme="dark"]{
+  --liquid-page-tint:rgba(79,120,196,.14);
+  --liquid-panel:rgba(30,37,49,.77);
+  --liquid-panel-border:rgba(190,211,241,.11);
+  --liquid-control:rgba(45,55,74,.34);
+  --liquid-control-border:rgba(223,236,255,.17);
+  --liquid-rim:rgba(236,244,255,.16);
+  --liquid-glow:rgba(0,0,0,.24);
+  --liquid-dock:rgba(28,36,50,.35);
+  --liquid-dock-edge:rgba(232,242,255,.19);
+  --liquid-dock-active:rgba(122,170,243,.20);
+}
+/* A soft environment visible through floating controls; chat layout stays unchanged. */
+body:not([data-active-page="chat"]){
+  background:
+    radial-gradient(ellipse 80% 44% at 8% 8%,var(--liquid-page-tint),transparent 72%),
+    radial-gradient(ellipse 60% 35% at 94% 48%,rgba(117,166,215,.06),transparent 72%),
+    var(--bg)!important;
+  background-attachment:fixed!important;
+}
+body:not([data-active-page="chat"]) .app-shell,
+body:not([data-active-page="chat"]) #appMain{background:transparent!important}
+.app-shell{padding-bottom:calc(145px + env(safe-area-inset-bottom))!important}
+
+/* Global header: let page atmosphere show around the language switcher. */
+body:not([data-active-page="chat"]) .topbar{
+  background:transparent!important;
+  border-color:var(--liquid-panel-border)!important;
+}
+.topbar h1{letter-spacing:-.045em}
+.language-picker select{
+  border-radius:999px!important;
+  min-height:40px!important;
+  max-width:160px;
+  padding:7px 14px!important;
+  background:var(--liquid-control)!important;
+  border:1px solid var(--liquid-control-border)!important;
+  box-shadow:inset 0 1px 0 var(--liquid-rim),0 4px 16px var(--liquid-glow)!important;
+  color:var(--liquid-ink)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(175%);
+  backdrop-filter:blur(22px) saturate(175%);
+}
+
+/* Tasks: redesign both pages, not merely their header and chat surfaces. */
+#pageTasks>.overview{
+  padding:18px 19px 19px!important;
+  margin:5px 0 20px!important;
+  border-radius:26px!important;
+  border:1px solid var(--liquid-panel-border)!important;
+  background:var(--liquid-panel)!important;
+  box-shadow:0 7px 28px rgba(29,60,116,.035)!important;
+}
+#pageTasks .overview-date strong{font-weight:770;letter-spacing:-.035em}
+#pageTasks .overview .stat strong{color:var(--ink)}
+#pageTasks .progress-track{
+  height:7px;
+  background:rgba(119,153,200,.15);
+  border-radius:999px;
+}
+html[data-theme="dark"] #pageTasks .progress-track{background:rgba(205,223,246,.13)}
+#pageTasks .progress-bar{border-radius:999px}
+#pageTasks .tasks-panel,#pageLongTerm .tasks-panel,
+#pageLongTerm .countdown-panel{
+  min-width:0;
+  background:var(--liquid-panel)!important;
+  border:1px solid var(--liquid-panel-border)!important;
+  border-radius:28px!important;
+  box-shadow:0 8px 32px rgba(32,61,111,.035)!important;
+  overflow:visible;
+}
+#pageTasks .tasks-panel,#pageLongTerm .tasks-panel{
+  padding:23px 20px 21px!important;
+  margin:0 0 19px!important;
+}
+#pageLongTerm .countdown-panel{
+  padding:22px 20px 23px!important;
+  margin:0 0 24px!important;
+}
+#pageTasks .task-heading,#pageLongTerm .task-heading{
+  margin:0 0 19px!important;
+  padding:0 2px;
+}
+#pageTasks .task-heading h2,#pageLongTerm .task-heading h2{
+  font-weight:770;
+  font-size:23px;
+  letter-spacing:-.04em;
+}
+#pageTasks .task-form,#pageLongTerm .task-form{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  column-gap:12px;
+  row-gap:14px;
+  padding:0 0 23px!important;
+  border-bottom:1px solid var(--liquid-panel-border)!important;
+  min-width:0;
+}
+#pageTasks .task-field,#pageLongTerm .task-field{
+  gap:7px!important;
+  min-width:0;
+}
+#pageTasks .task-field-label,#pageLongTerm .task-field-label{
+  color:var(--liquid-muted);
+  font-size:12px;
+  font-weight:630;
+  letter-spacing:.01em;
+}
+#pageTasks #taskInput,#pageLongTerm #taskInput{
+  grid-column:1/-1!important;
+  font-size:16px!important;
+  height:59px!important;
+  min-height:59px!important;
+  padding:12px 17px!important;
+  border-radius:19px!important;
+}
+#pageTasks .task-field-reminder,#pageLongTerm .task-field-reminder{grid-column:1/-1!important}
+#pageTasks .task-field-repeat,#pageTasks .task-field-priority{grid-column:auto!important}
+#pageLongTerm .task-field-priority{grid-column:1/-1!important}
+#pageTasks .task-form :is(input,select),
+#pageLongTerm .task-form :is(input,select),
+#pageTasks .reminder-display,#pageLongTerm .reminder-display{
+  background:rgba(245,249,255,.46)!important;
+  border:1px solid var(--liquid-panel-border)!important;
+  border-radius:17px!important;
+  color:var(--ink)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18)!important;
+}
+html[data-theme="dark"] #pageTasks .task-form :is(input,select),
+html[data-theme="dark"] #pageLongTerm .task-form :is(input,select),
+html[data-theme="dark"] #pageTasks .reminder-display,
+html[data-theme="dark"] #pageLongTerm .reminder-display{
+  background:rgba(52,65,85,.36)!important;
+  border-color:var(--liquid-control-border)!important;
+}
+#pageTasks .task-form :is(select,input:not(#taskInput)),
+#pageLongTerm .task-form :is(select,input:not(#taskInput)){
+  min-height:53px!important;
+  width:100%;
+  font-size:14px;
+}
+#pageTasks .reminder-display,#pageLongTerm .reminder-display{
+  min-height:53px!important;
+  padding:0 15px!important;
+  display:flex;
+  align-items:center;
+  pointer-events:none;
+  font-size:14px!important;
+  color:var(--ink)!important;
+}
+#pageTasks .reminder-picker,#pageLongTerm .reminder-picker{min-width:0}
+#pageTasks .task-form :is(input,select):focus,
+#pageLongTerm .task-form :is(input,select):focus{
+  outline:none;
+  border-color:rgba(71,134,229,.55)!important;
+  box-shadow:0 0 0 3px rgba(71,134,229,.10)!important;
+}
+#pageTasks .task-form>.button-primary,
+#pageLongTerm .task-form>.button-primary{
+  grid-column:1/-1!important;
+  width:100%;
+  min-height:53px!important;
+  padding:11px 18px!important;
+  margin-top:1px!important;
+  border-radius:18px!important;
+  border:1px solid rgba(255,255,255,.20)!important;
+  color:#fff!important;
+  background:linear-gradient(180deg,#4b86eb 0%,#2c6ed7 100%)!important;
+  box-shadow:0 6px 15px rgba(38,102,201,.14),inset 0 1px 0 rgba(255,255,255,.25)!important;
+  font-size:16px;
+  font-weight:720;
+  transition:transform .14s ease-out,filter .14s ease-out!important;
+}
+html[data-theme="dark"] #pageTasks .task-form>.button-primary,
+html[data-theme="dark"] #pageLongTerm .task-form>.button-primary{
+  background:linear-gradient(180deg,#397cdb,#2162be)!important;
+  color:#fff!important;
+}
+#pageTasks .task-form>.button-primary:active,
+#pageLongTerm .task-form>.button-primary:active{transform:scale(.985);filter:brightness(.96)}
+/* Task filters become a quiet iOS segmented surface instead of an underline. */
+#pageTasks .task-toolbar{
+  margin:19px 0 11px!important;
+  min-width:0;
+  gap:8px;
+}
+#pageTasks #taskTabs{
+  display:inline-flex;
+  gap:3px!important;
+  padding:4px!important;
+  border-radius:17px!important;
+  background:rgba(130,156,194,.10)!important;
+  border:1px solid var(--liquid-panel-border)!important;
+  min-width:0;
+}
+#pageTasks #taskTabs .tab{
+  min-width:0;
+  padding:8px 10px!important;
+  color:var(--muted)!important;
+  border:0!important;
+  border-radius:12px!important;
+  white-space:nowrap;
+  font-size:12px!important;
+  font-weight:620!important;
+  transition:background-color .14s ease,color .14s ease;
+}
+#pageTasks #taskTabs .tab.active{
+  background:var(--liquid-dock-active)!important;
+  color:var(--accent-ink)!important;
+  box-shadow:inset 0 1px 0 var(--liquid-rim),0 2px 6px var(--liquid-glow)!important;
+}
+#pageTasks #taskCountLabel{font-variant-numeric:tabular-nums;white-space:nowrap}
+#pageTasks #taskList>.task-item{
+  border-radius:13px;
+  padding-inline:7px;
+}
+/* Long-term countdown turns from plain table into distinct readable mini-cards. */
+#pageLongTerm .countdown-heading{margin-bottom:15px!important;align-items:center}
+#pageLongTerm .countdown-heading h2{font-size:20px;font-weight:770;letter-spacing:-.035em}
+#pageLongTerm .countdown-capacity{
+  flex:none;
+  padding:5px 11px;
+  border-radius:999px;
+  font-size:12px;
+  font-variant-numeric:tabular-nums;
+  border:1px solid var(--liquid-panel-border);
+  color:var(--accent-ink);
+  background:var(--liquid-control);
+}
+#pageLongTerm .countdown-rows{display:grid;gap:11px!important}
+#pageLongTerm .countdown-row{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  padding:15px 13px!important;
+  min-height:76px;
+  border:1px solid var(--liquid-panel-border)!important;
+  border-radius:18px!important;
+  background:rgba(124,162,223,.055)!important;
+  transition:background-color .15s ease,transform .15s ease;
+}
+html[data-theme="dark"] #pageLongTerm .countdown-row{
+  background:rgba(147,175,220,.055)!important;
+}
+#pageLongTerm .countdown-row:active{
+  background:rgba(102,151,221,.12)!important;
+  transform:scale(.993);
+}
+#pageLongTerm .countdown-index{
+  flex:0 0 25px;
+  font-size:12px;
+  color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+#pageLongTerm .countdown-details strong{
+  font-size:15px;
+  font-weight:720;
+}
+#pageLongTerm .countdown-details small{font-size:12px}
+#pageLongTerm .countdown-remaining{
+  max-width:45%;
+  font-size:12px;
+  line-height:1.35;
+  font-weight:730;
+  color:var(--accent-ink);
+  font-variant-numeric:tabular-nums;
+}
+#pageLongTerm .countdown-placeholder{color:var(--muted)}
+#pageLongTerm .countdown-plus{font-size:23px;color:var(--accent-ink)}
+#pageLongTerm .longterm-hint{margin:13px 2px 0}
+/* Actual LINE-like floating dock: glass, separation from screen edges, real blur. */
+.bottom-tabs{
+  position:fixed!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:max(10px,env(safe-area-inset-bottom))!important;
+  width:min(570px,calc(100% - 26px))!important;
+  height:73px!important;
+  padding:7px 8px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-around!important;
+  gap:2px!important;
+  border:1px solid var(--liquid-dock-edge)!important;
+  border-radius:28px!important;
+  background:var(--liquid-dock)!important;
+  box-shadow:inset 0 1px 0 var(--liquid-rim),0 9px 27px rgba(30,57,95,.14)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(180%)!important;
+  backdrop-filter:blur(24px) saturate(180%)!important;
+  transform:translateX(-50%)!important;
+  overflow:hidden;
+  isolation:isolate;
+}
+html[data-theme="dark"] .bottom-tabs{
+  border-color:var(--liquid-dock-edge)!important;
+  background:var(--liquid-dock)!important;
+  box-shadow:inset 0 1px 0 var(--liquid-rim),0 12px 30px rgba(0,0,0,.30)!important;
+}
+.bottom-tabs::before{
+  content:"";
+  position:absolute;inset:1px;
+  border-radius:27px;
+  pointer-events:none;
+  background:linear-gradient(155deg,rgba(255,255,255,.22),rgba(255,255,255,0) 53%);
+}
+html[data-theme="dark"] .bottom-tabs::before{
+  background:linear-gradient(155deg,rgba(244,249,255,.075),rgba(255,255,255,0) 55%);
+}
+.bottom-tabs .tab{
+  position:relative;
+  flex:1 1 0;
+  z-index:1;
+  min-width:0;
+  height:100%;
+  max-width:none;
+  border:1px solid transparent!important;
+  border-radius:20px!important;
+  padding:5px 2px!important;
+  color:var(--muted);
+  background:transparent!important;
+  font-size:11px!important;
+  font-weight:600;
+}
+.bottom-tabs .tab.active{
+  color:var(--accent-ink)!important;
+  background:var(--liquid-dock-active)!important;
+  border-color:var(--liquid-control-border)!important;
+  box-shadow:inset 0 1px 0 var(--liquid-rim)!important;
+}
+.bottom-tabs .tab .tab-icon{
+  width:41px!important;height:27px!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  border-radius:11px!important;
+}
+.bottom-tabs .tab.active .tab-icon{
+  color:var(--accent-ink)!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.bottom-tabs .tab:active{transform:scale(.96)}
+/* LINE-like mini-popovers are translucent, without changing menu actions. */
+#pageChat .line-popup-menu:not([hidden]){
+  background:var(--liquid-dock)!important;
+  border:1px solid var(--liquid-dock-edge)!important;
+  border-radius:23px!important;
+  box-shadow:inset 0 1px 0 var(--liquid-rim),0 17px 39px var(--liquid-glow)!important;
+  -webkit-backdrop-filter:blur(26px) saturate(170%);
+  backdrop-filter:blur(26px) saturate(170%);
+}
+@media(max-width:719px){
+  .app-shell{padding:0 16px calc(148px + env(safe-area-inset-bottom))!important}
+  #pageTasks>.overview{padding:17px 15px 18px!important}
+  #pageTasks .tasks-panel,#pageLongTerm .tasks-panel{padding:21px 16px 19px!important}
+  #pageLongTerm .countdown-panel{padding:20px 16px!important}
+  #pageTasks .overview-date strong{font-size:22px!important}
+  #pageTasks .task-heading h2,#pageLongTerm .task-heading h2{font-size:22px!important}
+  #pageLongTerm .countdown-heading h2{font-size:19px}
+  .bottom-tabs{
+    height:70px!important;
+    width:calc(100% - 24px)!important;
+    bottom:max(9px,env(safe-area-inset-bottom))!important;
+  }
+  .bottom-tabs .tab{font-size:10px!important}
+  .bottom-tabs .tab .tab-icon svg{width:23px;height:23px}
+}
+@media(max-width:390px){
+  #pageTasks .tasks-panel,#pageLongTerm .tasks-panel{padding-inline:13px!important}
+  #pageLongTerm .countdown-panel{padding-inline:13px!important}
+  #pageTasks #taskTabs .tab{padding:8px 7px!important}
+  .bottom-tabs{width:calc(100% - 16px)!important;padding-inline:5px!important}
+  .bottom-tabs .tab{font-size:9.5px!important}
+}
+@supports not ((-webkit-backdrop-filter:blur(10px)) or (backdrop-filter:blur(10px))){
+  .bottom-tabs{background:var(--liquid-panel)!important}
+  .language-picker select{background:var(--liquid-panel)!important}
+  #pageChat .line-popup-menu:not([hidden]){background:var(--liquid-panel)!important}
+}
+@media(prefers-reduced-transparency:reduce){
+  .bottom-tabs,.language-picker select,#pageChat .line-popup-menu:not([hidden]){
+    background:var(--surface)!important;
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .bottom-tabs .tab,#pageLongTerm .countdown-row,#pageTasks .task-form>.button-primary,#pageLongTerm .task-form>.button-primary{
+    transition:none!important;
+  }
+}
