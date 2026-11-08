@@ -511,7 +511,7 @@ function switchPlannerPage(page){
  window.scrollTo({top:0,behavior:"instant"});
 }
 function updatePlannerTabLanguage(){
- const labels={zh:["预定","长期预定","日历","聊天","设置"],ja:["予定","長期予定","カレンダー","チャット","設定"],en:["Plans","Long-term Plans","Calendar","Chat","Settings"]}[uiLanguage];
+ const labels={zh:["预定","长期预定","日历","聊天","设置"],ja:["予定","長期予定","カレンダー","チャット","設定"],en:["Plans","Goals","Calendar","Chat","Settings"]}[uiLanguage];
  ["tabTasksLabel","tabLongTermLabel","tabCalendarLabel","tabChatLabel","tabSettingsLabel"].forEach((id,i)=>{const el=$(id);if(el)el.textContent=labels[i]});
  const title=$("settingsTitle");if(title)title.textContent=labels[4];
  window.MyPlannerFinance?.setLanguage(uiLanguage);

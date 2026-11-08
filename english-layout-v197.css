@@ -1,0 +1,94 @@
+/* My Planner v197 — compact English-only navigation, no layout changes to zh/ja.
+   In English an unbounded flex label overflowed and ran into adjacent tabs.
+   Grid + minmax(0, 1fr) creates five real cells; long labels never overlap. */
+html[lang="en"] #pageFinance .fin-tabs{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  align-items:center!important;
+  gap:2px!important;
+  padding:4px!important;
+  min-width:0;
+}
+html[lang="en"] #pageFinance .fin-tabs button{
+  box-sizing:border-box;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:clip;
+  font-size:clamp(10px,2.72vw,11.5px)!important;
+  font-weight:620!important;
+  letter-spacing:-.025em;
+  line-height:1.2;
+  padding:11px 1px!important;
+  border-radius:17px!important;
+  -webkit-tap-highlight-color:transparent;
+}
+html[lang="en"] #pageFinance .fin-tabs button.active{
+  font-weight:720!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.38)!important;
+}
+/* The bottom iOS-style dock now has six pages; keep each label inside
+   its own tap target instead of letting text paint over the next icon. */
+html[lang="en"] .bottom-tabs{gap:1px!important;padding-inline:6px!important}
+html[lang="en"] .bottom-tabs .tab{
+  min-width:0!important;flex:1 1 0!important;
+  gap:3px!important;
+  padding:5px 0!important;
+  overflow:hidden;
+}
+html[lang="en"] .bottom-tabs .tab>span:last-child{
+  box-sizing:border-box;
+  display:block;
+  width:100%;max-width:100%;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  overflow:hidden;
+  line-height:1.17;
+  font-size:clamp(9px,2.65vw,10.5px)!important;
+  letter-spacing:-.025em;
+  font-weight:620!important;
+}
+html[lang="en"] .bottom-tabs .tab.active>span:last-child{font-weight:710!important}
+html[lang="en"] .bottom-tabs .tab .tab-icon{
+  width:min(36px,100%)!important;
+  height:26px!important;
+  flex:none;
+}
+html[lang="en"] .bottom-tabs .tab .tab-icon svg{
+  width:21px!important;height:21px!important;
+}
+/* Financial cards: heading and add button may not squeeze each other. */
+html[lang="en"] #pageFinance .fin-section-title{min-width:0;gap:8px}
+html[lang="en"] #pageFinance .fin-section-title h2{
+  flex:1 1 auto;min-width:0;
+  font-size:clamp(17px,4.8vw,19px)!important;
+  line-height:1.22;
+  overflow-wrap:break-word;
+}
+html[lang="en"] #pageFinance .fin-small{
+  flex:0 0 auto;
+  font-size:clamp(11px,2.8vw,12px)!important;
+  font-weight:650!important;
+  padding:8px 10px!important;
+  white-space:nowrap;
+}
+html[lang="en"] #pageFinance .fin-note{
+  font-size:12px!important;line-height:1.55;
+  max-width:100%;
+  overflow-wrap:anywhere;
+}
+html[lang="en"] #pageFinance .fin-hero>div{gap:18px}
+html[lang="en"] #pageFinance .fin-hero>div span{min-width:0;overflow-wrap:anywhere}
+html[lang="en"] #pageFinance .fin-account-name{min-width:0}
+html[lang="en"] #pageFinance .fin-account-name b{min-width:0;overflow:hidden;text-overflow:ellipsis}
+html[lang="en"] #pageFinance .fin-entry>span:first-child{min-width:0}
+@media(max-width:365px){
+ html[lang="en"] #pageFinance .fin-tabs button{font-size:10px!important;letter-spacing:-.04em}
+ html[lang="en"] .bottom-tabs .tab>span:last-child{font-size:9px!important}
+ html[lang="en"] #pageFinance .fin-section-title h2{font-size:17px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ html[lang="en"] #pageFinance .fin-tabs button{transition:none!important}
+}
