@@ -82,7 +82,7 @@ const pick=(label,name,choices,selected)=>'<label class="fin-field"><span>'+labe
 const accountOpts=()=>doc.accounts.map(a=>[a.id,a.name]);
 function accounts(){
  const b=balances();
- return section(t('accounts'),button('＋ '+t('addAccount'),'account'),doc.accounts.map(a=>'<button class="fin-account" data-fin-account="'+h(a.id)+'"><span class="fin-emblem">'+(credit(a)?'▣':a.type==='broker'?'↗':'¥')+'</span><span class="fin-account-name"><b>'+h(a.name)+'</b><small>'+t(a.type)+' · '+h(a.currency||'JPY')+(a.dueDay?' · '+a.dueDay:'')+'</small></span><strong>'+nativeMoney(b.get(a.id),a.currency)+'</strong></button>').join('')||'<p class="fin-empty">'+t('noAccounts')+'</p>');
+ return section(t('accounts'),button('＋ '+t('addAccount'),'account'),doc.accounts.map(a=>'<button class="fin-account" data-fin-account="'+h(a.id)+'"><span class="fin-emblem">'+(credit(a)?'▣':a.type==='broker'?'↗':'¥')+'</span><span class="fin-account-name"><b>'+h(a.name)+'</b><small>'+t(a.type)+' · '+h(a.currency||'JPY')+(a.dueDay?' · '+a.dueDay:'')+'</small></span><strong class="fin-account-amount"><span>'+nativeMoney(b.get(a.id),a.currency)+'</span>'+(displayCode()!==(a.currency||'JPY')?'<small>≈ '+yen(toJPY(b.get(a.id),a.currency))+'</small>':'')+'</strong></button>').join('')||'<p class="fin-empty">'+t('noAccounts')+'</p>');
 }
 function entries(limit=80){
  return section(t('transactions'),button('＋ '+t('addTx'),'tx'),doc.transactions.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created).slice(0,limit).map(x=>{
@@ -353,7 +353,7 @@ async function fetchCloud(){
   if(!hasRecords()&&!dirty){doc=data.payload;ensurePrefs();revision=data.revision;dirty=false;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
   if(JSON.stringify(doc)===JSON.stringify(data.payload)){revision=data.revision;dirty=false;localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
   if(revision===data.revision&&dirty){cloud='synced';schedulePush();render();return}
-  if(revision!==null&&data.revision>revision&&!dirty){doc=data.payload;revision=data.revision;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
+  if(revision!==null&&data.revision>revision&&!dirty){doc=data.payload;ensurePrefs();revision=data.revision;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
   cloud='conflict';render();
  }catch(e){cloud='failed';render()}
 }
@@ -392,7 +392,7 @@ function action(what,value){
  else if(what==='useCloud')useCloud();
  else if(what==='guest'){const d=localStorage.getItem(BASE+'guest');if(d&&confirm(t('replace'))){doc=JSON.parse(d);ensurePrefs();save()}}
  else if(what==='delete'&&confirm(t('confirm'))){doc.transactions=doc.transactions.filter(x=>x.id!==value);save()}
- else if(what==='accountDetail'){const a=account(value);if(a)dialog(t('accounts'),'<p class="fin-balance">'+yen(balances().get(a.id))+'</p><div class="fin-actions">'+button(t('edit'),'editAccount')+button(t('reconcile'),'reconcile')+'</div>',()=>true,b=>{b.querySelector('[data-fin-action="editAccount"]').onclick=()=>{b.close();addAccount(a)};b.querySelector('[data-fin-action="reconcile"]').onclick=()=>{b.close();reconcile(a)}})}
+ else if(what==='accountDetail'){const a=account(value);if(a)dialog(t('accounts'),'<p class="fin-balance">'+nativeMoney(balances().get(a.id),a.currency)+(displayCode()!==(a.currency||'JPY')?'<small class="fin-account-converted">≈ '+yen(toJPY(balances().get(a.id),a.currency))+'</small>':'')+'</p><div class="fin-actions">'+button(t('edit'),'editAccount')+button(t('reconcile'),'reconcile')+'</div>',()=>true,b=>{b.querySelector('[data-fin-action="editAccount"]').onclick=()=>{b.close();addAccount(a)};b.querySelector('[data-fin-action="reconcile"]').onclick=()=>{b.close();reconcile(a)}})}
  else if(what==='holdingDetail'){const x=holding(value);if(x)addHolding(x)}
  else if(what==='budgetDetail')addBudget(value);
 }
