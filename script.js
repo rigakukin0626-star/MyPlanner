@@ -2623,7 +2623,7 @@ showWelcomeAuth();
     document.documentElement.dataset.theme=mode;
     document.documentElement.style.colorScheme=mode;
     const meta=document.querySelector('meta[name="theme-color"]');
-    if(meta)meta.setAttribute("content",mode==="dark"?"#000000":"#ffffff");
+    if(meta)meta.setAttribute("content",mode==="dark"?"#11151c":"#f6f8fb");
     document.querySelectorAll("[data-appearance]").forEach(button=>{
       const active=button.dataset.appearance===selected;
       button.setAttribute("aria-pressed",String(active));
