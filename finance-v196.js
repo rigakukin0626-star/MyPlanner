@@ -260,8 +260,8 @@ function addAccount(existing){
  });
 }
 function reconcile(a){
- dialog(t('adjust'),field(t('actual'),'actual','number',balances().get(a.id),'step="1"'),v=>{
-  if(!Number.isFinite(Number(v.actual)))return false;
+ dialog(t('adjust'),field(t('actual'),'actual','number',balances().get(a.id),'step="any"'),v=>{
+  if(!Number.isFinite(Number(v.actual))||Math.abs(Number(v.actual))>=1e12)return false;
   const delta=Number(v.actual)-balances().get(a.id);
   if(delta)doc.transactions.push({id:id(),kind:'adjust',from:a.id,to:null,amount:delta,date:nowDate(),created:Date.now(),category:'other',note:t('adjust')});
  });
