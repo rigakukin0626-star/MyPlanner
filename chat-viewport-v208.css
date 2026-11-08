@@ -1,0 +1,111 @@
+/* v208 — One chat viewport, one conversation.
+   On iOS Safari the visual viewport is panned upward when an input is focused:
+   its offsetTop can be >0. Do not use that as the panel's TOP coordinate.
+   Instead, anchor top to zero and use (offsetTop + visualViewport.height) for
+   its bottom. The scrollable message list is the sole flexible region.
+   This replaces v195/v206/v207 sizing without changing chat data or behavior. */
+@media (max-width:719px){
+  #pageChat.active:has(> .chat-panel > .chat-conversation:not([hidden])) .chat-panel{
+    position:fixed!important;
+    inset:0 0 auto 0!important;
+    top:0!important;
+    left:0!important;right:0!important;bottom:auto!important;
+    box-sizing:border-box!important;
+    width:100%!important;max-width:none!important;
+    height:var(--chat-overlay-height,100dvh)!important;
+    max-height:var(--chat-overlay-height,100dvh)!important;
+    min-height:0!important;
+    padding:0!important;margin:0!important;
+    border:0!important;border-radius:0!important;
+    overflow:hidden!important;
+    display:flex!important;flex-direction:column!important;
+    background:var(--surface)!important;
+    z-index:900!important;
+    transform:none!important;
+    transition:none!important;
+  }
+
+  /* Do not show the friends/groups switch and list search above a conversation.
+     Select by actual open dialog, not a body class that can lag async refreshes. */
+  #pageChat.active:has(> .chat-panel > .chat-conversation:not([hidden]))
+    .chat-panel > :not(.chat-conversation){
+    display:none!important;
+  }
+  #pageChat.active .chat-panel > .chat-conversation[hidden]{
+    display:none!important;
+  }
+  #pageChat.active:has(> .chat-panel > .chat-conversation:not([hidden]))
+    .chat-panel > .chat-conversation:not([hidden]){
+    position:relative!important;
+    inset:auto!important;top:auto!important;bottom:auto!important;
+    width:100%!important;height:auto!important;max-height:none!important;
+    min-height:0!important;
+    padding:0!important;margin:0!important;
+    display:flex!important;flex-direction:column!important;
+    flex:1 1 0%!important;
+    overflow:hidden!important;
+    transform:none!important;transition:none!important;
+    background:var(--conversation)!important;
+  }
+  #pageChat.active .chat-panel > .chat-conversation:not([hidden])
+    .chat-conversation-header{
+    flex:0 0 auto!important;
+    min-height:54px!important;
+    padding:8px 13px!important;
+    box-sizing:border-box!important;
+    background:var(--surface)!important;
+  }
+  #pageChat.active .chat-panel > .chat-conversation:not([hidden])
+    .chat-messages{
+    flex:1 1 0%!important;
+    min-height:0!important;max-height:none!important;height:auto!important;
+    overflow-y:auto!important;overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain!important;
+    padding:12px 12px 16px!important;
+    margin:0!important;
+  }
+  #pageChat.active .chat-panel > .chat-conversation:not([hidden])
+    .chat-send{
+    display:flex!important;
+    flex:0 0 auto!important;
+    min-height:0!important;
+    position:relative!important;
+    top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
+    margin:0!important;
+    padding:8px 10px 8px!important;
+    gap:8px!important;align-items:center!important;
+    transform:none!important;
+    background:var(--surface)!important;
+    border-top:1px solid var(--line)!important;
+    box-sizing:border-box!important;
+  }
+  #pageChat.active .chat-panel > .chat-conversation:not([hidden])
+    .chat-send textarea{
+    flex:1 1 auto!important;
+    min-width:0!important;
+    font-size:16px!important;
+  }
+  /* A conversation is fullscreen; the six-tab launcher remains available
+     on the chats LIST but should not float over the keyboard in conversation. */
+  body:has(#pageChat.active > .chat-panel > .chat-conversation:not([hidden])){
+    overflow:hidden!important;overscroll-behavior:none!important;
+  }
+  body:has(#pageChat.active > .chat-panel > .chat-conversation:not([hidden]))
+    .bottom-tabs{
+    display:none!important;
+  }
+  body:has(#pageChat.active > .chat-panel > .chat-conversation:not([hidden]))
+    #pageChat .chat-mode-switch{
+    display:none!important;
+  }
+  /* Hide app chrome behind the conversation even when Safari scrolls the page
+     to bring the focused textarea into view. */
+  body:has(#pageChat.active > .chat-panel > .chat-conversation:not([hidden]))
+    .topbar{
+    visibility:hidden!important;
+  }
+}
+@media(max-width:719px) and (prefers-reduced-motion:reduce){
+ #pageChat.active .chat-panel > .chat-conversation{animation:none!important}
+}

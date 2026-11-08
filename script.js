@@ -2808,6 +2808,10 @@ showWelcomeAuth();
   const repositioned=lastTop<0||Math.abs(top-lastTop)>1;
   if(resized){root.style.setProperty("--chat-visible-height",height+"px");lastHeight=height}
   if(repositioned){root.style.setProperty("--chat-visible-top",top+"px");lastTop=top}
+  // The iOS viewport can be vertically panned on input focus. The bottom
+  // coordinate is height + offsetTop; anchoring the overlay at zero avoids
+  // leaving a blank strip at the top or losing the composer above the keyboard.
+  if(resized||repositioned)root.style.setProperty("--chat-overlay-height",(height+top)+"px");
   document.body.classList.toggle("chat-input-focused",focused);
   document.body.classList.toggle("chat-keyboard-open",keyboardOpen);
   // Do not force scroll in the focus handler AND again during keyboard entry.
