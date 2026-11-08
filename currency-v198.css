@@ -1,0 +1,67 @@
+/* My Planner Finance v198 — optional per-account currencies and user-editable FX.
+   Currency changes are presentation-only; native account amounts remain intact. */
+#pageFinance .fin-currency-control{
+ display:grid;gap:4px;justify-items:end;align-items:center;
+ flex:0 0 auto;min-width:88px;max-width:137px;
+ color:var(--muted);font-size:11px;font-weight:650;
+}
+#pageFinance .fin-currency-control small{
+ display:block;max-width:100%;font-size:10px;
+ line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#pageFinance .fin-currency-control select{
+ box-sizing:border-box;
+ min-width:91px;max-width:100%;height:41px;
+ color:var(--ink);font-size:14px;font-weight:720;text-align:center;
+ border-radius:999px;border:1px solid rgba(255,255,255,.64);
+ padding:6px 23px 6px 11px;
+ background:rgba(214,231,255,.20);
+ -webkit-backdrop-filter:blur(8px) saturate(145%);
+ backdrop-filter:blur(8px) saturate(145%);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 3px 11px rgba(45,71,112,.065);
+ -webkit-appearance:menulist;appearance:menulist;
+}
+#pageFinance .fin-rate-list{display:grid;gap:0}
+#pageFinance .fin-rate-row{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:8px;width:100%;min-height:48px;
+ padding:10px 2px;border:0;
+ border-bottom:1px solid rgba(144,173,213,.17);
+ color:var(--ink);background:transparent;text-align:left;
+ -webkit-tap-highlight-color:transparent;
+}
+#pageFinance .fin-rate-row span:first-child{font-weight:750;min-width:39px}
+#pageFinance .fin-rate-row strong{
+ margin-left:auto;font-size:12px;font-variant-numeric:tabular-nums;
+ color:var(--accent-ink);font-weight:650;overflow-wrap:anywhere;
+}
+#pageFinance .fin-rate-row span:last-child{color:var(--muted);font-size:19px}
+#pageFinance .fin-account-amount{
+ flex:0 0 auto;display:grid;gap:3px;justify-items:end;min-width:0;
+ text-align:right;white-space:normal;
+}
+#pageFinance .fin-account-amount>span{
+ display:block;font-size:14px;font-weight:750;white-space:nowrap;
+ font-variant-numeric:tabular-nums;
+}
+#pageFinance .fin-account-amount small,.fin-dialog .fin-account-converted{
+ display:block;font-size:11px;color:var(--muted);
+ font-weight:500;white-space:nowrap;
+}
+.fin-dialog .fin-account-rate[hidden]{display:none!important}
+.fin-dialog .fin-account-rate input:disabled{opacity:.6}
+#pageFinance .fin-head{gap:10px;min-width:0}
+#pageFinance .fin-head>div:first-child{min-width:0}
+#pageFinance .fin-head h1{overflow-wrap:anywhere}
+.fin-dialog .fin-exchange-preview{margin:5px 0 0;color:var(--muted);font-size:12px}
+@media(max-width:390px){
+ #pageFinance .fin-currency-control{min-width:81px}
+ #pageFinance .fin-currency-control select{min-width:81px;padding-left:8px}
+ #pageFinance .fin-head h1{font-size:27px}
+ #pageFinance .fin-account-amount>span{font-size:12px}
+}
+@media(prefers-reduced-transparency:reduce){
+ #pageFinance .fin-currency-control select{
+  background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none;
+ }
+}
