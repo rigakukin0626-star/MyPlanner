@@ -98,3 +98,14 @@ Supabase SQL Editor. It was NOT automatically applied.
 - Group list renders as soon as groups are returned, before read counts and previews finish. Recent images are eagerly painted; other historic images stay lazy-loaded to conserve bandwidth.
 - Added a quiet photo placeholder, capped large media height, and reduced timestamp whitespace without reintroducing media bubble backgrounds.
 - This release requires no SQL migration and does not modify existing messages, members, or Storage objects.
+
+## v181 — Group conversation bottom-follow, correctly fitted photo frames, and UI refinement
+
+- Main snapshot before the fix: `a81483192e1d967664e0f38f03ab29899b2ebb7f`.
+- Rollback branch: `backup-before-chat-scroll-ui-v181`.
+- Development branch: `fix-group-scroll-polish-v181`.
+- When opening a group, the scroll viewport follows the newest message through image loading/decoding, layout resizing, and Safari viewport-height changes. The user can intentionally scroll upward without being automatically yanked back down.
+- A small floating jump-to-latest button appears only after the user moves away from the latest messages; tapping it restores bottom-follow.
+- Loaded photo frames are sized to the actual decoded image ratio, avoiding the empty horizontal area around portrait photos; images remain private and do not add permanent browser storage.
+- Chat header, avatars, rounded bubbles, timestamps, media spacing, and the message composer have a calm, consistent mobile look inspired by mainstream messaging apps. No interface, data, permissions, schema, or message semantics were removed.
+- No Supabase migration is required. Live iPhone browser verification is still required for scroll responsiveness under real network conditions.

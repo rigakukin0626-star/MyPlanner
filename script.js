@@ -990,6 +990,20 @@ async function chatGetSignedImageUrl(path){
  chatImageUrlRequests.set(path,request);
  try{return await request}finally{chatImageUrlRequests.delete(path)}
 }
+function chatFitMediaFrame(wrap,img){
+ // Display photos at their actual aspect ratio instead of leaving a wide,
+ // empty container around portrait pictures.
+ if(!wrap||!img?.naturalWidth||!img.naturalHeight)return;
+ const viewportHeight=window.visualViewport?.height||window.innerHeight;
+ const maxWidth=Math.max(130,Math.min(285,window.innerWidth*0.70));
+ const maxHeight=Math.max(200,Math.min(340,viewportHeight*0.53));
+ const scale=Math.min(1,maxWidth/img.naturalWidth,maxHeight/img.naturalHeight);
+ const width=Math.max(1,Math.round(img.naturalWidth*scale));
+ const height=Math.max(1,Math.round(img.naturalHeight*scale));
+ wrap.style.setProperty("width",width+"px","important");
+ img.style.setProperty("width",width+"px","important");
+ img.style.setProperty("height",height+"px","important");
+}
 function chatAttachStoredPhoto(node,path,isGroup=false,priority=false){
  const wrap=document.createElement("span");wrap.className="chat-media-frame chat-media-pending";
  const img=document.createElement("img");img.className="chat-photo";
@@ -1006,6 +1020,7 @@ function chatAttachStoredPhoto(node,path,isGroup=false,priority=false){
  const failed=(error)=>{
   if(!wrap.isConnected)return;
   img.hidden=true;retry.hidden=false;wrap.classList.remove("chat-media-ready","chat-media-pending");
+  if(isGroup)groupScrollPin();
   img.onerror=null;img.onload=null;img.removeAttribute("src");
   const details=String(error?.cause?.signed||"")+" "+String(error?.cause?.download||"")+" "+String(error?.message||"");
   const denied=/401|403|unauthori[sz]ed|permission|row.level|rls|not allowed|access denied/i.test(details);
@@ -1025,9 +1040,11 @@ function chatAttachStoredPhoto(node,path,isGroup=false,priority=false){
    }else failed(new Error("Image download or decoding failed"));
   };
   img.onload=()=>{
+   chatFitMediaFrame(wrap,img);
    wrap.classList.remove("chat-media-pending");wrap.classList.add("chat-media-ready");
    img.alt=chatText("聊天照片","チャット写真","Chat photo");
-   if(!isGroup&&Date.now()<chatAutoScrollUntil)chatScrollToLatest();
+   if(isGroup&&wrap.isConnected)groupScrollPin();
+   else if(!isGroup&&Date.now()<chatAutoScrollUntil)chatScrollToLatest();
   };
   img.hidden=false;retry.hidden=true;img.src=url;
  };
@@ -1957,6 +1974,7 @@ function groupClose(){
  if(groupMessageRefreshTimer){clearTimeout(groupMessageRefreshTimer);groupMessageRefreshTimer=null}
  $("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
  groupReceiptReset();
+ groupScrollStop();
  chatActiveGroup=null;groupLastSignature="";
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
  $("chatGroupConversation").hidden=true;$("chatModeSwitch").hidden=false;
@@ -1983,11 +2001,121 @@ function groupWarmPanels(group){
   groupLoadInviteFriends(true).catch(error=>console.warn("Invite preload failed",error)).finally(()=>{state.invitePending=false});
  }else state.invitePending=false;
 }
+/* v181: Group conversation scroll-follow state.
+   Keep the newest message visible when photos decode or expand. A user who
+   deliberately swipes up to read history keeps their own scroll position.
+*/
+const groupScrollFollow={groupId:null,followLatest:false,lastUserMove:0,scheduled:false,touchY:null};
+let groupMediaResizeObserver=null;
+function groupScrollUpdateJump(){
+ const button=$("chatGroupJumpToLatest");
+ const root=$("chatGroupMessages");
+ if(!button||!root||!chatActiveGroup){if(button)button.hidden=true;return}
+ const distance=root.scrollHeight-root.scrollTop-root.clientHeight;
+ button.hidden=groupScrollFollow.followLatest||distance<170;
+}
+function groupScrollBegin(groupId){
+ groupScrollFollow.groupId=groupId;
+ groupScrollFollow.followLatest=true;
+ groupScrollFollow.lastUserMove=0;
+ groupScrollFollow.touchY=null;
+ groupScrollFollow.scheduled=false;
+ if(groupMediaResizeObserver)groupMediaResizeObserver.disconnect();
+ groupScrollUpdateJump();
+}
+function groupScrollStop(){
+ groupScrollFollow.groupId=null;
+ groupScrollFollow.followLatest=false;
+ groupScrollFollow.scheduled=false;
+ groupScrollFollow.touchY=null;
+ if(groupMediaResizeObserver)groupMediaResizeObserver.disconnect();
+ const jump=$("chatGroupJumpToLatest");
+ if(jump)jump.hidden=true;
+}
+function groupScrollPin(groupId=chatActiveGroup?.id){
+ if(!groupId||groupScrollFollow.groupId!==groupId||!groupScrollFollow.followLatest||groupScrollFollow.scheduled)return;
+ groupScrollFollow.scheduled=true;
+ requestAnimationFrame(()=>{
+  groupScrollFollow.scheduled=false;
+  const root=$("chatGroupMessages");
+  if(!root||!chatActiveGroup||chatActiveGroup.id!==groupId||!groupScrollFollow.followLatest||groupScrollFollow.groupId!==groupId)return;
+  root.scrollTop=root.scrollHeight;
+  groupScrollUpdateJump();
+  requestAnimationFrame(()=>{
+   if(chatActiveGroup?.id===groupId&&groupScrollFollow.groupId===groupId&&groupScrollFollow.followLatest)root.scrollTop=root.scrollHeight;
+  });
+ });
+}
+function groupScrollWatchMedia(){
+ const root=$("chatGroupMessages");
+ if(!root||!window.ResizeObserver||!chatActiveGroup)return;
+ if(!groupMediaResizeObserver){
+  groupMediaResizeObserver=new ResizeObserver(()=>{
+   if(groupScrollFollow.followLatest)groupScrollPin();
+  });
+ }
+ groupMediaResizeObserver.disconnect();
+ // The most recent image messages are most likely to affect the open viewport.
+ const frames=root.querySelectorAll(".chat-media-frame");
+ for(const frame of Array.from(frames).slice(-12))groupMediaResizeObserver.observe(frame);
+}
+function groupScrollTrackIntent(){
+ const root=$("chatGroupMessages");
+ if(!root||!chatActiveGroup||groupScrollFollow.groupId!==chatActiveGroup.id)return;
+ const distance=Math.max(0,root.scrollHeight-root.scrollTop-root.clientHeight);
+ // Natural momentum scrolling can reach the bottom after finger release.
+ if(distance<65){groupScrollFollow.followLatest=true}
+ else if(Date.now()-groupScrollFollow.lastUserMove<=800){groupScrollFollow.followLatest=distance<90}
+ else return;
+ groupScrollUpdateJump();
+ if(groupScrollFollow.followLatest)groupScrollPin();
+}
+function groupScrollWireUserGestures(){
+ const root=$("chatGroupMessages");
+ if(!root)return;
+ const conv=$("chatGroupConversation");
+ let jump=$("chatGroupJumpToLatest");
+ if(!jump&&conv){
+  jump=document.createElement("button");
+  jump.id="chatGroupJumpToLatest";jump.className="chat-jump-to-latest";
+  jump.type="button";jump.hidden=true;
+  jump.setAttribute("aria-label",chatText("跳到最新消息","最新メッセージへ","Jump to latest"));
+  jump.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  conv.append(jump);
+ }
+ jump?.addEventListener("click",()=>{
+  groupScrollFollow.followLatest=true;
+  groupScrollPin();
+  groupScrollUpdateJump();
+ });
+ root.addEventListener("touchstart",e=>{
+  if(e.touches.length===1)groupScrollFollow.touchY=e.touches[0].clientY;
+ },{passive:true});
+ root.addEventListener("touchmove",e=>{
+  if(e.touches.length!==1||groupScrollFollow.touchY===null)return;
+  if(Math.abs(e.touches[0].clientY-groupScrollFollow.touchY)>7){
+   groupScrollFollow.lastUserMove=Date.now();
+  }
+ },{passive:true});
+ root.addEventListener("touchend",()=>{groupScrollFollow.touchY=null},{passive:true});
+ root.addEventListener("touchcancel",()=>{groupScrollFollow.touchY=null},{passive:true});
+ root.addEventListener("wheel",()=>{groupScrollFollow.lastUserMove=Date.now()},{passive:true});
+ root.addEventListener("scroll",groupScrollTrackIntent,{passive:true});
+ root.addEventListener("keydown",e=>{
+  if(["ArrowUp","ArrowDown","PageUp","PageDown","Home","End"," "].includes(e.key))groupScrollFollow.lastUserMove=Date.now();
+ });
+ // iOS Safari dynamically changes the viewport when its browser bars move.
+ const keepLatestAfterViewportChange=()=>{if(groupScrollFollow.followLatest)groupScrollPin()};
+ window.addEventListener("resize",keepLatestAfterViewportChange,{passive:true});
+ window.visualViewport?.addEventListener("resize",keepLatestAfterViewportChange,{passive:true});
+}
+
 async function groupOpen(group){
  if(groupMessageRefreshTimer){clearTimeout(groupMessageRefreshTimer);groupMessageRefreshTimer=null}
  if(groupChannel){supabaseClient.removeChannel(groupChannel);groupChannel=null}
  groupReplyTarget=null;groupUpdateReplyPreview();
  chatActiveGroup=group;groupLastSignature="";groupMessageLastFetched=0;
+ groupScrollBegin(group.id);
  groupReceiptReset(group.id);
  groupMarkSeen(group.id);
  $("chatGroupTitle").textContent=group.name;
@@ -1995,6 +2123,7 @@ async function groupOpen(group){
  $("chatGroupConversation").hidden=false;document.body.classList.add("chat-open");
  $("chatGroupMessages").replaceChildren();$("chatGroupMembersPanel").hidden=true;$("chatGroupInvitePanel").hidden=true;
  if(!groupShowPrefetchedMessages(group.id))groupShowCachedMessages(group.id);
+ groupScrollPin(group.id);
  groupReceiptStart(group.id);
  groupChannel=supabaseClient.channel("group-"+group.id)
  .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_group_messages",filter:"group_id=eq."+group.id},()=>groupScheduleRefresh())
@@ -2026,8 +2155,12 @@ function groupRenderMessages(items){
  const canAppend=oldIds.length>0&&root.dataset.renderContext===context
    &&visibleItems.length>=oldIds.length
    &&oldIds.every((id,i)=>id===String(visibleItems[i].id));
+ const canPrepend=!canAppend&&oldIds.length>0&&root.dataset.renderContext===context
+   &&visibleItems.length>=oldIds.length
+   &&oldIds.every((id,i)=>id===String(visibleItems[visibleItems.length-oldIds.length+i].id));
  const fragment=document.createDocumentFragment();
- const incoming=canAppend?visibleItems.slice(oldIds.length):visibleItems;
+ const incoming=canAppend?visibleItems.slice(oldIds.length)
+  :canPrepend?visibleItems.slice(0,visibleItems.length-oldIds.length):visibleItems;
  for(const item of incoming){
   const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.dataset.groupMessageCreated=item.created_at;bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");chatBubbleAvatar(bubble,item.sender_id,true);
   const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):(chatRemarkFor(item.sender_id)||item.sender_id.slice(0,8));
@@ -2047,10 +2180,19 @@ function groupRenderMessages(items){
   const time=document.createElement("small");time.className="chat-clock";time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});time.dataset.baseClock=time.textContent;
   bubble.append(body,time);groupMessageActions(bubble,item);fragment.append(bubble);
  }
+ const beforeHeight=root.scrollHeight;
+ const beforeTop=root.scrollTop;
  if(canAppend)root.append(fragment);
+ else if(canPrepend)root.prepend(fragment);
  else root.replaceChildren(fragment);
+ if(canPrepend&&!groupScrollFollow.followLatest)
+  root.scrollTop=beforeTop+Math.max(0,root.scrollHeight-beforeHeight);
  root.dataset.renderContext=context;
- if(nearBottom||!root.dataset.loaded)root.scrollTop=root.scrollHeight;root.dataset.loaded="1";
+ if(nearBottom||!root.dataset.loaded||groupScrollFollow.followLatest)root.scrollTop=root.scrollHeight;
+ root.dataset.loaded="1";
+ groupScrollWatchMedia();
+ groupScrollPin();
+ groupScrollUpdateJump();
  groupReceiptPaint();
 }
 async function groupLoadMessages(){
@@ -2075,6 +2217,7 @@ $("chatPrivateMode").addEventListener("click",()=>groupMode("private"));
 $("chatGroupMode").addEventListener("click",()=>groupMode("group"));
 $("chatGroupBack").addEventListener("click",groupClose);
 $("chatGroupMessages").addEventListener("scroll",()=>{if(chatActiveGroup)void groupReceiptMarkRead()},{passive:true});
+groupScrollWireUserGestures();
 $("chatCreateGroup").addEventListener("click",async()=>{
  if(!currentUser)return;
  const name=$("chatGroupName").value.trim();if(name.length<2||name.length>40){groupStatus(chatText("群名称需要2–40个字符","グループ名は2〜40文字","Group name must be 2–40 characters"));return}
