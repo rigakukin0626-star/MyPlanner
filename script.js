@@ -2770,38 +2770,10 @@ showWelcomeAuth();
   const direct=document.getElementById("chatConversation");
   return group&&!group.hidden?group:direct&&!direct.hidden?direct:null;
  };
- const measureChatAnchor=()=>{
-  anchorRaf=0;
-  const panel=activeConversation(),vp=window.visualViewport;
-  if(!panel||!document.body.classList.contains("chat-open")||!vp)return;
-  const r=panel.getBoundingClientRect();
-  if(!r.height||!Number.isFinite(r.bottom))return;
-  const desiredBottom=vp.offsetTop+vp.height;
-  const error=desiredBottom-r.bottom;
-  // Do not respond to subpixel noise and avoid runaway compensation.
-  if(Math.abs(error)>3&&Math.abs(error)<window.innerHeight*1.5){
-   renderCorrection=Math.max(-window.innerHeight,Math.min(window.innerHeight,renderCorrection+error));
-   root.style.setProperty("--chat-anchor-correction",renderCorrection+"px");
-  }
- };
- const scheduleChatAnchor=()=>{
-  if(anchorRaf)return;
-  // Read after CSS visual-viewport variables have painted (iOS Safari sometimes
-  // moves the *rendered* fixed layer only after that paint).
-  anchorRaf=requestAnimationFrame(()=>{
-   anchorRaf=0;
-   anchorAgainRaf=requestAnimationFrame(()=>{
-    anchorAgainRaf=0;
-    measureChatAnchor();
-   });
-  });
- };
- const recheckChatAnchor=()=>{
-  if(recheckTimeout)clearTimeout(recheckTimeout);
-  recheckTimeout=setTimeout(()=>{
-   recheckTimeout=0;scheduleChatAnchor();
-  },250);
- };
+ // Avoid feedback from measuring a viewport that iOS Safari is auto-panning.
+ const measureChatAnchor=()=>{if(renderCorrection!==0){renderCorrection=0;root.style.setProperty("--chat-anchor-correction","0px")}};
+ const scheduleChatAnchor=measureChatAnchor;
+ const recheckChatAnchor=measureChatAnchor;
  const messageList=field=>document.getElementById(field?.id==="chatGroupMessageInput"?"chatGroupMessages":"chatMessages");
  const scrollMessages=field=>{
   const list=messageList(field);

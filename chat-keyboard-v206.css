@@ -1,0 +1,15 @@
+/* v206: prevent iOS keyboard focus from moving the chat below the viewport. */
+@media(max-width:719px){
+ body.chat-open[data-active-page="chat"] #pageChat .chat-conversation:not([hidden]){
+  top:0!important;
+  transform:none!important;
+  height:var(--chat-visible-height,100dvh)!important;
+  max-height:var(--chat-visible-height,100dvh)!important;
+  bottom:auto!important;
+  margin-top:0!important;
+ }
+ body.chat-open #pageChat .chat-conversation:not([hidden]) .chat-send{
+  position:relative!important;
+  transform:none!important;
+ }
+}
