@@ -2102,6 +2102,10 @@ function groupScrollWireUserGestures(){
  root.addEventListener("keydown",e=>{
   if(["ArrowUp","ArrowDown","PageUp","PageDown","Home","End"," "].includes(e.key))groupScrollFollow.lastUserMove=Date.now();
  });
+ // iOS Safari dynamically changes the viewport when its browser bars move.
+ const keepLatestAfterViewportChange=()=>{if(groupScrollFollow.followLatest)groupScrollPin()};
+ window.addEventListener("resize",keepLatestAfterViewportChange,{passive:true});
+ window.visualViewport?.addEventListener("resize",keepLatestAfterViewportChange,{passive:true});
 }
 
 async function groupOpen(group){
