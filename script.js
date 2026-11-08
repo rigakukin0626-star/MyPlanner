@@ -801,10 +801,10 @@ async function loadChatFriends(){
   subtitle.textContent=m?(m.sender_id===currentUser.id?chatText("我：","私：","Me: "):"")+(m.body.startsWith(CHAT_IMAGE_PREFIX)?chatText("📷 照片","📷 写真","📷 Photo"):chatPlainBody(m.body)):chatText("开始聊天","チャットを始める","Start chatting");
   content.append(title,subtitle);
   const meta=document.createElement("span");meta.className="chat-friend-meta";
-  if(m){const when=document.createElement("small");when.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});meta.append(when)}
+  if(m){const when=document.createElement("small");when.textContent=formatChatClock(m.created_at);meta.append(when)}
   if(unread.get(id)){const count=document.createElement("b");count.className="chat-unread";count.textContent=unread.get(id)>99?"99+":String(unread.get(id));meta.append(count)}
   btn.append(avatar,content,meta);chatAddPinControl(btn,id,order);btn.addEventListener("click",()=>openChat(id,name));fragment.append(btn);
-  cachedFriends.push({id,name,preview:subtitle.textContent,time:m?new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""});
+  cachedFriends.push({id,name,preview:subtitle.textContent,time:m?formatChatClock(m.created_at):""});
  }
  // Keep existing DOM nodes and click handlers when the refreshed list is identical.
  const signature=uiLanguage+"|"+currentUser.id+"|"+JSON.stringify(sorted.map(id=>[
@@ -824,7 +824,7 @@ function chatAppendRealtime(item){
  const bubble=document.createElement("div");bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");
  bubble.dataset.messageId=String(item.id);
  const body=document.createElement("span");chatDisplayBody(body,item.body);
- const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
+ const time=document.createElement("small");time.textContent=formatChatClock(item.created_at)+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
  bubble.append(body,time);root.append(bubble);root.scrollTop=root.scrollHeight;
  chatLastSignature="";
 }
@@ -1390,7 +1390,7 @@ function chatRenderMessages(){
   if(replying)chatMarkReplyBubble(div);
   if(item.photoUrl){const img=document.createElement("img");img.className="chat-photo";img.src=item.photoUrl;img.alt=chatText("聊天照片","チャット写真","Chat photo");body.append(img)}
   else chatDisplayBody(body,item.body);
-  const time=document.createElement("small");time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
+  const time=document.createElement("small");time.textContent=formatChatClock(item.created_at)+(item.sender_id===currentUser.id&&item.read_at?" · "+chatText("已读","既読","Read"):"");
   div.append(body,time);chatMessageActions(div,item);fragment.append(div);
  }
  for(const [key,item] of pending){
@@ -1823,7 +1823,7 @@ function groupRenderList(groups){
   hint.style.cssText="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:58vw";
   info.append(name,hint);btn.append(avatar,info);
   const side=document.createElement("span");side.style.cssText="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:auto;flex-shrink:0";
-  if(group.previewTime){const time=document.createElement("small");time.textContent=new Date(group.previewTime).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});side.append(time)}
+  if(group.previewTime){const time=document.createElement("small");time.textContent=formatChatClock(group.previewTime);side.append(time)}
   if(group.unread>0){const badge=document.createElement("span");badge.textContent=group.unread>99?"99+":String(group.unread);badge.setAttribute("aria-label",chatText("未读消息","未読メッセージ","Unread messages"));badge.style.cssText="background:var(--accent);color:var(--on-accent);border-radius:999px;min-width:22px;height:22px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700";side.append(badge)}
   btn.append(side);btn.addEventListener("click",()=>groupOpen(group));fragment.append(btn);
  }
@@ -2216,7 +2216,7 @@ function groupRenderMessages(items){
    if(parsedReply)chatBuildReplyBody(body,parsedReply);
    else body.textContent=item.body;
   }
-  const time=document.createElement("small");time.className="chat-clock";time.textContent=new Date(item.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});time.dataset.baseClock=time.textContent;
+  const time=document.createElement("small");time.className="chat-clock";time.textContent=formatChatClock(item.created_at);time.dataset.baseClock=time.textContent;
   bubble.append(body,time);groupMessageActions(bubble,item);fragment.append(bubble);
  }
  const beforeHeight=root.scrollHeight;
