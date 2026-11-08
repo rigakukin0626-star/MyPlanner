@@ -495,7 +495,7 @@ function switchPlannerPage(page){
  document.querySelectorAll(".app-page").forEach(el=>el.classList.toggle("active",el.dataset.page===page));
  document.querySelectorAll(".bottom-tabs .tab").forEach(el=>el.classList.toggle("active",el.dataset.target===page));
  document.body.dataset.activePage=page;
- document.body.classList.toggle("chat-open",page==="chat"&&!!chatPeer);
+ document.body.classList.toggle("chat-open",page==="chat"&&!!(chatPeer||chatActiveGroup));
  if(page==="longterm"||page==="tasks"){
   showLongTerm=page==="longterm";
   const panel=document.querySelector(".tasks-panel");

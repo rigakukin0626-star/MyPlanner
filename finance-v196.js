@@ -372,7 +372,7 @@ function download(name,content,type){
 function exportJSON(){download('myplanner-finance-'+nowDate()+'.json',JSON.stringify({format:'mpfinance-v196',doc},null,2),'application/json')}
 function exportCSV(){
  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
- const rows=[['Date','Type','Original Amount','Currency','JPY Book Value','From','To','Category','Note'],...doc.transactions.map(x=>[x.date,x.kind,x.amount,account(x.from||x.to)?.currency||'JPY',bookedJPY(x),account(x.from)?.name,account(x.to)?.name,x.category,x.note])];
+ const rows=[['Date','Type','Original Amount','Currency','JPY Book Value','From','To','Category','Note'],...doc.transactions.map(x=>[x.date,x.kind,x.amount,account(x.from||x.to)?.currency||'JPY',Number.isFinite(bookedJPY(x))?bookedJPY(x):'',account(x.from)?.name,account(x.to)?.name,x.category,x.note])];
  download('myplanner-finance-'+nowDate()+'.csv','\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n'),'text/csv;charset=utf-8');
 }
 function importJSON(){
@@ -387,10 +387,11 @@ function importJSON(){
   const importedRates=d.preferences?.rates||{};
   const rateFor=c=>c==='JPY'?1:Number(importedRates[c]);
   if(d.preferences?.display&&!CURRENCIES.includes(d.preferences.display))throw Error('Invalid display currency');
+   if(d.preferences?.record&&!CURRENCIES.includes(d.preferences.record))throw Error('Invalid recorded currency');
   if(d.accounts.some(a=>!a||typeof a.id!=='string'||typeof a.name!=='string'||
     !['bank','cash','broker','credit','other'].includes(a.type)||
     !CURRENCIES.includes(currencyOf(a))||!finite(a.opening,true)||
-    !(rateFor(currencyOf(a))>0&&rateFor(currencyOf(a))<1e7)))throw Error('Invalid account or FX rate');
+    (importedRates[currencyOf(a)]!=null&&!(rateFor(currencyOf(a))>0&&rateFor(currencyOf(a))<1e7))))throw Error('Invalid account or FX rate');
   if(d.transactions.some(z=>!z||typeof z.id!=='string'||typeof z.date!=='string'||
     !['income','expense','transfer','adjust'].includes(z.kind)||!finite(z.amount,z.kind!=='adjust')||
     (z.jpy!=null&&!finite(z.jpy,true))||
@@ -400,7 +401,7 @@ function importJSON(){
   if(d.trades.some(z=>!z||!['buy','sell'].includes(z.side)||!finite(z.qty,true)||
     !finite(z.price,true)||!finite(z.fx,true)||!finite(z.fees,true)||
     (z.accountFx!=null&&!finite(z.accountFx,true))))throw Error('Invalid trade');
-  if(d.budgets.some(z=>!z||typeof z.category!=='string'||!finite(z.limit,true)||Number(z.limit)<=0))throw Error('Invalid budget');
+  if(d.budgets.some(z=>!z||typeof z.category!=='string'||!finite(z.limit,true)||Number(z.limit)<=0||(z.currency!=null&&!CURRENCIES.includes(z.currency))))throw Error('Invalid budget');
   if(d.snapshots.some(z=>!z||typeof z.date!=='string'||!finite(z.value)))throw Error('Invalid snapshot');
   if(!confirm(t('replace')))return;
   doc=d;ensurePrefs();save();
