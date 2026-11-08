@@ -1,0 +1,4 @@
+/* v199: Currency is selected for each account and its transactions. */
+#pageFinance .fin-base-badge{min-width:58px;text-align:center;border-radius:999px;padding:10px 13px;font-size:12px;font-weight:750;color:var(--muted);background:rgba(140,160,200,.12);border:1px solid rgba(170,185,220,.23)}
+#pageFinance .fin-entry strong{overflow-wrap:anywhere;text-align:right}
+#pageFinance .fin-account-amount small{font-size:10px}

@@ -29,15 +29,15 @@ function rate(code){
 }
 const toJPY=(n,code)=>{const fx=rate(code);return fx===null?NaN:Number(n||0)*fx};
 const bookedJPY=x=>x.jpy!=null&&Number.isFinite(Number(x.jpy))?Number(x.jpy):(Number(x.amount)||0);
+const recordCurrency=x=>account(x.from||x.to)?.currency||'JPY';
+const recordMoney=x=>nativeMoney(x.amount,recordCurrency(x));
+const recordTargetMoney=x=>x.kind==='transfer'&&x.toAmount!=null?nativeMoney(x.toAmount,account(x.to)?.currency||'JPY'):'';
 const nativeMoney=(amount,code)=>{
  const c=CURRENCIES.includes(code)?code:'JPY';
  return new Intl.NumberFormat('ja-JP',{style:'currency',currency:c,maximumFractionDigits:c==='JPY'||c==='KRW'?0:2}).format(Number(amount)||0);
 };
 const displayCode=()=>doc.preferences?.display||'JPY';
-const converted=jpy=>{
- const fx=rate(displayCode());
- return Number.isFinite(jpy)&&fx!==null?nativeMoney(jpy/fx,displayCode()):'—';
-};
+const converted=jpy=>Number.isFinite(jpy)?nativeMoney(jpy,'JPY'):'—';
 let language='zh',owner='guest',doc=blank(),pane='overview',revision=null,dirty=false,cloud='local',remote=null,api=null,modal=null,busy=false,pushTimer=null;
 const t=k=>translations[language]?.[k]||translations.en[k]||k;
 const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -82,12 +82,12 @@ const pick=(label,name,choices,selected)=>'<label class="fin-field"><span>'+labe
 const accountOpts=()=>doc.accounts.map(a=>[a.id,a.name]);
 function accounts(){
  const b=balances();
- return section(t('accounts'),button('＋ '+t('addAccount'),'account'),doc.accounts.map(a=>'<button class="fin-account" data-fin-account="'+h(a.id)+'"><span class="fin-emblem">'+(credit(a)?'▣':a.type==='broker'?'↗':'¥')+'</span><span class="fin-account-name"><b>'+h(a.name)+'</b><small>'+t(a.type)+' · '+h(a.currency||'JPY')+(a.dueDay?' · '+a.dueDay:'')+'</small></span><strong class="fin-account-amount"><span>'+nativeMoney(b.get(a.id),a.currency)+'</span>'+(displayCode()!==(a.currency||'JPY')?'<small>≈ '+yen(toJPY(b.get(a.id),a.currency))+'</small>':'')+'</strong></button>').join('')||'<p class="fin-empty">'+t('noAccounts')+'</p>');
+ return section(t('accounts'),button('＋ '+t('addAccount'),'account'),doc.accounts.map(a=>'<button class="fin-account" data-fin-account="'+h(a.id)+'"><span class="fin-emblem">'+(credit(a)?'▣':a.type==='broker'?'↗':'¥')+'</span><span class="fin-account-name"><b>'+h(a.name)+'</b><small>'+t(a.type)+' · '+h(a.currency||'JPY')+(a.dueDay?' · '+a.dueDay:'')+'</small></span><strong class="fin-account-amount"><span>'+nativeMoney(b.get(a.id),a.currency)+'</span>'+((a.currency||'JPY')!=='JPY'?'<small>≈ '+yen(toJPY(b.get(a.id),a.currency))+'</small>':'')+'</strong></button>').join('')||'<p class="fin-empty">'+t('noAccounts')+'</p>');
 }
 function entries(limit=80){
  return section(t('transactions'),button('＋ '+t('addTx'),'tx'),doc.transactions.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created).slice(0,limit).map(x=>{
   const name=x.kind==='transfer'?(account(x.from)?.name||'?')+' → '+(account(x.to)?.name||'?'):(account(x.from||x.to)?.name||'?');
-  return '<div class="fin-entry"><span><b>'+h(x.note||t(x.category||x.kind))+'</b><small>'+h(x.date)+' · '+h(name)+'</small></span><span><strong class="'+(x.kind==='income'?'fin-positive':'')+'">'+(x.kind==='income'?'+':x.kind==='expense'?'−':'↔')+yen(bookedJPY(x))+'</strong><button data-fin-delete="'+h(x.id)+'" aria-label="'+t('delete')+'">×</button></span></div>';
+  return '<div class="fin-entry"><span><b>'+h(x.note||t(x.category||x.kind))+'</b><small>'+h(x.date)+' · '+h(name)+'</small></span><span><strong class="'+(x.kind==='income'?'fin-positive':'')+'">'+(x.kind==='income'?'+':x.kind==='expense'?'−':'↔')+recordMoney(x)+(recordTargetMoney(x)?' → '+recordTargetMoney(x):'')+'</strong><button data-fin-delete="'+h(x.id)+'" aria-label="'+t('delete')+'">×</button></span></div>';
  }).join('')||'<p class="fin-empty">'+t('noData')+'</p>');
 }
 function cashFlow(){
@@ -154,7 +154,7 @@ function settings(){
 function render(){
  const root=document.getElementById('financeRoot');if(!root)return;
  const x=totals(),summary='<div class="fin-hero"><small>'+t('net')+'</small><strong>'+yen(x.net)+'</strong><div><span>'+t('assets')+'<b>'+yen(x.assets)+'</b></span><span>'+t('debt')+'<b>'+yen(x.debt)+'</b></span></div></div>';
- root.innerHTML='<header class="fin-head"><div><p>MY PLANNER / FINANCE</p><h1>'+t('title')+'</h1></div><label class="fin-currency-control"><small>'+ct('display')+'</small>'+option('displayCurrency',currencyOptions(),displayCode()).replace('<select ','<select aria-label="'+ct('display')+'" ')+'</label></header><div class="fin-tabs">'+['overview','history','invest','budgets','manage'].map(k=>'<button data-fin-pane="'+k+'" class="'+(k===pane?'active':'')+'">'+t(k)+'</button>').join('')+'</div>'+
+ root.innerHTML='<header class="fin-head"><div><p>MY PLANNER / FINANCE</p><h1>'+t('title')+'</h1></div><span class="fin-base-badge">JPY</span></header><div class="fin-tabs">'+['overview','history','invest','budgets','manage'].map(k=>'<button data-fin-pane="'+k+'" class="'+(k===pane?'active':'')+'">'+t(k)+'</button>').join('')+'</div>'+
  (pane==='overview'?summary+alerts()+cashFlow()+accounts()+bars()+netChart()+categoryBreakdown()+entries(7):pane==='history'?entries():pane==='invest'?summary+portfolio():pane==='budgets'?budgetView():settings()+accounts());
  const label=document.getElementById('tabFinanceLabel');if(label)label.textContent=t('title');
 }
@@ -222,8 +222,8 @@ function addTx(){
  dialog(t('addTx'),
   pick(t('type'),'kind',[['expense',t('expense')],['income',t('income')],['transfer',t('transfer')]],'expense')+
   field(t('amount'),'amount','number','','min="0.000001" step="any"')+
-  pick(t('from'),'from',opts,initial)+
-  '<div class="fin-destination">'+pick(t('to'),'to',opts,opts[1]?.[0]||initial)+'<p class="fin-note fin-exchange-preview"></p></div>'+
+  pick(t('from'),'from',opts.map(([id,name])=>[id,name+' ('+(account(id)?.currency||'JPY')+')']),initial)+
+  '<div class="fin-destination">'+pick(t('to'),'to',opts.map(([id,name])=>[id,name+' ('+(account(id)?.currency||'JPY')+')']),opts[1]?.[0]||initial)+'<p class="fin-note fin-exchange-preview"></p></div>'+
   pick(t('category'),'category',catKeys.map(k=>[k,t(k)]),'food')+
   field(t('date'),'date','date',nowDate())+
   '<label class="fin-field"><span>'+t('note')+'</span><input name="note" maxlength="140"></label>',
@@ -413,12 +413,12 @@ function action(what,value){
  else if(what==='useCloud')useCloud();
  else if(what==='guest'){const d=localStorage.getItem(BASE+'guest');if(d&&confirm(t('replace'))){doc=JSON.parse(d);ensurePrefs();save()}}
  else if(what==='delete'&&confirm(t('confirm'))){doc.transactions=doc.transactions.filter(x=>x.id!==value);save()}
- else if(what==='accountDetail'){const a=account(value);if(a)dialog(t('accounts'),'<p class="fin-balance">'+nativeMoney(balances().get(a.id),a.currency)+(displayCode()!==(a.currency||'JPY')?'<small class="fin-account-converted">≈ '+yen(toJPY(balances().get(a.id),a.currency))+'</small>':'')+'</p><div class="fin-actions">'+button(t('edit'),'editAccount')+button(t('reconcile'),'reconcile')+'</div>',()=>true,b=>{b.querySelector('[data-fin-action="editAccount"]').onclick=()=>{b.close();addAccount(a)};b.querySelector('[data-fin-action="reconcile"]').onclick=()=>{b.close();reconcile(a)}})}
+ else if(what==='accountDetail'){const a=account(value);if(a)dialog(t('accounts'),'<p class="fin-balance">'+nativeMoney(balances().get(a.id),a.currency)+((a.currency||'JPY')!=='JPY'?'<small class="fin-account-converted">≈ '+yen(toJPY(balances().get(a.id),a.currency))+'</small>':'')+'</p><div class="fin-actions">'+button(t('edit'),'editAccount')+button(t('reconcile'),'reconcile')+'</div>',()=>true,b=>{b.querySelector('[data-fin-action="editAccount"]').onclick=()=>{b.close();addAccount(a)};b.querySelector('[data-fin-action="reconcile"]').onclick=()=>{b.close();reconcile(a)}})}
  else if(what==='holdingDetail'){const x=holding(value);if(x)addHolding(x)}
  else if(what==='budgetDetail')addBudget(value);
 }
 function bind(){
- document.getElementById('financeRoot')?.addEventListener('change',e=>{if(e.target?.name==='displayCurrency')changeDisplay(e.target.value)});
+ // Account currency is selected on creation; no global display-currency control.
  document.getElementById('financeRoot')?.addEventListener('click',e=>{
   const p=e.target.closest('[data-fin-pane]');if(p){pane=p.dataset.finPane;render();return}
   const a=e.target.closest('[data-fin-action]');if(a){action(a.dataset.finAction);return}
