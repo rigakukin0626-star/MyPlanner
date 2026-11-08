@@ -1382,6 +1382,39 @@ function chatRenderMessages(){
  const signature=uiLanguage+"|"+confirmed.map(m=>m.id+":"+(m.read_at||"")).join(",")+"|"+pending.map(([key,item])=>key+":"+item.status).join(",");
  if(signature===chatLastSignature)return;
  chatLastSignature=signature;
+ // If only read receipts or pending delivery labels changed, update clocks
+ // in place; never tear down already decoded photos or quoted messages.
+ const structure=JSON.stringify([
+  uiLanguage,
+  confirmed.map(m=>[m.id,m.sender_id,m.created_at,m.body,m.photoUrl||""]),
+  pending.map(([key,m])=>[key,m.body,m.photoUrl||"",m.createdAt])
+ ]);
+ if(root.dataset.chatStructure===structure&&root.children.length===confirmed.length+pending.length){
+  let sameKeys=true;
+  for(let i=0;i<confirmed.length;i++){
+   if(root.children[i].dataset.messageId!==String(confirmed[i].id)){sameKeys=false;break}
+  }
+  if(sameKeys)for(let i=0;i<pending.length;i++){
+   if(root.children[confirmed.length+i].dataset.pendingKey!==pending[i][0]){sameKeys=false;break}
+  }
+  if(sameKeys){
+   for(let i=0;i<confirmed.length;i++){
+    const m=confirmed[i];
+    const text=new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+
+      (m.sender_id===currentUser.id&&m.read_at?" · "+chatText("已读","既読","Read"):"");
+    const clock=root.children[i].querySelector(":scope > small");
+    if(clock&&clock.textContent!==text)clock.textContent=text;
+   }
+   for(let i=0;i<pending.length;i++){
+    const m=pending[i][1];
+    const state=m.status==="failed"?chatText("发送失败","送信失敗","Failed"):m.status==="uncertain"?chatText("发送超时·待确认","送信確認中","Delivery unconfirmed"):m.status==="sent"?"":chatText("发送中…","送信中…","Sending...");
+    const text=new Date(m.createdAt).toLocaleString()+(state?" · "+state:"");
+    const clock=root.children[confirmed.length+i].querySelector(":scope > small");
+    if(clock&&clock.textContent!==text)clock.textContent=text;
+   }
+   return;
+  }
+ }
  const fragment=document.createDocumentFragment();
  for(const item of confirmed){
   const div=document.createElement("div");div.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");div.dataset.messageId=String(item.id);chatBubbleAvatar(div,item.sender_id);
@@ -1420,6 +1453,7 @@ function chatRenderMessages(){
  }
  if(canAppend){for(let i=oldNodes.length;i<newNodes.length;i++)root.append(newNodes[i]);}
  else root.replaceChildren(fragment);
+ root.dataset.chatStructure=structure;
  if(wasNearBottom||Date.now()<chatAutoScrollUntil)chatScrollToLatest();
 }
 async function chatMarkRead(){
