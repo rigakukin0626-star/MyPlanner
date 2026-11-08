@@ -30,7 +30,7 @@ function rate(code){
  const v=Number(doc.preferences?.rates?.[code]);
  return Number.isFinite(v)&&v>0&&v<1e7?v:null;
 }
-const toJPY=(n,code)=>{const fx=rate(code);return fx===null?NaN:Number(n||0)*fx};
+const toJPY=(n,code)=>{const amount=Number(n)||0;if(amount===0)return 0;const fx=rate(code);return fx===null?NaN:amount*fx};
 const bookedJPY=x=>x.jpy!=null&&Number.isFinite(Number(x.jpy))?Number(x.jpy):(x.fx===null?NaN:(Number(x.amount)||0));
 const recordCurrency=x=>account(x.from||x.to)?.currency||'JPY';
 const recordMoney=x=>nativeMoney(x.amount,recordCurrency(x));
@@ -40,7 +40,12 @@ const nativeMoney=(amount,code)=>{
  return new Intl.NumberFormat('ja-JP',{style:'currency',currency:c,maximumFractionDigits:c==='JPY'||c==='KRW'?0:2}).format(Number(amount)||0);
 };
 const displayCode=()=>doc.preferences?.display||'JPY';
-const converted=jpy=>Number.isFinite(jpy)?nativeMoney(jpy,'JPY'):'—';
+const converted=jpy=>{
+ const code=selectedRecordCurrency(),fx=rate(code);
+ if(!Number.isFinite(jpy))return '—';
+ if(jpy===0)return nativeMoney(0,code);
+ return fx===null?'—':nativeMoney(jpy/fx,code);
+};
 let language='zh',owner='guest',doc=blank(),pane='overview',revision=null,dirty=false,cloud='local',remote=null,api=null,modal=null,busy=false,pushTimer=null;
 const t=k=>translations[language]?.[k]||translations.en[k]||k;
 const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -163,7 +168,7 @@ function render(){
 }
 function dialog(title,body,onSave,after){
  const box=document.createElement('dialog');box.className='fin-dialog';
- box.innerHTML='<form><header><h2>'+title+'</h2><button type="button" data-close>×</button></header>'+body+'<footer><button type="button" data-close>'+t('cancel')+'</button><button type="submit">'+t('save')+'</button></footer></form>';
+ box.innerHTML='<form><header><h2>'+title+'</h2><button type="button" data-close aria-label="Close"><svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></header>'+body+'<footer><button type="button" data-close>'+t('cancel')+'</button><button type="submit">'+t('save')+'</button></footer></form>';
  document.body.append(box);modal=box;
  box.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>box.close());
  box.querySelector('form').onsubmit=e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.currentTarget));try{if(onSave(v)!==false){box.close();save()}}catch(err){alert(err.message||t('invalid'))}};
@@ -175,7 +180,7 @@ function addAccount(existing){
  dialog(existing?t('edit'):t('addAccount'),
   field(t('name'),'name','text',existing?.name||'','maxlength="70"')+
   pick(t('type'),'type',options,existing?.type||'bank')+
-  '<div class="fin-modal-currency">'+pick(ct('account'),'currency',currencyOptions(),current)+'</div>'+
+  '<input type="hidden" name="currency" value="'+h(current)+'">'+
   (existing?'':field(t('opening'),'opening','number',0,'step="any" min="0"'))+
   '<label class="fin-field"><span>'+t('dueDay')+'</span><input name="dueDay" type="number" min="1" max="28" value="'+(existing?.dueDay||'')+'"></label>',
  v=>{

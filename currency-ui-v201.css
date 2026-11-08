@@ -1,0 +1,10 @@
+/* v201: consistent selected-currency presentation, clean modal close control */
+#pageFinance .fin-record-currency select{min-width:106px;max-width:145px}
+.fin-dialog form{position:static}
+.fin-dialog header{position:relative;min-height:40px;padding-right:46px}
+.fin-dialog header h2{font-size:clamp(20px,5vw,24px);line-height:1.25}
+.fin-dialog header button[data-close]{position:absolute;right:0;top:50%;transform:translateY(-50%);width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:50%;background:var(--field);color:var(--muted);padding:0;outline-offset:3px;transition:background .16s ease,transform .16s ease}
+.fin-dialog header button[data-close]:active{transform:translateY(-50%) scale(.94)}
+.fin-dialog header button[data-close]:focus-visible{outline:2px solid var(--accent)}
+.fin-dialog header button[data-close] svg{display:block;flex-shrink:0}
+.fin-dialog .fin-modal-currency{display:none}
