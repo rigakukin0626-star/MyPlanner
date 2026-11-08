@@ -1,0 +1,182 @@
+/* v186: Single-surface iOS date picker + truly translucent LINE-like dock.
+   CSS-only patch on v185; preserve IDs and native iOS date/time input semantics.
+*/
+:root{
+  --liquid-dock:rgba(231,239,250,.085);
+  --liquid-dock-edge:rgba(255,255,255,.46);
+  --liquid-dock-active:rgba(255,255,255,.18);
+  --liquid-rim:rgba(255,255,255,.43);
+}
+html[data-theme="dark"]{
+  --liquid-dock:rgba(15,21,33,.20);
+  --liquid-dock-edge:rgba(236,245,255,.17);
+  --liquid-dock-active:rgba(119,164,235,.14);
+  --liquid-rim:rgba(249,251,255,.15);
+}
+/* Underneath the previous two nested rounded rectangles is an actual native input
+   and a custom text display. Render ONE outer surface; keep native picker tappable. */
+#pageTasks .task-form .reminder-picker,
+#pageLongTerm .task-form .reminder-picker{
+  position:relative;
+  display:block;
+  width:100%;
+  min-width:0;
+  height:53px;
+  min-height:53px;
+  overflow:hidden;
+  border:1px solid var(--liquid-panel-border)!important;
+  border-radius:17px!important;
+  background:rgba(245,249,255,.46)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.19)!important;
+  transition:border-color .14s ease,box-shadow .14s ease;
+}
+html[data-theme="dark"] #pageTasks .task-form .reminder-picker,
+html[data-theme="dark"] #pageLongTerm .task-form .reminder-picker{
+  background:rgba(52,65,85,.36)!important;
+  border-color:var(--liquid-control-border)!important;
+}
+#pageTasks .task-form .reminder-picker .reminder-display,
+#pageLongTerm .task-form .reminder-picker .reminder-display{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  display:flex!important;
+  align-items:center;
+  min-width:0;
+  padding:0 15px!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+  color:var(--ink)!important;
+  font-size:14px!important;
+  font-weight:520;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#pageTasks .task-form .reminder-picker #reminderInput,
+#pageLongTerm .task-form .reminder-picker #reminderInput{
+  position:absolute!important;
+  inset:0!important;
+  z-index:2;
+  display:block;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  outline:0!important;
+  opacity:0!important;
+  -webkit-appearance:none;
+  appearance:none;
+  cursor:pointer;
+}
+#pageTasks .task-form .reminder-picker:focus-within,
+#pageLongTerm .task-form .reminder-picker:focus-within{
+  border-color:rgba(65,127,221,.58)!important;
+  box-shadow:0 0 0 3px rgba(58,121,219,.11)!important;
+}
+/* No phantom first/second box when the picker changes from datetime-local to date. */
+#pageTasks .task-form .reminder-picker #reminderInput::-webkit-calendar-picker-indicator,
+#pageLongTerm .task-form .reminder-picker #reminderInput::-webkit-calendar-picker-indicator{
+  opacity:0;
+}
+/* Allow full multilingual date string without an orphaned weekday on mobile. */
+@media(max-width:719px){
+  #pageTasks>.overview{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    gap:12px 19px!important;
+  }
+  #pageTasks>.overview .overview-date{
+    grid-column:1/-1!important;
+    min-width:0;
+  }
+  #pageTasks>.overview .overview-date strong{
+    display:block;
+    font-size:clamp(17px,5vw,23px)!important;
+    line-height:1.35;
+    letter-spacing:-.035em;
+    white-space:normal;
+    overflow-wrap:break-word;
+  }
+  #pageTasks>.overview .stat{
+    grid-row:2!important;
+    display:flex;
+    flex-direction:row!important;
+    align-items:baseline;
+    gap:9px;
+    min-width:0;
+  }
+  #pageTasks>.overview .stat strong{
+    font-size:27px!important;
+    line-height:1.2;
+    font-variant-numeric:tabular-nums;
+  }
+  #pageTasks>.overview .stat span{
+    font-size:12px!important;
+  }
+  #pageTasks>.overview .progress-wrap{grid-column:1/-1!important;grid-row:3!important}
+}
+/* A glass layer should reveal shapes behind it, not paint them a milky white.
+   Low tint + less blur preserve the moving content underneath like LINE's dock. */
+.bottom-tabs{
+  background:var(--liquid-dock)!important;
+  border-color:var(--liquid-dock-edge)!important;
+  box-shadow:
+    inset 0 .8px 0 var(--liquid-rim),
+    0 5px 18px rgba(28,48,84,.11)!important;
+  -webkit-backdrop-filter:blur(9px) saturate(130%)!important;
+  backdrop-filter:blur(9px) saturate(130%)!important;
+}
+html[data-theme="dark"] .bottom-tabs{
+  background:var(--liquid-dock)!important;
+  border-color:var(--liquid-dock-edge)!important;
+  box-shadow:inset 0 1px 0 var(--liquid-rim),0 8px 25px rgba(0,0,0,.26)!important;
+}
+.bottom-tabs::before{
+  background:linear-gradient(155deg,rgba(255,255,255,.08),rgba(255,255,255,0) 50%)!important;
+}
+html[data-theme="dark"] .bottom-tabs::before{
+  background:linear-gradient(155deg,rgba(255,255,255,.045),rgba(255,255,255,0) 50%)!important;
+}
+.bottom-tabs .tab.active{
+  background:var(--liquid-dock-active)!important;
+  border-color:rgba(255,255,255,.23)!important;
+  box-shadow:inset 0 1px 0 var(--liquid-rim)!important;
+}
+html[data-theme="dark"] .bottom-tabs .tab.active{
+  border-color:rgba(235,246,255,.10)!important;
+}
+/* Lighter language capsule; keep the text legible as underlying content shows. */
+.language-picker select{
+  background:rgba(239,246,255,.16)!important;
+  -webkit-backdrop-filter:blur(10px) saturate(125%)!important;
+  backdrop-filter:blur(10px) saturate(125%)!important;
+  border-color:var(--liquid-dock-edge)!important;
+  box-shadow:inset 0 1px 0 var(--liquid-rim),0 3px 11px rgba(34,60,102,.06)!important;
+}
+html[data-theme="dark"] .language-picker select{background:rgba(33,44,62,.20)!important}
+#pageChat .line-popup-menu:not([hidden]){
+  background:var(--liquid-dock)!important;
+  -webkit-backdrop-filter:blur(14px) saturate(140%)!important;
+  backdrop-filter:blur(14px) saturate(140%)!important;
+}
+/* Keep the established rule hiding the dock in a full-screen conversation. */
+body:has(#chatConversation:not([hidden])) .bottom-tabs,
+body:has(#chatGroupConversation:not([hidden])) .bottom-tabs,
+body.chat-open.chat-input-focused .bottom-tabs{display:none!important}
+/* Respect iOS accessibility preference: reduced transparency means solid controls. */
+@media(prefers-reduced-transparency:reduce){
+  .bottom-tabs,.language-picker select,#pageChat .line-popup-menu:not([hidden]){
+    background:var(--surface)!important;
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+  }
+}
