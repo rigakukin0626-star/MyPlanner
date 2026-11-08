@@ -1,5 +1,5 @@
-const CACHE_NAME = "my-planner-v188";
-const FILES = ["./","./index.html","./minimal.css?v=184","./liquid-glass-v185.css?v=185.1","./liquid-glass-fix-v186.css?v=186","./liquid-glass-v187.css?v=187","./liquid-glass-v188.css?v=188","./script.js?v=188","./line-ui.js?v=184","./manifest.json?v=63","./icon.svg?v=170"];
+const CACHE_NAME = "my-planner-v189";
+const FILES = ["./","./index.html","./minimal.css?v=184","./liquid-glass-v185.css?v=185.1","./liquid-glass-fix-v186.css?v=186","./liquid-glass-v187.css?v=187","./liquid-glass-v188.css?v=188","./liquid-glass-v189.css?v=189","./script.js?v=188","./line-ui.js?v=184","./manifest.json?v=63","./icon.svg?v=170"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)));
   self.skipWaiting();

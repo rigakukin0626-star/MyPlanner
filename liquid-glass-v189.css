@@ -1,0 +1,142 @@
+/* My Planner v189 — align dock with the iOS Safari address-pill visual language.
+   Goal: less milky active tile, a translucent lens and a precise beveled glass rim.
+   CSS only. No edits to chat bubbles, list scroll, task logic or notifications. */
+:root{
+ --v189-dock-body:rgba(248,251,255,.055);
+ --v189-dock-stroke:rgba(255,255,255,.72);
+ --v189-dock-dark-rim:rgba(126,155,196,.15);
+ --v189-tab-body:rgba(250,253,255,.075);
+ --v189-tab-stroke:rgba(255,255,255,.54);
+ --v189-drop:rgba(35,61,107,.11);
+}
+html[data-theme="dark"]{
+ --v189-dock-body:rgba(25,30,42,.19);
+ --v189-dock-stroke:rgba(231,242,255,.26);
+ --v189-dock-dark-rim:rgba(3,12,24,.31);
+ --v189-tab-body:rgba(223,236,255,.085);
+ --v189-tab-stroke:rgba(241,247,255,.21);
+ --v189-drop:rgba(0,0,0,.32);
+}
+/* Safari's floating address field is a *lens*, not an opaque card.
+   Maintain subdued fill and small blur so the underlying task view remains visible. */
+.bottom-tabs{
+ border-radius:999px!important;
+ border:1px solid var(--v189-dock-stroke)!important;
+ background:var(--v189-dock-body)!important;
+ -webkit-backdrop-filter:blur(6px) saturate(152%) brightness(1.015)!important;
+ backdrop-filter:blur(6px) saturate(152%) brightness(1.015)!important;
+ box-shadow:
+   0 0 0 .5px var(--v189-dock-dark-rim),
+   0 4px 20px var(--v189-drop),
+   inset 0 1.5px 0 rgba(255,255,255,.64),
+   inset 0 -1px 0 rgba(111,143,186,.10)!important;
+ isolation:isolate;
+ overflow:hidden!important;
+}
+/* Rim glints: concentrate reflection at the curved edge, not across the center.
+   No animation/backdrop filter on the pseudo-layers. */
+.bottom-tabs::before{
+ content:"";
+ position:absolute;
+ inset:1px;
+ border-radius:inherit;
+ z-index:0;
+ pointer-events:none!important;
+ background:
+   radial-gradient(ellipse 14% 58% at 6% -10%,rgba(255,255,255,.48),transparent 83%),
+   radial-gradient(ellipse 14% 62% at 97% 107%,rgba(144,184,230,.16),transparent 85%),
+   linear-gradient(180deg,rgba(255,255,255,.105) 0%,rgba(255,255,255,0) 19%,rgba(255,255,255,0) 82%,rgba(255,255,255,.035) 100%)!important;
+}
+.bottom-tabs::after{
+ content:"";
+ position:absolute;
+ inset:2px;
+ border-radius:inherit;
+ z-index:0;
+ pointer-events:none!important;
+ border:1px solid rgba(255,255,255,.22);
+ box-shadow:
+   inset 0 1px 0 rgba(255,255,255,.24),
+   inset 0 -1px 0 rgba(88,135,195,.08),
+   inset 2px 0 3px -3px rgba(255,255,255,.78),
+   inset -2px 0 3px -3px rgba(116,164,218,.28)!important;
+}
+html[data-theme="dark"] .bottom-tabs{
+ background:var(--v189-dock-body)!important;
+ border-color:var(--v189-dock-stroke)!important;
+ box-shadow:
+   0 0 0 .5px rgba(255,255,255,.04),
+   0 7px 23px var(--v189-drop),
+   inset 0 1px 0 rgba(255,255,255,.18),
+   inset 0 -1px 0 rgba(0,0,0,.20)!important;
+}
+html[data-theme="dark"] .bottom-tabs::before{
+ background:
+   radial-gradient(ellipse 16% 55% at 7% -10%,rgba(238,246,255,.15),transparent 84%),
+   radial-gradient(ellipse 17% 65% at 96% 107%,rgba(126,169,242,.12),transparent 86%),
+   linear-gradient(180deg,rgba(255,255,255,.035),transparent 24%,transparent 82%,rgba(255,255,255,.025))!important;
+}
+html[data-theme="dark"] .bottom-tabs::after{
+ border-color:rgba(244,249,255,.075);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.09),inset 0 -1px 0 rgba(0,0,0,.18)!important;
+}
+/* The previously thick frosted active tile now has the same thin lens/rim
+   treatment as iOS's small floating pill. Icons and labels remain clear. */
+.bottom-tabs .tab.active{
+ position:relative;
+ z-index:1;
+ border-radius:999px!important;
+ border:1px solid var(--v189-tab-stroke)!important;
+ background:var(--v189-tab-body)!important;
+ -webkit-backdrop-filter:blur(3px) saturate(148%)!important;
+ backdrop-filter:blur(3px) saturate(148%)!important;
+ box-shadow:
+   0 1px 2px rgba(57,84,131,.055),
+   inset 0 1px 0 rgba(255,255,255,.46),
+   inset 0 -1px 0 rgba(111,150,197,.055)!important;
+}
+.bottom-tabs .tab.active::before{
+ content:"";
+ position:absolute;
+ pointer-events:none!important;
+ inset:1.5px;
+ z-index:0;
+ border-radius:inherit;
+ border:1px solid rgba(255,255,255,.17);
+ background:
+   radial-gradient(ellipse 63% 21% at 50% 0%,rgba(255,255,255,.22),transparent 96%),
+   radial-gradient(ellipse 65% 21% at 50% 102%,rgba(126,173,232,.10),transparent 95%);
+}
+.bottom-tabs .tab.active::after{
+ content:"";
+ position:absolute;
+ pointer-events:none!important;
+ inset:3px;
+ z-index:0;
+ border-radius:inherit;
+ box-shadow:inset 1px 1px 2px -2px rgba(255,255,255,.7),
+            inset -1px -1px 2px -2px rgba(112,146,204,.2);
+}
+.bottom-tabs .tab>span{position:relative;z-index:1}
+.bottom-tabs .tab.active .tab-icon{
+ background:transparent!important;
+ border:0!important;
+ box-shadow:none!important;
+}
+html[data-theme="dark"] .bottom-tabs .tab.active{
+ border-color:var(--v189-tab-stroke)!important;
+ background:var(--v189-tab-body)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 2px 7px rgba(0,0,0,.10)!important;
+}
+html[data-theme="dark"] .bottom-tabs .tab.active::before{
+ border-color:rgba(247,251,255,.055);
+ background:radial-gradient(ellipse 70% 23% at 50% -2%,rgba(255,255,255,.10),transparent 96%);
+}
+/* iOS honors Reduce Transparency: make the bar opaque for accessibility. */
+@media(prefers-reduced-transparency:reduce){
+ .bottom-tabs,.bottom-tabs .tab.active{
+  background:var(--surface)!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+ }
+}
