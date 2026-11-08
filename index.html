@@ -196,6 +196,7 @@
   if(!btn)return;
   event.preventDefault();
   event.stopImmediatePropagation();
+  window.closeAllChatNavigationMenus?.();
   try{
    // The regular navigator already has the correct DOM hierarchy.
    // Do a full recovery pass only if the main app failed to initialize.
