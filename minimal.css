@@ -1819,3 +1819,199 @@ html[data-theme="dark"] #pageChat .chat-bubble:not(.mine):not(:has(.chat-media-f
 #pageChat .chat-messages{overflow-x:hidden;overscroll-behavior-y:contain;min-height:0}
 #pageChat :is(#chatMessages,#chatGroupMessages){-webkit-overflow-scrolling:touch;touch-action:pan-y pinch-zoom!important}
 @media(prefers-reduced-transparency:reduce){html[data-theme="dark"] .bottom-tabs{background:var(--surface)!important}}
+
+
+/* v184 — single quiet canvas and restrained iOS-like glass controls.
+   Do not blur full pages, message lists, photos or large cards. */
+:root{
+ --bg:#f7f8fa;--surface:#fff;--subtle:#f4f6f9;--field:#f0f3f8;
+ --conversation:#f6f8fb;--line:#e2e6ed;--muted:#748195;
+ --accent:#2671dd;--accent-ink:#2369c9;--mine:#e0ecfc;
+ --ios-hairline:rgba(67,86,114,.13);
+ --ios-dock:rgba(251,252,254,.82);--ios-dock-active:rgba(55,122,221,.1);
+ --glass-fill:rgba(255,255,255,.72);
+ --glass-stroke:rgba(129,148,176,.26);
+ --glass-highlight:rgba(255,255,255,.93);
+ --glass-shadow:rgba(45,65,94,.08);
+ --group-fill:rgba(255,255,255,.78);
+ --group-line:rgba(102,124,157,.16);
+ --search-fill:rgba(237,241,247,.85);
+}
+html[data-theme="dark"]{
+ --bg:#141820;--surface:#1d242f;--subtle:#1a202a;--field:#293240;
+ --conversation:#171e29;--line:#343f50;--muted:#a5b2c5;
+ --accent:#448df2;--accent-ink:#9ac4ff;--mine:#29466a;
+ --ios-hairline:rgba(201,218,243,.12);
+ --ios-dock:rgba(29,35,46,.86);--ios-dock-active:rgba(87,147,240,.18);
+ --glass-fill:rgba(52,61,76,.63);
+ --glass-stroke:rgba(229,239,255,.17);
+ --glass-highlight:rgba(255,255,255,.12);
+ --glass-shadow:rgba(0,0,0,.22);
+ --group-fill:rgba(36,43,55,.72);
+ --group-line:rgba(189,209,236,.11);
+ --search-fill:rgba(42,50,65,.78);
+}
+/* Remove the abrupt white block behind the friend and group lists. */
+html,body,.app-shell,#appMain{background:var(--bg)}
+#pageChat{background:transparent!important}
+#pageChat .chat-panel,
+#pageChat :is(#chatFriends,#chatGroups),
+#pageChat .chat-friends{
+ background:transparent!important;
+ box-shadow:none!important;
+}
+#pageChat .chat-app-header,#pageChat .chat-mode-switch{
+ background:transparent!important;
+ border-color:var(--ios-hairline)!important;
+}
+#pageChat .chat-list-section-header{background:transparent;border:0}
+#pageChat .chat-list-search{
+ background:var(--search-fill)!important;
+ border:1px solid var(--group-line)!important;
+ border-radius:17px!important;
+ min-height:47px;
+ box-shadow:none!important;
+}
+#pageChat .chat-list-search:focus-within{
+ background:var(--group-fill)!important;
+ border-color:var(--accent-ink)!important;
+}
+#pageChat :is(#chatFriends,#chatGroups) .chat-friend{
+ background:var(--group-fill)!important;
+ border:1px solid var(--group-line)!important;
+ border-radius:19px!important;
+ box-shadow:0 1px 2px rgba(32,50,73,.025)!important;
+ margin:5px 0 9px!important;
+ padding:10px 12px!important;
+}
+#pageChat :is(#chatFriends,#chatGroups) .chat-friend:active{
+ background:var(--search-fill)!important;
+}
+/* Settings: both panels share the same grouped surface and proper padding. */
+#pageSettings .appearance-panel,#pageSettings .auth-panel{
+ background:var(--group-fill)!important;
+ border:1px solid var(--group-line)!important;
+ border-radius:23px!important;
+ box-shadow:0 1px 3px rgba(28,46,70,.025)!important;
+ padding:20px!important;
+ margin-bottom:18px!important;
+}
+#pageSettings .appearance-panel .appearance-copy{padding:0!important}
+#pageSettings .appearance-options{gap:8px;margin-top:16px}
+#pageSettings .appearance-options button{
+ min-width:0;border:1px solid transparent;
+ border-radius:14px!important;background:var(--search-fill);color:var(--muted);
+ box-shadow:none;
+}
+#pageSettings .auth-panel .cloud-sync-details{
+ background:var(--search-fill)!important;
+ border:1px solid var(--group-line)!important;
+ border-radius:16px!important;
+ margin:0 0 18px!important;padding:12px 14px!important;
+}
+#pageSettings .account-username-section{padding:14px 0 18px}
+#pageSettings #accountMyUsername{
+ background:var(--search-fill);
+ border-color:var(--group-line);
+ border-radius:14px;
+}
+#pageSettings .notification-settings{
+ background:transparent!important;
+ border:0!important;
+ border-top:1px solid var(--group-line)!important;
+ border-radius:0!important;
+ padding:16px 0 0!important;
+ margin-top:12px;
+}
+/* Calendar and tasks use the same gently elevated grouped surfaces. */
+#pageCalendar .calendar-panel,
+#pageTasks .tasks-panel,
+#pageLongTerm :is(.tasks-panel,.countdown-panel){
+ background:var(--group-fill)!important;
+ border:1px solid var(--group-line)!important;
+ border-radius:23px!important;
+ box-shadow:none!important;
+}
+#pageCalendar .calendar-panel{padding:18px 14px!important}
+/* Glass is only applied to small controls, never content blocks. */
+#pageChat .chat-header-add,
+#pageChat :is(#lineGroupMore,#linePrivateMore),
+.language-picker select,
+.calendar-nav .icon-button,
+#pageSettings .appearance-options button[aria-pressed="true"],
+#pageChat .chat-jump-to-latest{
+ background:var(--glass-fill)!important;
+ border:1px solid var(--glass-stroke)!important;
+ box-shadow:inset 0 1px 0 var(--glass-highlight),0 3px 11px var(--glass-shadow)!important;
+ color:var(--accent-ink);
+ -webkit-tap-highlight-color:transparent;
+}
+#pageChat .chat-header-add,
+#pageChat :is(#lineGroupMore,#linePrivateMore),
+#pageChat .chat-jump-to-latest,
+.calendar-nav .icon-button{border-radius:50%!important}
+.language-picker select{
+ color:var(--ink)!important;
+ border-radius:15px!important;
+ min-height:39px;
+ padding-inline:12px!important;
+}
+#pageSettings .appearance-options button[aria-pressed="true"]{
+ color:var(--ink)!important;
+ border-color:var(--accent-ink)!important;
+}
+.bottom-tabs{
+ background:var(--ios-dock)!important;
+ border-top:1px solid var(--glass-stroke)!important;
+ box-shadow:0 -4px 18px rgba(25,44,73,.035),inset 0 1px 0 var(--glass-highlight)!important;
+}
+html[data-theme="dark"] .bottom-tabs{background:var(--ios-dock)!important}
+.bottom-tabs .tab.active .tab-icon{
+ background:var(--ios-dock-active)!important;
+ box-shadow:inset 0 1px 0 var(--glass-highlight);
+ border:1px solid var(--glass-stroke);
+}
+#pageChat .chat-header-add:active,
+#pageChat :is(#lineGroupMore,#linePrivateMore):active,
+.calendar-nav .icon-button:active,
+#pageChat .chat-jump-to-latest:active{transform:scale(.95)}
+@supports((-webkit-backdrop-filter:blur(8px)) or (backdrop-filter:blur(8px))){
+ .bottom-tabs{
+  -webkit-backdrop-filter:blur(8px) saturate(122%)!important;
+  backdrop-filter:blur(8px) saturate(122%)!important;
+ }
+ #pageChat .chat-header-add,
+ #pageChat :is(#lineGroupMore,#linePrivateMore),
+ .language-picker select,
+ .calendar-nav .icon-button,
+ #pageSettings .appearance-options button[aria-pressed="true"],
+ #pageChat .chat-jump-to-latest{
+  -webkit-backdrop-filter:blur(6px) saturate(112%);
+  backdrop-filter:blur(6px) saturate(112%);
+ }
+}
+@media(prefers-reduced-transparency:reduce){
+ .bottom-tabs,
+ #pageChat .chat-header-add,
+ #pageChat :is(#lineGroupMore,#linePrivateMore),
+ .language-picker select,
+ .calendar-nav .icon-button,
+ #pageSettings .appearance-options button[aria-pressed="true"],
+ #pageChat .chat-jump-to-latest{
+  background:var(--surface)!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #pageChat .chat-header-add,
+ #pageChat :is(#lineGroupMore,#linePrivateMore),
+ .calendar-nav .icon-button,
+ #pageChat .chat-jump-to-latest{
+  transition:none!important;transform:none!important;
+ }
+}
+@media(max-width:719px){
+ #pageSettings .appearance-panel,#pageSettings .auth-panel{padding:18px 16px!important}
+ #pageChat :is(#chatFriends,#chatGroups) .chat-friend{margin-block:4px 8px!important}
+}
