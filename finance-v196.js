@@ -124,9 +124,29 @@ function alerts(){
  const over=doc.budgets.filter(b=>doc.transactions.filter(x=>x.kind==='expense'&&x.category===b.category&&x.date.startsWith(nowDate().slice(0,7))).reduce((n,x)=>n+bookedJPY(x),0)>b.limit);
  return (due.length?'<p class="fin-alert">'+t('due')+' · '+due.map(a=>h(a.name)).join(', ')+'</p>':'')+(over.length?'<p class="fin-alert">'+t('over')+'</p>':'');
 }
+function manualRates(){
+ return section(ct('rate'),'','<p class="fin-note">'+ct('hint')+'</p><div class="fin-rate-list">'+CURRENCIES.filter(c=>c!=='JPY').map(c=>
+  '<button type="button" class="fin-rate-row" data-fin-rate="'+c+'"><span>'+c+'</span><strong>'+(rate(c)===null?'—':'1 '+c+' = ¥'+rate(c).toLocaleString('ja-JP',{maximumFractionDigits:6}))+'</strong><span>›</span></button>').join('')+'</div><p class="fin-note">'+ct('info')+'</p>');
+}
+function editRate(currency,setDisplayAfter=false){
+ if(currency==='JPY'){ensurePrefs();doc.preferences.display='JPY';save();return}
+ dialog(ct('edit')+' · '+h(currency),'<p class="fin-note">'+ct('hint')+'</p>'+
+  field('1 '+currency+' = JPY','newRate','number',rate(currency)||'','min="0.000001" step="any"'),v=>{
+   const n=Number(v.newRate);
+   if(!Number.isFinite(n)||n<=0||n>=1e7){alert(t('invalid'));return false}
+   ensurePrefs();doc.preferences.rates[currency]=n;
+   if(setDisplayAfter)doc.preferences.display=currency;
+  });
+}
+function changeDisplay(currency){
+ if(!CURRENCIES.includes(currency))return;
+ ensurePrefs();
+ if(currency!=='JPY'&&rate(currency)===null){editRate(currency,true);render();return}
+ doc.preferences.display=currency;save();
+}
 function settings(){
  const status=cloud==='synced'?t('synced'):cloud==='missing'?t('missing'):cloud==='failed'?t('failed'):cloud==='conflict'?t('conflict'):t('local');
- return section(t('manage'),'','<p class="fin-note">'+t('warning')+'</p><p class="fin-sync">'+status+'</p><div class="fin-actions">'+button(t('sync'),'sync')+button(t('export'),'export')+'</div><div class="fin-actions">'+button(t('import'),'import')+button(t('csv'),'csv')+'</div>'+
+ return manualRates()+section(t('manage'),'','<p class="fin-note">'+t('warning')+'</p><p class="fin-sync">'+status+'</p><div class="fin-actions">'+button(t('sync'),'sync')+button(t('export'),'export')+'</div><div class="fin-actions">'+button(t('import'),'import')+button(t('csv'),'csv')+'</div>'+
  (cloud==='conflict'?'<div class="fin-actions">'+button(t('useCloud'),'useCloud')+button(t('useDevice'),'upload')+'</div>':'')+
  (cloud==='ready'?button(t('useDevice'),'upload'):'')+
  (owner!=='guest'&&localStorage.getItem(BASE+'guest')?button(t('guest'),'guest'):''));
@@ -134,7 +154,7 @@ function settings(){
 function render(){
  const root=document.getElementById('financeRoot');if(!root)return;
  const x=totals(),summary='<div class="fin-hero"><small>'+t('net')+'</small><strong>'+yen(x.net)+'</strong><div><span>'+t('assets')+'<b>'+yen(x.assets)+'</b></span><span>'+t('debt')+'<b>'+yen(x.debt)+'</b></span></div></div>';
- root.innerHTML='<header class="fin-head"><div><p>MY PLANNER / FINANCE</p><h1>'+t('title')+'</h1></div><span>¥</span></header><div class="fin-tabs">'+['overview','history','invest','budgets','manage'].map(k=>'<button data-fin-pane="'+k+'" class="'+(k===pane?'active':'')+'">'+t(k)+'</button>').join('')+'</div>'+
+ root.innerHTML='<header class="fin-head"><div><p>MY PLANNER / FINANCE</p><h1>'+t('title')+'</h1></div><label class="fin-currency-control"><small>'+ct('display')+'</small>'+option('displayCurrency',currencyOptions(),displayCode()).replace('<select ','<select aria-label="'+ct('display')+'" ')+'</label></header><div class="fin-tabs">'+['overview','history','invest','budgets','manage'].map(k=>'<button data-fin-pane="'+k+'" class="'+(k===pane?'active':'')+'">'+t(k)+'</button>').join('')+'</div>'+
  (pane==='overview'?summary+alerts()+cashFlow()+accounts()+bars()+netChart()+categoryBreakdown()+entries(7):pane==='history'?entries():pane==='invest'?summary+portfolio():pane==='budgets'?budgetView():settings()+accounts());
  const label=document.getElementById('tabFinanceLabel');if(label)label.textContent=t('title');
 }
@@ -298,7 +318,7 @@ function download(name,content,type){
 function exportJSON(){download('myplanner-finance-'+nowDate()+'.json',JSON.stringify({format:'mpfinance-v196',doc},null,2),'application/json')}
 function exportCSV(){
  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
- const rows=[['Date','Type','Amount JPY','From','To','Category','Note'],...doc.transactions.map(x=>[x.date,x.kind,x.amount,account(x.from)?.name,account(x.to)?.name,x.category,x.note])];
+ const rows=[['Date','Type','Original Amount','Currency','JPY Book Value','From','To','Category','Note'],...doc.transactions.map(x=>[x.date,x.kind,x.amount,account(x.from||x.to)?.currency||'JPY',bookedJPY(x),account(x.from)?.name,account(x.to)?.name,x.category,x.note])];
  download('myplanner-finance-'+nowDate()+'.csv','\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n'),'text/csv;charset=utf-8');
 }
 function importJSON(){
@@ -308,7 +328,7 @@ function importJSON(){
   const x=JSON.parse(await f.text()),d=x.doc;
   if(x.format!=='mpfinance-v196'||d.version!==1||!['accounts','transactions','holdings','trades','budgets','snapshots'].every(k=>Array.isArray(d[k])&&d[k].length<30000))throw Error('Invalid backup');
   if(!confirm(t('replace')))return;
-  doc=d;save();
+  doc=d;ensurePrefs();save();
  }catch(e){alert(e.message||t('invalid'))}};
  file.click();
 }
@@ -330,7 +350,7 @@ async function fetchCloud(){
   if(error){cloud=['42P01','PGRST205'].includes(error.code)?'missing':'failed';render();return}
   remote=data;
   if(!data){cloud='ready';render();return}
-  if(!hasRecords()&&!dirty){doc=data.payload;revision=data.revision;dirty=false;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
+  if(!hasRecords()&&!dirty){doc=data.payload;ensurePrefs();revision=data.revision;dirty=false;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
   if(JSON.stringify(doc)===JSON.stringify(data.payload)){revision=data.revision;dirty=false;localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
   if(revision===data.revision&&dirty){cloud='synced';schedulePush();render();return}
   if(revision!==null&&data.revision>revision&&!dirty){doc=data.payload;revision=data.revision;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
@@ -356,7 +376,7 @@ async function upload(){
 function useCloud(){
  if(!remote?.payload||!confirm(t('replace')))return;
  const old=localStorage.getItem(BASE+owner);if(old)localStorage.setItem(BASE+owner+'.backup.'+Date.now(),old);
- doc=remote.payload;revision=remote.revision;dirty=false;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();
+ doc=remote.payload;ensurePrefs();revision=remote.revision;dirty=false;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();
 }
 function action(what,value){
  if(what==='account')addAccount();
@@ -370,19 +390,21 @@ function action(what,value){
  else if(what==='csv')exportCSV();
  else if(what==='upload')void upload();
  else if(what==='useCloud')useCloud();
- else if(what==='guest'){const d=localStorage.getItem(BASE+'guest');if(d&&confirm(t('replace'))){doc=JSON.parse(d);save()}}
+ else if(what==='guest'){const d=localStorage.getItem(BASE+'guest');if(d&&confirm(t('replace'))){doc=JSON.parse(d);ensurePrefs();save()}}
  else if(what==='delete'&&confirm(t('confirm'))){doc.transactions=doc.transactions.filter(x=>x.id!==value);save()}
  else if(what==='accountDetail'){const a=account(value);if(a)dialog(t('accounts'),'<p class="fin-balance">'+yen(balances().get(a.id))+'</p><div class="fin-actions">'+button(t('edit'),'editAccount')+button(t('reconcile'),'reconcile')+'</div>',()=>true,b=>{b.querySelector('[data-fin-action="editAccount"]').onclick=()=>{b.close();addAccount(a)};b.querySelector('[data-fin-action="reconcile"]').onclick=()=>{b.close();reconcile(a)}})}
  else if(what==='holdingDetail'){const x=holding(value);if(x)addHolding(x)}
  else if(what==='budgetDetail')addBudget(value);
 }
 function bind(){
+ document.getElementById('financeRoot')?.addEventListener('change',e=>{if(e.target?.name==='displayCurrency')changeDisplay(e.target.value)});
  document.getElementById('financeRoot')?.addEventListener('click',e=>{
   const p=e.target.closest('[data-fin-pane]');if(p){pane=p.dataset.finPane;render();return}
   const a=e.target.closest('[data-fin-action]');if(a){action(a.dataset.finAction);return}
   const ac=e.target.closest('[data-fin-account]');if(ac){action('accountDetail',ac.dataset.finAccount);return}
   const hd=e.target.closest('[data-fin-holding]');if(hd){action('holdingDetail',hd.dataset.finHolding);return}
   const bd=e.target.closest('[data-fin-budget]');if(bd){action('budgetDetail',bd.dataset.finBudget);return}
+  const rateButton=e.target.closest('[data-fin-rate]');if(rateButton){editRate(rateButton.dataset.finRate);return}
   const del=e.target.closest('[data-fin-delete]');if(del)action('delete',del.dataset.finDelete);
  });
 }
