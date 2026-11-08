@@ -1370,3 +1370,235 @@ body>.chat-context-menu.chat-message-popover>.chat-context-option.danger{
  #pageChat .chat-messages{padding:13px 10px 16px;gap:10px}
  #pageChat .chat-jump-to-latest{bottom:76px;right:12px}
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v182 — iOS 26-inspired Quiet Glass, optimized for mobile compositing.
+   Motion is opacity/transform only; no animated blur, shadows, sizes or layout.
+   Existing messaging, task and accessibility semantics are unchanged.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root{
+ --ios-radius-sm:12px;
+ --ios-radius-md:18px;
+ --ios-radius-lg:22px;
+ --ios-tap:rgba(10,88,190,.07);
+ --ios-hairline:rgba(25,53,95,.10);
+ --ios-dock:rgba(255,255,255,.94);
+ --ios-dock-active:rgba(35,112,215,.10);
+ --ios-motion-fast:120ms;
+ --ios-motion-page:160ms;
+}
+html[data-theme="dark"]{
+ --ios-tap:rgba(120,173,255,.11);
+ --ios-hairline:rgba(167,192,230,.15);
+ --ios-dock:rgba(12,17,26,.95);
+ --ios-dock-active:rgba(75,135,240,.20);
+}
+/* 01. Typography: SF-like native weight; 02. refined letter spacing. */
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI","Noto Sans CJK SC","Noto Sans CJK JP",sans-serif;letter-spacing:-.008em;text-rendering:optimizeLegibility}
+/* 03. Hairline separators: low contrast and no expensive shadows. */
+#pageChat .chat-conversation-header,.chat-send,.chat-friend,
+.bottom-tabs,.task-item,.countdown-row{border-color:var(--ios-hairline)}
+/* 04. Focus states are accessible without bright opaque rings. */
+:where(button,a,input,textarea,select):focus-visible{
+ outline:2px solid var(--focus);
+ outline-offset:2px;
+}
+/* 05. No 300ms tap delay and no bright iOS tap rectangle. */
+button,a,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+/* 06. 44px interactive hit targets for common actions. */
+#pageChat .chat-header-add,#pageChat #lineGroupMore,#pageChat #linePrivateMore,
+#pageChat .line-back-button,#pageChat .chat-jump-to-latest,
+#pageChat .chat-photo-picker,.task-action,.icon-button{
+ min-width:44px;min-height:44px;
+}
+/* 07. Lightweight touch feedback: transform only, not repaint-heavy shadows. */
+#pageChat .chat-header-add,#pageChat #lineGroupMore,#pageChat #linePrivateMore,
+.chat-send button,.bottom-tabs .tab,.button-primary,.task-action,
+.calendar-day,.line-menu-entry,.chat-jump-to-latest{
+ transition:transform var(--ios-motion-fast) ease-out,background-color var(--ios-motion-fast) ease-out,color var(--ios-motion-fast) ease-out;
+}
+@media(hover:none) and (pointer:coarse){
+ #pageChat .chat-header-add:active,#pageChat #lineGroupMore:active,
+ #pageChat #linePrivateMore:active,.button-primary:active,
+ .chat-send button:active,.calendar-day:active{transform:scale(.96)}
+}
+/* 08. Bottom dock looks like iOS 26, but the blur is deliberately bounded. */
+.bottom-tabs{
+ background:var(--ios-dock);
+ border-top:1px solid var(--ios-hairline);
+ box-shadow:0 -3px 16px rgba(20,37,68,.035);
+}
+@supports((-webkit-backdrop-filter:blur(9px)) or (backdrop-filter:blur(9px))){
+ .bottom-tabs{
+  -webkit-backdrop-filter:blur(9px) saturate(115%);
+  backdrop-filter:blur(9px) saturate(115%);
+ }
+}
+/* 09. Active tab is a quiet capsule, not a large raised card. */
+.bottom-tabs .tab{padding:6px 2px;gap:3px;border-radius:var(--ios-radius-md);color:var(--muted);font-weight:550}
+.bottom-tabs .tab.active{
+ background:transparent;
+ color:var(--accent-ink);
+}
+.bottom-tabs .tab.active .tab-icon{
+ border-radius:13px;
+ background:var(--ios-dock-active);
+}
+/* 10. The selected icon has a consistent, lightweight hit surface. */
+.bottom-tabs .tab .tab-icon{
+ width:46px;height:30px;
+ border-radius:13px;
+ transition:background-color 130ms ease-out,transform 130ms ease-out;
+}
+.bottom-tabs .tab:active .tab-icon{transform:scale(.94)}
+.bottom-tabs .tab .tab-icon svg{width:23px;height:23px}
+/* 11. Legible dock labels, even on a narrow iPhone. */
+.bottom-tabs .tab{font-size:11px!important;line-height:1.2}
+/* 12. Small opacity-only page entrance: no transform containing block for chat fixed panels. */
+@keyframes ios26PageAppear{from{opacity:.72}to{opacity:1}}
+.app-page.active{animation:ios26PageAppear var(--ios-motion-page) ease-out both!important}
+/* 13. Search field uses an iOS-like grouped surface. */
+#pageChat .chat-list-search{
+ border-radius:14px;
+ background:var(--field);
+ border:1px solid transparent;
+ transition:border-color 130ms ease-out,background-color 130ms ease-out;
+}
+#pageChat .chat-list-search:focus-within{
+ border-color:var(--accent-ink);
+ background:var(--surface);
+}
+/* 14. Friend/group rows have clear touch feedback without gradients. */
+#pageChat .chat-friend{
+ border-radius:var(--ios-radius-sm);
+ transition:background-color var(--ios-motion-fast) ease-out;
+}
+#pageChat .chat-friend:active{background:var(--ios-tap)}
+/* 15. Offscreen list rows skip paint; they retain an intrinsic layout estimate. */
+@supports(content-visibility:auto){
+ #pageChat .chat-friend{
+  content-visibility:auto;
+  contain-intrinsic-size:auto 84px;
+ }
+}
+/* 16. Conversation header: reduced visual noise and balanced 44px controls. */
+#pageChat .chat-conversation-header{
+ background:var(--surface);
+ padding-inline:12px;
+ border-bottom:1px solid var(--ios-hairline);
+}
+#pageChat .chat-conversation-header #chatGroupTitle,
+#pageChat .chat-conversation-header .chat-peer-meta strong{
+ font-size:18px;
+ letter-spacing:-.025em;
+ line-height:1.25;
+}
+/* 17. Consistent avatar shape and smaller avatar border contrast. */
+#pageChat .chat-messages .chat-bubble .chat-avatar-action,
+#pageChat .chat-messages .chat-bubble.mine.chat-with-avatar::after,
+#pageChat .chat-list-avatar,#pageChat .chat-peer-avatar{
+ border-radius:50%!important;
+ border-color:var(--ios-hairline)!important;
+}
+/* 18. Message typography: readable and predictable compact text. */
+#pageChat .chat-messages .chat-bubble{
+ letter-spacing:-.015em;
+ -webkit-font-smoothing:antialiased;
+}
+#pageChat .chat-messages .chat-bubble>small{
+ font-variant-numeric:tabular-nums;
+ letter-spacing:0;
+}
+/* 19. Composer focus outlines its field, not the whole app frame. */
+#pageChat .chat-send textarea{
+ border-radius:21px;
+ border:1px solid var(--ios-hairline);
+ background:var(--field);
+ transition:border-color 140ms ease-out,background-color 140ms ease-out;
+}
+#pageChat .chat-send textarea:focus{
+ border-color:var(--accent-ink);
+ background:var(--surface);
+}
+#pageChat .chat-send .button-primary{border-radius:20px}
+/* 20. iOS-styled bottom action pages and compact popovers. */
+@keyframes ios26SheetEnter{from{opacity:.65;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ios26MenuEnter{from{opacity:.65;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+#pageChat #lineActionScreen:not([hidden]),
+#pageChat #chatGroupMembersPanel:not([hidden]),
+#pageChat #chatGroupInvitePanel:not([hidden]){
+ animation:ios26SheetEnter 160ms ease-out both;
+}
+#pageChat .line-popup-menu:not([hidden]),
+body>.chat-context-menu.chat-message-popover:not([hidden]){
+ animation:ios26MenuEnter 120ms ease-out both;
+ transform-origin:top right;
+}
+/* 21. Compact groups in settings and forms, no harsh borders. */
+#pageSettings :is(input,select,textarea),#pageTasks :is(input,select,textarea),
+#pageLongTerm :is(input,select,textarea){
+ border-radius:var(--ios-radius-sm);
+}
+#pageTasks .tasks-panel,#pageLongTerm .tasks-panel,#pageCalendar .calendar-panel{
+ border-radius:var(--ios-radius-lg);
+}
+/* 22. Native form labels and click areas never become tiny. */
+#pageTasks .task-action,#pageLongTerm .task-action{font-size:12px;font-weight:550;min-height:38px;padding:8px 10px}
+/* 23. Completion row is subtly marked; active rows keep plain surfaces. */
+.task-item{
+ border-radius:var(--ios-radius-sm);
+ transition:background-color 120ms ease-out;
+}
+.task-item:active{background:var(--ios-tap)}
+.task-item.completed{opacity:.78}
+/* 24. Checkbox feedback is native-feeling, with no expensive bounce. */
+#pageTasks .task-check,#pageLongTerm .task-check{
+ transition:background-color 110ms ease-out,border-color 110ms ease-out;
+ accent-color:var(--accent);
+}
+/* 25. Calendar highlight follows the same blue as primary actions. */
+.calendar-day.selected,.calendar-day.today.selected{
+ border-radius:12px;
+ background:var(--accent)!important;
+ color:var(--on-accent)!important;
+}
+/* 26. Dialogs use a modest sheet radius and no oversized glow. */
+:where(dialog.edit-dialog,dialog.delete-dialog){
+ border-radius:22px;
+ border:1px solid var(--ios-hairline);
+ box-shadow:0 18px 48px rgba(10,31,62,.16);
+}
+dialog::backdrop{background:rgba(10,20,35,.32)}
+/* 27. Long list items are allowed to skip offscreen rendering, without touching chat scroll math. */
+@supports(content-visibility:auto){
+ #taskList>.task-item{
+  content-visibility:auto;
+  contain-intrinsic-size:auto 58px;
+ }
+}
+/* 28. Calm in-app status transitions, with no shimmer or continuous animation. */
+#pageChat .chat-photo-retry{border-radius:12px}
+#pageChat .chat-media-frame.chat-media-ready{background:transparent!important}
+/* 29. Never make the PWA bounce its whole canvas on iOS. */
+html,body{overscroll-behavior-y:none}
+#pageChat .chat-messages{overscroll-behavior-y:contain}
+/* 30. Respect reduced motion, including all newly introduced transitions. */
+@media(prefers-reduced-motion:reduce){
+ .app-page.active,
+ #pageChat #lineActionScreen:not([hidden]),
+ #pageChat #chatGroupMembersPanel:not([hidden]),
+ #pageChat #chatGroupInvitePanel:not([hidden]),
+ #pageChat .line-popup-menu:not([hidden]),
+ body>.chat-context-menu.chat-message-popover:not([hidden]){
+  animation:none!important;
+ }
+ .bottom-tabs .tab,.bottom-tabs .tab .tab-icon,.chat-friend,
+ .task-item,.task-check,.button-primary{
+  transition:none!important;
+ }
+}
+/* Minimize frosted effects on devices that explicitly request reduced contrast/transparency. */
+@media(prefers-reduced-transparency:reduce){
+ .bottom-tabs{background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
