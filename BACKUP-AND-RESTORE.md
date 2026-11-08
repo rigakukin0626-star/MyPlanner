@@ -109,3 +109,15 @@ Supabase SQL Editor. It was NOT automatically applied.
 - Loaded photo frames are sized to the actual decoded image ratio, avoiding the empty horizontal area around portrait photos; images remain private and do not add permanent browser storage.
 - Chat header, avatars, rounded bubbles, timestamps, media spacing, and the message composer have a calm, consistent mobile look inspired by mainstream messaging apps. No interface, data, permissions, schema, or message semantics were removed.
 - No Supabase migration is required. Live iPhone browser verification is still required for scroll responsiveness under real network conditions.
+
+## v182 — iOS 26-inspired 30-point performance and UI optimization
+
+- Source snapshot: main SHA `be0afb4ae469a1096caf8c4f1ab52ad98b42c746`.
+- Safe rollback branch: `backup-before-ios26-performance-v182`.
+- Development branch: `feat-ios26-30-optimizations-v182`.
+- Detailed 30-item, user-readable table: `OPTIMIZATION-REPORT-v182.md`.
+- Performance: fewer hidden-view rerenders, delegated task clicks, no redundant layout recovery, frame-coalesced search and composer growth, date/time formatter caching and conditional network refresh.
+- Presentation: bounded frosted dock, subtle touch feedback and page transitions, improved safe touch targets, native-like message/form structure and reduced-motion support. Avoided continuously animating scroll content.
+- No Supabase SQL, Auth, chat message, Storage or reminder data changes. The v176 group read receipts SQL remains an independent prerequisite if not yet applied.
+- v182 changes local PWA cache names and JS/CSS query strings only; service worker keeps authenticated media uncached.
+- Real-device FPS and latency have not been measured; syntax/static tests are not performance benchmarks.
