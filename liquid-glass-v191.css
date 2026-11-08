@@ -1,0 +1,50 @@
+/* v191: 20 targeted liquid-glass refinements. Content and chat media remain unchanged. */
+:root{--v191-glass:rgba(245,251,255,.12);--v191-strong:rgba(246,251,255,.22);--v191-rim:rgba(255,255,255,.61);--v191-low:rgba(103,148,210,.14);--v191-shadow:rgba(26,49,92,.10);--v191-active:rgba(113,177,249,.12)}
+html[data-theme="dark"]{--v191-glass:rgba(30,39,56,.24);--v191-strong:rgba(42,52,72,.36);--v191-rim:rgba(230,242,255,.22);--v191-low:rgba(0,0,0,.22);--v191-shadow:rgba(0,0,0,.26);--v191-active:rgba(101,157,233,.17)}
+/* 01 — dock translucency */
+.bottom-tabs{background:var(--v191-glass)!important;border:1px solid var(--v191-rim)!important;-webkit-backdrop-filter:blur(6px) saturate(150%)!important;backdrop-filter:blur(6px) saturate(150%)!important;box-shadow:0 5px 17px var(--v191-shadow),inset 0 1px 0 rgba(255,255,255,.48),inset 0 -1px 0 var(--v191-low)!important}
+/* 02 — waterdrop edge glint */
+.bottom-tabs::before{background:radial-gradient(ellipse 18% 45% at 9% -8%,rgba(255,255,255,.26),transparent 94%),radial-gradient(ellipse 18% 48% at 94% 110%,rgba(121,174,237,.10),transparent 95%)!important}
+.bottom-tabs::after{inset:2px!important;border-color:rgba(255,255,255,.10)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.15)!important}
+/* 03 — selected dock tab */
+.bottom-tabs .tab.active{background:var(--v191-active)!important;border-color:var(--v191-rim)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.30),inset 0 -1px 0 var(--v191-low)!important}
+/* 04 — dock touch feedback */
+.bottom-tabs .tab{transition:transform .14s ease-out,background-color .14s ease!important}.bottom-tabs .tab:active{transform:scale(.97)!important}
+/* 05 — chat plus button */
+#pageChat .chat-header-add{background:var(--v191-glass)!important;border-color:var(--v191-rim)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 4px 12px var(--v191-shadow)!important}
+/* 06 — private and group more buttons */
+#pageChat :is(#linePrivateMore,#lineGroupMore){background:var(--v191-glass)!important;border-color:var(--v191-rim)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.43),0 4px 12px var(--v191-shadow)!important}
+/* 07 — translucent quick menu */
+#pageChat .line-popup-menu:not([hidden]){background:var(--v191-strong)!important;border-color:var(--v191-rim)!important;-webkit-backdrop-filter:blur(15px) saturate(153%)!important;backdrop-filter:blur(15px) saturate(153%)!important;box-shadow:0 13px 30px var(--v191-shadow),inset 0 1px 0 rgba(255,255,255,.34)!important}
+/* 08 — quick menu press */
+#pageChat .line-popup-menu .line-menu-entry{border-radius:17px!important;min-height:50px;transition:background-color .13s ease!important}#pageChat .line-popup-menu .line-menu-entry:active{background:var(--v191-active)!important}
+/* 09 — quick menu icons */
+#pageChat .line-popup-menu .line-menu-icon{background:var(--v191-active)!important;border:1px solid var(--v191-rim)!important;border-radius:14px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)!important}
+/* 10 — long-press action popup */
+body>.chat-context-menu.chat-message-popover:not([hidden]){background:var(--v191-strong)!important;border:1px solid var(--v191-rim)!important;-webkit-backdrop-filter:blur(16px) saturate(147%)!important;backdrop-filter:blur(16px) saturate(147%)!important;box-shadow:0 14px 30px var(--v191-shadow),inset 0 1px 0 rgba(255,255,255,.35)!important}
+body>.chat-context-menu.chat-message-popover>.chat-context-option:active{background:var(--v191-active)!important}
+/* 11 — private/group choice track */
+#pageChat .chat-mode-switch{background:transparent!important;gap:8px!important;padding-bottom:5px;border-bottom:1px solid var(--ios-hairline)!important}
+/* 12 — private/group selected capsule */
+#pageChat .chat-mode-switch button{border:1px solid transparent!important;border-radius:999px!important;padding:9px 15px!important;min-height:43px}
+#pageChat .chat-mode-switch button.active{background:var(--v191-active)!important;border-color:var(--v191-rim)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.32)!important;-webkit-backdrop-filter:blur(5px) saturate(130%)!important;backdrop-filter:blur(5px) saturate(130%)!important}
+/* 13 — chat search input lens */
+#pageChat .chat-list-search{background:rgba(217,233,252,.28)!important;border:1px solid var(--v191-low)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.20)!important}
+html[data-theme="dark"] #pageChat .chat-list-search{background:rgba(68,83,109,.24)!important}
+/* 14 — conversation list edges */
+#pageChat :is(#chatFriends,#chatGroups) .chat-friend{border-color:var(--v191-low)!important;box-shadow:0 1px 3px rgba(35,61,108,.03),inset 0 1px 0 rgba(255,255,255,.07)!important}
+/* 15 — task filter */
+#pageTasks #taskTabs .tab.active{background:var(--v191-active)!important;border:1px solid var(--v191-rim)!important;border-radius:12px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.32)!important}
+#pageTasks #taskTabs .tab:not(.active){border:1px solid transparent!important}
+/* 16 — priority and repeat selections */
+#pageTasks :is(#repeatInput,#priorityInput),#pageLongTerm #priorityInput{background:var(--v191-strong)!important;border-color:var(--v191-low)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.20)!important}
+/* 17 — calendar month controls */
+#pageCalendar .calendar-nav .icon-button{background:var(--v191-glass)!important;border:1px solid var(--v191-rim)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.31),0 3px 10px var(--v191-shadow)!important}
+/* 18 — selected calendar day */
+#pageCalendar .calendar-day.selected{border:1px solid var(--v191-rim)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.32)!important}
+/* 19 — theme appearance buttons */
+#pageSettings .appearance-options button[aria-pressed="true"]{background:var(--v191-active)!important;border:1px solid var(--v191-rim)!important;border-radius:999px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.32)!important}
+/* 20 — language selection lens */
+.language-picker select{background:var(--v191-strong)!important;border-color:var(--v191-rim)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.31),0 3px 10px var(--v191-shadow)!important}
+@media(prefers-reduced-transparency:reduce){.bottom-tabs,#pageChat .chat-header-add,#pageChat #linePrivateMore,#pageChat #lineGroupMore,#pageChat .line-popup-menu:not([hidden]),body>.chat-context-menu.chat-message-popover:not([hidden]),.language-picker select,#pageTasks :is(#repeatInput,#priorityInput),#pageLongTerm #priorityInput{background:var(--surface)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}}
+@media(prefers-reduced-motion:reduce){.bottom-tabs .tab,#pageChat .line-popup-menu .line-menu-entry{transition:none!important}}

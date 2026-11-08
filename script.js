@@ -731,6 +731,15 @@ function chatAddPinControl(row,id,order){
  row.append(pin);
 }
 
+/* v191: language-neutral cached preview migration. */
+function chatLocalizedFriendPreview(value,mine){
+ let raw=String(value||"");
+ const pattern=/^(?:Me:\s*|我：|私：)/;
+ const hadOwn=pattern.test(raw);
+ raw=raw.replace(pattern,"");
+ if(/^📷 (?:照片|写真|Photo)$/.test(raw))raw=chatText("📷 照片","📷 写真","📷 Photo");
+ return (mine===true||(mine===undefined&&hadOwn)?chatText("我：","私：","Me: "):"")+raw;
+}
 function chatShowCachedFriends(){
  if(!currentUser||chatPeer)return;
  try{
@@ -749,7 +758,7 @@ function chatShowCachedFriends(){
    const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=((chatRemarkFor(friend.id)||friend.name).trim()[0]||"?").toUpperCase();
    const content=document.createElement("span");content.className="chat-friend-info";
    const title=document.createElement("strong");title.textContent=chatRemarkFor(friend.id)||friend.name;
-   const subtitle=document.createElement("small");subtitle.textContent=friend.preview||chatText("开始聊天","チャットを始める","Start chatting");
+   const subtitle=document.createElement("small");subtitle.textContent=chatLocalizedFriendPreview(friend.preview||chatText("开始聊天","チャットを始める","Start chatting"),friend.previewMine);if(friend.previewMine!==undefined)subtitle.dataset.previewMine=friend.previewMine?"true":"false";
    content.append(title,subtitle);
    const meta=document.createElement("span");meta.className="chat-friend-meta";
    if(friend.time){const when=document.createElement("small");when.textContent=friend.time;meta.append(when)}
@@ -798,13 +807,15 @@ async function loadChatFriends(){
   const content=document.createElement("span");content.className="chat-friend-info";
   const title=document.createElement("strong");title.textContent=chatRemarkFor(id)||name;
   const subtitle=document.createElement("small");const m=last.get(id);
-  subtitle.textContent=m?(m.sender_id===currentUser.id?chatText("我：","私：","Me: "):"")+(m.body.startsWith(CHAT_IMAGE_PREFIX)?chatText("📷 照片","📷 写真","📷 Photo"):chatPlainBody(m.body)):chatText("开始聊天","チャットを始める","Start chatting");
+  const previewMine=!!m&&m.sender_id===currentUser.id;
+  subtitle.textContent=m?(previewMine?chatText("我：","私：","Me: "):"")+(m.body.startsWith(CHAT_IMAGE_PREFIX)?chatText("📷 照片","📷 写真","📷 Photo"):chatPlainBody(m.body)):chatText("开始聊天","チャットを始める","Start chatting");
+  subtitle.dataset.previewMine=previewMine?"true":"false";
   content.append(title,subtitle);
   const meta=document.createElement("span");meta.className="chat-friend-meta";
   if(m){const when=document.createElement("small");when.textContent=formatChatClock(m.created_at);meta.append(when)}
   if(unread.get(id)){const count=document.createElement("b");count.className="chat-unread";count.textContent=unread.get(id)>99?"99+":String(unread.get(id));meta.append(count)}
   btn.append(avatar,content,meta);chatAddPinControl(btn,id,order);btn.addEventListener("click",()=>openChat(id,name));fragment.append(btn);
-  cachedFriends.push({id,name,preview:subtitle.textContent,time:m?formatChatClock(m.created_at):""});
+  cachedFriends.push({id,name,preview:subtitle.textContent,previewMine,time:m?formatChatClock(m.created_at):""});
  }
  // Keep existing DOM nodes and click handlers when the refreshed list is identical.
  const signature=uiLanguage+"|"+currentUser.id+"|"+JSON.stringify(sorted.map(id=>[
@@ -1875,6 +1886,21 @@ function groupShowCachedList(){
 function groupStatus(message){$("chatGroupStatus").textContent=message}
 function groupError(error){groupStatus(error?.message||String(error))}
 function refreshChatLocalizedViews(){
+ /* Fast language patch, even when the group message cache is empty.
+    Keep currently mounted media and scroll position undisturbed. */
+ const own=chatText("我","私","Me");
+ for(const id of ["chatMessages","chatGroupMessages"]){
+  const root=$(id);if(!root)continue;
+  root.querySelectorAll(".chat-bubble.mine.chat-with-avatar").forEach(el=>{el.dataset.avatar=own});
+  root.querySelectorAll(".chat-bubble.mine .group-message-sender").forEach(el=>{el.textContent=own});
+  root.querySelectorAll(".chat-avatar-action").forEach(el=>el.setAttribute("aria-label",chatText("设置用户备注","相手の表示名を設定","Set contact nickname")));
+  root.querySelectorAll(".chat-bubble>small").forEach(el=>{el.textContent=el.textContent.replace(/ · (?:已读|既読|Read)(?=\s\d+|$)/g," · "+chatText("已读","既読","Read"))});
+  root.querySelectorAll(".chat-quoted-message>strong").forEach(el=>{if(["回复消息","返信","Reply"].includes(el.textContent.trim()))el.textContent=chatText("回复消息","返信","Reply")});
+ }
+ $("chatFriends")?.querySelectorAll(".chat-friend-info small").forEach(el=>{
+  const mine=el.dataset.previewMine===undefined?undefined:el.dataset.previewMine==="true";
+  el.textContent=chatLocalizedFriendPreview(el.textContent,mine);
+ });
   chatLastSignature="";
   groupLastSignature="";
   if(chatPeer)chatRenderMessages();
@@ -2273,7 +2299,7 @@ function groupRenderMessages(items){
   :canPrepend?visibleItems.slice(0,visibleItems.length-oldIds.length):visibleItems;
  for(const item of incoming){
   const bubble=document.createElement("div");bubble.dataset.groupMessageId=String(item.id);bubble.dataset.groupMessageCreated=item.created_at;bubble.className="chat-bubble"+(item.sender_id===currentUser.id?" mine":"");chatBubbleAvatar(bubble,item.sender_id,true);
-  const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","自分","Me"):(chatRemarkFor(item.sender_id)||item.sender_id.slice(0,8));
+  const sender=document.createElement("span");sender.className="group-message-sender";sender.textContent=item.sender_id===currentUser.id?chatText("我","私","Me"):(chatRemarkFor(item.sender_id)||item.sender_id.slice(0,8));
   const parsedReply=!item.body.startsWith("[myplanner-group-image]:")?groupParseReply(item.body):null;
   const body=document.createElement(parsedReply?"div":"span");
   if(parsedReply)chatMarkReplyBubble(bubble);
