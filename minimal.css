@@ -1804,3 +1804,18 @@ body>.chat-context-menu.chat-message-popover>.chat-context-option{min-height:44p
 @media(prefers-reduced-motion:reduce){.app-page.active,#pageChat .line-popup-menu:not([hidden]),body>.chat-context-menu{animation:none!important;transition:none!important}}
 /* v183 100 设置 | 减少透明度 */
 @media(prefers-reduced-transparency:reduce){.bottom-tabs{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:var(--surface)!important}}
+
+
+/* v183 critical overrides: old dark mode included a hard-coded black dock. */
+html[data-theme="dark"] .bottom-tabs{background:var(--ios-dock)!important;border-color:var(--ios-hairline)!important}
+html[data-theme="dark"] .welcome-auth{background:var(--bg)!important}
+html[data-theme="dark"] #pageChat .chat-app-header,
+html[data-theme="dark"] #pageChat .chat-mode-switch{background:var(--bg)}
+html[data-theme="dark"] .topbar{background:var(--bg)}
+html[data-theme="dark"] #pageChat .chat-conversation-header,
+html[data-theme="dark"] #pageChat .chat-send{background:var(--surface)}
+html[data-theme="dark"] #pageChat .chat-bubble:not(.mine):not(:has(.chat-media-frame)){background:var(--surface);border-color:var(--ios-hairline)}
+.button-primary,.button.button-primary{color:var(--on-accent)}
+#pageChat .chat-messages{overflow-x:hidden;overscroll-behavior-y:contain;min-height:0}
+#pageChat :is(#chatMessages,#chatGroupMessages){-webkit-overflow-scrolling:touch;touch-action:pan-y pinch-zoom!important}
+@media(prefers-reduced-transparency:reduce){html[data-theme="dark"] .bottom-tabs{background:var(--surface)!important}}
