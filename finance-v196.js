@@ -164,8 +164,59 @@ const quoteLink=x=>{
  // feed into user holdings and NOT a claim that the data is real-time.
  if(x.currency!=='JPY'||!/^([0-9]{4}|[0-9]{3}[A-Z])$/.test(code))return '';
  const label=language==='zh'?'查看行情':language==='ja'?'株価を見る':'View quote';
- return '<a class="fin-quote-link" href="https://finance.yahoo.co.jp/quote/'+code+'.T" target="_blank" rel="noopener noreferrer" aria-label="'+label+' '+code+'">'+label+' ↗</a>';
+ return '<button type="button" class="fin-quote-link" data-fin-quote="'+h(x.id)+'" aria-label="'+label+' · '+code+'">'+label+' <span aria-hidden="true">▤</span></button>';
 };
+const quoteText=(zh,ja,en)=>language==='zh'?zh:language==='ja'?ja:en;
+function openQuote(x){
+ const code=String(x?.symbol||'').trim().toUpperCase().replace(/\.T$/,'');
+ if(!x||x.currency!=='JPY'||!/^([0-9]{4}|[0-9]{3}[A-Z])$/.test(code))return;
+ document.querySelector('.fin-quote-dialog[open]')?.close();
+ const box=document.createElement('dialog');
+ box.className='fin-quote-dialog';
+ const title=quoteText('股票行情','株価チャート','Market quote');
+ const delay=quoteText('行情可能延迟','相場は遅延する場合があります','Quotes may be delayed');
+ const recorded=quoteText('手动记录价格','手入力の記録価格','Recorded manual price');
+ const disclaimer=quoteText(
+  '图表由 TradingView 提供，东证行情可能延迟；不会自动修改你的持仓价格或资产总额。',
+  'チャートはTradingView提供です。東証の価格は遅延する場合があります。保有資産の手入力価格は変更されません。',
+  'TradingView chart data may be delayed. It does not replace your manually recorded holding price or portfolio valuation.'
+ );
+ const refresh=quoteText('刷新行情','再読み込み','Refresh chart');
+ const close=quoteText('关闭','閉じる','Close');
+ const source=quoteText('TradingView 来源','TradingViewで確認','Open TradingView');
+ const name=h(String(x.name||code));
+ box.innerHTML='<div class="fin-quote-shell">'+
+  '<header class="fin-quote-head"><div><small>'+title+' · TSE</small><h2>'+h(code)+' · '+name+'</h2></div><button type="button" data-quote-close aria-label="'+close+'">×</button></header>'+
+  '<div class="fin-quote-info"><span>'+delay+'</span><span>'+recorded+'：<strong>'+nativeMoney(x.price,x.currency)+'</strong></span></div>'+
+  '<div class="fin-quote-frame" role="region" aria-label="'+title+'"></div>'+
+  '<p class="fin-quote-explain">'+disclaimer+'</p>'+
+  '<footer class="fin-quote-footer"><button type="button" data-quote-refresh>'+refresh+'</button>'+
+  '<a href="https://www.tradingview.com/symbols/TSE-'+code+'/" target="_blank" rel="noopener noreferrer">'+source+' ↗</a></footer>'+
+  '</div>';
+ const mount=()=>{
+  const wrap=box.querySelector('.fin-quote-frame');
+  wrap.replaceChildren();
+  const frame=document.createElement('iframe');
+  frame.title=title+' TSE:'+code;
+  frame.className='fin-quote-iframe';
+  frame.setAttribute('sandbox','allow-scripts allow-popups allow-popups-to-escape-sandbox');
+  frame.setAttribute('loading','eager');
+  frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+  frame.src='./market-chart-v215.html?symbol='+encodeURIComponent(code)+
+    '&theme='+(document.documentElement.dataset.theme==='dark'?'dark':'light')+
+    '&lang='+(language==='zh'?'zh':language==='ja'?'ja':'en')+
+    '&r='+Date.now();
+  wrap.append(frame);
+ };
+ document.body.append(box);
+ box.querySelector('[data-quote-close]').onclick=()=>box.close();
+ box.querySelector('[data-quote-refresh]').onclick=mount;
+ box.addEventListener('click',e=>{if(e.target===box)box.close()});
+ box.addEventListener('close',()=>box.remove(),{once:true});
+ box.showModal();
+ mount();
+}
+
 function portfolio(){
  return section(t('invest'),button('＋ '+t('addHolding'),'holding'),
   '<p class="fin-note">'+t('manual')+'</p>'+
@@ -502,6 +553,7 @@ function bind(){
  document.getElementById('financeRoot')?.addEventListener('change',e=>{if(e.target?.name==='recordCurrency'){ensurePrefs();doc.preferences.record=e.target.value;save()}});
  document.getElementById('financeRoot')?.addEventListener('click',e=>{
   const p=e.target.closest('[data-fin-pane]');if(p){pane=p.dataset.finPane;render();return}
+  const q=e.target.closest('[data-fin-quote]');if(q){const item=holding(q.dataset.finQuote);if(item)openQuote(item);return}
   const a=e.target.closest('[data-fin-action]');if(a){action(a.dataset.finAction);return}
   const ac=e.target.closest('[data-fin-account]');if(ac){action('accountDetail',ac.dataset.finAccount);return}
   const hd=e.target.closest('[data-fin-holding]');if(hd){action('holdingDetail',hd.dataset.finHolding);return}

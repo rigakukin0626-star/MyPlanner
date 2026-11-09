@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Planner · Market chart</title>
+<style>
+html,body{width:100%;height:100%;margin:0;padding:0;overflow:hidden;background:#fff;color:#223044;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif}
+body.dark{background:#11141b;color:#e5eaf2}
+#chart{width:100%;height:100%;display:flex;flex-direction:column}
+.tradingview-widget-container{width:100%;height:100%;flex:1 1 auto;min-height:0}
+.tradingview-widget-container__widget{height:100%;width:100%}
+#status{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:12px;font-size:13px;color:#6c778a}
+</style></head><body>
+<div id="chart"><div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div></div></div>
+<div id="status" role="status" hidden></div>
+<script>
+(function(){
+ const params=new URLSearchParams(location.search);
+ const code=String(params.get('symbol')||'').trim().toUpperCase();
+ const theme=params.get('theme')==='dark'?'dark':'light';
+ const locale=params.get('lang')==='zh'?'zh_CN':params.get('lang')==='ja'?'ja':'en';
+ document.body.className=theme;
+ const status=document.getElementById('status');
+ const display=msg=>{status.hidden=false;status.textContent=msg};
+ if(!/^([0-9]{4}|[0-9]{3}[A-Z])$/.test(code)){display('Invalid TSE ticker');return}
+ if(!navigator.onLine){display(locale==='zh_CN'?'行情需要网络连接':locale==='ja'?'チャートにはネット接続が必要です':'Chart requires an internet connection');return}
+ const config={
+   symbols:[[code,'TSE:'+code+'|1D']],chartOnly:false,
+   width:'100%',height:'100%',locale,colorTheme:theme,autosize:true,
+   showVolume:false,showMA:false,hideDateRanges:false,
+   hideMarketStatus:false,hideSymbolLogo:false,scalePosition:'right',
+   scaleMode:'Normal',fontFamily:'-apple-system, BlinkMacSystemFont, Arial, sans-serif',
+   fontSize:'11',noTimeScale:false,valuesTracking:'1',
+   changeMode:'price-and-percent',chartType:'area',lineWidth:2,lineType:0,
+   dateRanges:['1d|1','1m|30','3m|60','12m|1D','60m|1W','all|1M']
+ };
+ const el=document.createElement('script');
+ el.type='text/javascript';el.async=true;
+ el.src='https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js';
+ el.textContent=JSON.stringify(config);
+ el.onerror=()=>display(locale==='zh_CN'?'行情组件无法加载，请检查网络或使用来源链接。':locale==='ja'?'チャートを読み込めません。接続をご確認ください。':'Could not load quote widget. Check your connection.');
+ document.querySelector('.tradingview-widget-container').appendChild(el);
+})();
+</script>
+</body></html>
