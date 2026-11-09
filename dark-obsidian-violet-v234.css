@@ -1,0 +1,271 @@
+/* My Planner v234 — Obsidian Black / Whisper Violet
+ * User-selected "A": approximately 90% near-black, 10% low-chroma violet.
+ * ONLY html[data-theme="dark"]. Light v233 remains unchanged.
+ * No viewport, keyboard, scroll, dimensions or finance data logic changes.
+ */
+
+/* 1. Coherent dark surface + contrast tokens for legacy and modern modules. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg:#09090c;
+  --surface:#15141b;
+  --subtle:#101016;
+  --field:#1b1922;
+  --ink:#f2f0f5;
+  --muted:#b2abba;
+  --line:#302b37;
+  --accent:#79658e;
+  --accent-ink:#c9b8da;
+  --on-accent:#ffffff;
+  --focus:#b5a2ce;
+  --danger:#f0a0ab;
+  --conversation:#0d0c11;
+  --mine:#24202e;
+
+  --ios-hairline:rgba(205,190,223,.11);
+  --ios-dock:rgba(15,14,20,.90);
+  --ios-dock-active:rgba(112,89,141,.13);
+  --glass-fill:rgba(30,27,38,.75);
+  --glass-stroke:rgba(199,181,224,.10);
+  --glass-highlight:rgba(244,236,255,.055);
+  --glass-shadow:rgba(0,0,0,.25);
+  --group-fill:rgba(24,22,31,.92);
+  --group-line:rgba(201,186,222,.11);
+  --search-fill:rgba(25,23,33,.90);
+
+  --qg-track:rgba(128,110,151,.095);
+  --qg-hairline:rgba(194,175,217,.10);
+  --qg-selected:rgba(112,93,139,.19);
+  --qg-selected-edge:rgba(205,185,229,.14);
+  --qg-ink:#d1c1e0;
+  --qg-muted:#ada3b9;
+  --qg-shadow:rgba(0,0,0,.20);
+  --qg-focus:rgba(188,164,217,.55);
+  --qg-focus-halo:rgba(157,124,197,.085);
+
+  --qp-card:rgba(21,20,28,.94);
+  --qp-card-soft:rgba(26,24,34,.94);
+  --qp-border:rgba(195,176,218,.115);
+  --qp-shadow:0 9px 24px rgba(0,0,0,.18),0 1px 2px rgba(0,0,0,.08);
+  --qp-frost:rgba(29,26,39,.78);
+  --qp-pressed:rgba(117,95,142,.16);
+  --qp-success:#76d5ad;
+  --qp-loss:#f19ba9;
+  --qp-input-focus:rgba(185,158,218,.48);
+
+  --q231-canvas:
+    radial-gradient(ellipse 85% 33% at 4% -7%,rgba(75,59,96,.145),transparent 76%),
+    radial-gradient(ellipse 75% 31% at 107% 105%,rgba(78,60,97,.085),transparent 79%),
+    linear-gradient(151deg,#08080b 0%,#09090d 39%,#100e15 73%,#09090c 100%);
+  --q231-panel:
+    radial-gradient(ellipse 77% 105% at -8% -24%,rgba(112,89,139,.115),transparent 80%),
+    linear-gradient(138deg,#1a1821 0%,#131219 48%,#191720 100%);
+  --q231-panel-alt:
+    linear-gradient(144deg,#1b1923 0%,#14131b 51%,#1a1823 100%);
+  --q231-list:
+    linear-gradient(125deg,rgba(30,27,39,.97) 0%,rgba(19,18,26,.98) 56%,rgba(27,24,36,.97) 100%);
+  --q231-control:
+    linear-gradient(145deg,rgba(41,36,53,.95),rgba(24,22,33,.96) 56%,rgba(34,30,45,.95));
+  --q231-selected:
+    linear-gradient(145deg,rgba(92,77,117,.29),rgba(62,52,83,.19));
+  --q231-dock:
+    linear-gradient(121deg,rgba(25,22,34,.94),rgba(13,13,19,.92) 57%,rgba(28,24,38,.93));
+  --q231-conversation:
+    linear-gradient(157deg,rgba(77,59,104,.075),transparent 52%,rgba(80,61,104,.045));
+  --q231-bubble:linear-gradient(139deg,#201d29 0%,#17151e 100%);
+  --q231-mine:linear-gradient(137deg,#2b2538 0%,#241f31 55%,#2d263b 100%);
+  --q231-rim:rgba(202,186,221,.105);
+  --q231-shadow:0 9px 25px rgba(0,0,0,.22),inset 0 1px 0 rgba(246,240,255,.040);
+}
+
+/* 2. Full-app background and materials. No position, height or padding changes. */
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  background-color:#09090c!important;
+}
+html[data-theme="dark"] .topbar {
+  background:transparent!important;
+  border-bottom-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] #pageTasks .tasks-panel,
+html[data-theme="dark"] #pageCalendar .calendar-panel,
+html[data-theme="dark"] #pageLongTerm :is(.tasks-panel,.countdown-panel),
+html[data-theme="dark"] #pageSettings :is(.appearance-panel,.auth-panel) {
+  background:var(--q231-panel)!important;
+  border-color:var(--q231-rim)!important;
+  box-shadow:var(--q231-shadow)!important;
+}
+
+/* 3. Give chat, tasks, calendar and settings the same soft violet reflection. */
+html[data-theme="dark"] #pageChat :is(#chatFriends,#chatGroups) .chat-friend {
+  background:var(--q231-list)!important;
+  border-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] #pageChat .chat-list-search {
+  background:var(--q231-control)!important;
+  border-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] #pageChat .chat-list-search:focus-within {
+  background:var(--q231-panel-alt)!important;
+  border-color:var(--qp-input-focus)!important;
+}
+html[data-theme="dark"] #pageChat #lineActionScreen,
+html[data-theme="dark"] #pageChat .line-action-content {
+  background:var(--q231-canvas)!important;
+}
+html[data-theme="dark"] #pageChat .line-screen-header,
+html[data-theme="dark"] #pageChat .chat-conversation-header,
+html[data-theme="dark"] #pageChat .chat-send {
+  background:var(--q231-panel-alt)!important;
+  border-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] #pageChat .chat-messages {
+  background-color:var(--conversation)!important;
+  background-image:var(--q231-conversation)!important;
+}
+html[data-theme="dark"] #pageChat .chat-messages .chat-bubble:not(.mine):not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)) {
+  background:var(--q231-bubble)!important;
+  color:var(--ink)!important;
+}
+html[data-theme="dark"] #pageChat .chat-messages .chat-bubble.mine:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)) {
+  background:var(--q231-mine)!important;
+  color:var(--ink)!important;
+}
+html[data-theme="dark"] #pageChat .chat-send textarea {
+  background:var(--field)!important;
+  color:var(--ink)!important;
+  border-color:var(--q231-rim)!important;
+}
+
+/* 4. Buttons, segments and bottom navigation: gray-violet, no purple glow. */
+html[data-theme="dark"] .bottom-tabs {
+  background:var(--q231-dock)!important;
+  border-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] .bottom-tabs .tab.active {
+  background:var(--q231-selected)!important;
+  color:var(--accent-ink)!important;
+  border-color:var(--qg-selected-edge)!important;
+}
+html[data-theme="dark"] .bottom-tabs .tab.active .tab-icon {
+  color:var(--accent-ink)!important;
+}
+html[data-theme="dark"] #pageChat .chat-mode-switch,
+html[data-theme="dark"] #pageFinance :is(.fin-tabs,.fin-daily-toolbar,.fin-chart-periods,.fin-chart-modes),
+html[data-theme="dark"] #pageSettings .appearance-options,
+html[data-theme="dark"] #pageTasks #taskTabs {
+  background:var(--q231-control)!important;
+  border-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] #pageChat .chat-mode-switch button:is(.active,[aria-pressed="true"]),
+html[data-theme="dark"] #pageFinance .fin-tabs button.active,
+html[data-theme="dark"] #pageFinance .fin-daily-toolbar button[aria-pressed="true"],
+html[data-theme="dark"] #pageSettings .appearance-options button[aria-pressed="true"],
+html[data-theme="dark"] #pageTasks #taskTabs .tab.active {
+  background:var(--q231-selected)!important;
+  color:var(--qg-ink)!important;
+  border-color:var(--qg-selected-edge)!important;
+  box-shadow:0 1px 4px var(--qg-shadow)!important;
+}
+html[data-theme="dark"] .language-picker select,
+html[data-theme="dark"] #pageChat .chat-header-add,
+html[data-theme="dark"] #pageChat :is(#linePrivateMore,#lineGroupMore,.chat-jump-to-latest),
+html[data-theme="dark"] #pageFinance .fin-small,
+html[data-theme="dark"] #pageFinance .fin-invest-holdings .fin-holding-card-head :is(.fin-quote-link,.fin-holding-manage),
+html[data-theme="dark"] #pageCalendar .calendar-nav .icon-button {
+  background:var(--q231-control)!important;
+  border-color:var(--q231-rim)!important;
+  color:var(--accent-ink)!important;
+}
+html[data-theme="dark"] .button-primary,
+html[data-theme="dark"] .button.button-primary,
+html[data-theme="dark"] #pageFinance .fin-actions button:first-child {
+  background:var(--accent)!important;
+  color:var(--on-accent)!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+}
+
+/* 5. Finance surface layers; keep the net-worth and investment hero visually
+   distinct but within the same near-black restrained-violet family. */
+html[data-theme="dark"] #pageFinance .fin-card {
+  background:var(--q231-panel-alt)!important;
+  border-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-holding-card {
+  background:var(--q231-list)!important;
+  border-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-hero,
+html[data-theme="dark"] #pageFinance .fin-invest-summary {
+  border-color:rgba(194,175,216,.14)!important;
+  box-shadow:0 13px 30px rgba(0,0,0,.27),inset 0 1px 0 rgba(238,230,250,.047)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-hero {
+  background:
+    radial-gradient(ellipse 104% 124% at -8% -23%,rgba(104,91,123,.185),transparent 77%),
+    radial-gradient(ellipse 90% 105% at 111% 110%,rgba(87,77,111,.09),transparent 74%),
+    linear-gradient(128deg,#201d29 0%,#16141d 34%,#100f16 70%,#1a1722 100%)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-invest-summary {
+  background:
+    radial-gradient(ellipse 102% 120% at -10% -22%,rgba(104,81,131,.15),transparent 76%),
+    radial-gradient(ellipse 91% 110% at 110% 111%,rgba(91,70,111,.085),transparent 76%),
+    linear-gradient(128deg,#1c1925 0%,#14121b 33%,#0d0d13 70%,#1b1723 100%)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-hero::before,
+html[data-theme="dark"] #pageFinance .fin-invest-summary::before {
+  background:linear-gradient(159deg,rgba(244,236,255,.058),rgba(244,236,255,.009) 40%,transparent 68%)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-hero::after,
+html[data-theme="dark"] #pageFinance .fin-invest-summary::after {
+  box-shadow:inset 0 1px 0 rgba(248,240,255,.05),inset 0 -1px 0 rgba(0,0,0,.20)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-invest-summary-stats,
+html[data-theme="dark"] #pageFinance .fin-hero > div {
+  border-top-color:rgba(194,178,216,.15)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-daily-plot.net {
+  --fin-line:#b3a5cd;
+  --fin-area:rgba(150,129,183,.095);
+}
+html[data-theme="dark"] #pageFinance .fin-daily-plot.investment {
+  --fin-line:#9e96b5;
+  --fin-area:rgba(140,128,168,.09);
+}
+
+/* 6. Forms, dialogs and details; keep legibility and tap geometry. */
+html[data-theme="dark"] :is(.fin-dialog,.fin-quote-dialog,.edit-dialog,.delete-dialog),
+html[data-theme="dark"] #pageChat :is(.line-popup-menu:not([hidden]),#lineQuickMenu:not([hidden])) {
+  background:var(--q231-panel-alt)!important;
+  border-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] body > .chat-context-menu.chat-message-popover:not([hidden]) {
+  background:var(--q231-panel-alt)!important;
+  border-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-dialog :is(input,select,textarea),
+html[data-theme="dark"] #pageSettings :is(input,select,textarea),
+html[data-theme="dark"] #pageTasks :is(input,select,textarea),
+html[data-theme="dark"] #pageLongTerm :is(input,select,textarea) {
+  background-color:var(--field)!important;
+  background-image:linear-gradient(135deg,rgba(99,77,122,.06),transparent 76%)!important;
+  border-color:var(--q231-rim)!important;
+  color:var(--ink)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-field :is(input,select,textarea):focus,
+html[data-theme="dark"] #pageSettings :is(input,select,textarea):focus,
+html[data-theme="dark"] #pageTasks :is(input,select,textarea):focus,
+html[data-theme="dark"] #pageLongTerm :is(input,select,textarea):focus {
+  border-color:var(--qp-input-focus)!important;
+  box-shadow:0 0 0 2px var(--qg-focus-halo)!important;
+}
+
+/* No animations or effects beyond those already supported by the host App. */
+@media(prefers-reduced-transparency:reduce) {
+  html[data-theme="dark"] .bottom-tabs,
+  html[data-theme="dark"] .language-picker select {
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+  }
+}
