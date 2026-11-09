@@ -1,0 +1,220 @@
+/* My Planner v231 — Quiet Gradient System
+   Consistent low-key gradients throughout the app, light and dark.
+   Visual-only; no layout, scrolling, keyboard, data or routing changes.
+   Finance v228/v230 overview & investment feature gradients remain distinct. */
+
+/* 1. Semantic surfaces, one directional light source across the app */
+:root {
+  --q231-canvas:linear-gradient(154deg,#eef3fb 0%,#f7f9fc 40%,#f1f5fb 76%,#f9fafc 100%);
+  --q231-panel:linear-gradient(137deg,#eef4fc 0%,#fff 49%,#f6f9fd 100%);
+  --q231-panel-alt:linear-gradient(142deg,#f3f6fb 0%,#fff 58%,#f7f9fc 100%);
+  --q231-list:linear-gradient(124deg,rgba(235,243,252,.82),rgba(255,255,255,.93) 58%,rgba(249,251,254,.92));
+  --q231-control:linear-gradient(145deg,rgba(242,246,252,.88),rgba(255,255,255,.82) 55%,rgba(235,242,250,.90));
+  --q231-selected:linear-gradient(148deg,#fdfefe 0%,#f4f8ff 100%);
+  --q231-dock:linear-gradient(122deg,rgba(247,250,255,.84),rgba(255,255,255,.70) 57%,rgba(236,243,253,.84));
+  --q231-conversation:linear-gradient(160deg,rgba(238,244,251,.38),transparent 50%,rgba(229,239,250,.23));
+  --q231-bubble:linear-gradient(130deg,#fff,#f7fafe);
+  --q231-mine:linear-gradient(135deg,#e1edfa,#dce9f8);
+  --q231-rim:rgba(126,150,183,.145);
+  --q231-shadow:0 8px 22px rgba(40,62,90,.035),inset 0 1px 0 rgba(255,255,255,.55);
+}
+html[data-theme="dark"] {
+  --q231-canvas:linear-gradient(155deg,#162233 0%,#101720 44%,#152031 77%,#111a27 100%);
+  --q231-panel:linear-gradient(137deg,#27384d 0%,#1b2736 52%,#202d40 100%);
+  --q231-panel-alt:linear-gradient(142deg,#222f41 0%,#1a2635 56%,#1d2a3c 100%);
+  --q231-list:linear-gradient(125deg,rgba(44,60,81,.88),rgba(28,40,56,.91) 58%,rgba(32,45,63,.91));
+  --q231-control:linear-gradient(142deg,rgba(55,72,97,.63),rgba(36,49,68,.76) 55%,rgba(46,63,84,.64));
+  --q231-selected:linear-gradient(145deg,rgba(84,115,156,.28),rgba(64,88,125,.20));
+  --q231-dock:linear-gradient(120deg,rgba(37,50,70,.91),rgba(26,36,51,.85) 60%,rgba(38,52,72,.90));
+  --q231-conversation:linear-gradient(150deg,rgba(48,66,90,.13),transparent 52%,rgba(55,73,98,.11));
+  --q231-bubble:linear-gradient(140deg,#253247,#1d293a);
+  --q231-mine:linear-gradient(135deg,#2a4a68,#27415e);
+  --q231-rim:rgba(187,209,236,.11);
+  --q231-shadow:0 8px 24px rgba(0,0,0,.095),inset 0 1px 0 rgba(222,239,255,.045);
+}
+
+/* 2. Global atmosphere; leave the shell transparent to avoid stacked
+   gradients and preserve browser safe areas & existing page sizing. */
+html { background:var(--bg)!important; }
+body {
+  background-color:var(--bg)!important;
+  background-image:var(--q231-canvas)!important;
+  background-repeat:no-repeat!important;
+  background-size:100% 100%!important;
+}
+.app-shell,#appMain,
+#pageTasks,#pageCalendar,#pageLongTerm,#pageChat,#pageFinance,#pageSettings {
+  background:transparent!important;
+}
+.topbar {
+  background:transparent!important;
+  border-bottom-color:var(--q231-rim)!important;
+}
+#pageTasks > .overview {background:transparent!important;}
+
+/* 3. Tasks, long-term reminders, calendar, and Settings all share
+   subtle material elevation rather than separate stark white panels. */
+#pageTasks .tasks-panel,
+#pageCalendar .calendar-panel,
+#pageLongTerm :is(.tasks-panel,.countdown-panel),
+#pageSettings :is(.appearance-panel,.auth-panel) {
+  background:var(--q231-panel)!important;
+  border-color:var(--q231-rim)!important;
+  box-shadow:var(--q231-shadow)!important;
+}
+#pageSettings .cloud-sync-details,
+#pageTasks :is(.task-form,.task-toolbar) {
+  background-image:linear-gradient(120deg,rgba(151,176,214,.045),transparent 78%);
+}
+#pageLongTerm .countdown-row,
+#pageTasks .task-item {
+  background-image:linear-gradient(100deg,rgba(122,160,211,.035),transparent 76%);
+}
+#pageSettings :is(.appearance-options,.account-username-row) {
+  background-image:linear-gradient(120deg,rgba(139,170,208,.045),transparent 80%);
+}
+#pageCalendar .calendar-day.today:not(.selected) {
+  background-image:var(--q231-control)!important;
+}
+#pageCalendar .calendar-day.selected {
+  background-image:linear-gradient(135deg,rgba(255,255,255,.10),transparent)!important;
+}
+
+/* 4. Chat lists and full-screen add-friend/create-group action screens.
+   Never alter chat message scroll size, composer or keyboard positions. */
+#pageChat :is(#chatFriends,#chatGroups) .chat-friend {
+  background:var(--q231-list)!important;
+  border-color:var(--q231-rim)!important;
+  box-shadow:var(--q231-shadow)!important;
+}
+#pageChat :is(#chatFriends,#chatGroups) .chat-friend:active {
+  background:var(--q231-control)!important;
+}
+#pageChat .chat-list-search {
+  background:var(--q231-control)!important;
+  border-color:var(--q231-rim)!important;
+}
+#pageChat .chat-list-search:focus-within {
+  background:var(--q231-panel-alt)!important;
+}
+#pageChat .chat-panel > :is(.chat-invite-section,.chat-group-tools) {
+  background:var(--q231-panel)!important;
+}
+#pageChat #lineActionScreen,
+#pageChat .line-action-content {
+  background:var(--q231-canvas)!important;
+}
+#pageChat .line-screen-header {
+  background:var(--q231-panel-alt)!important;
+}
+#pageChat :is(.chat-group-invite-panel,.chat-group-members) {
+  background:var(--q231-panel-alt)!important;
+}
+#pageChat .chat-conversation {
+  background:var(--conversation)!important;
+}
+#pageChat .chat-messages {
+  background-color:var(--conversation)!important;
+  background-image:var(--q231-conversation)!important;
+}
+#pageChat .chat-conversation-header,
+#pageChat .chat-send {
+  background:var(--q231-panel-alt)!important;
+}
+#pageChat .chat-messages .chat-bubble:not(.mine):not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)) {
+  background:var(--q231-bubble)!important;
+}
+#pageChat .chat-messages .chat-bubble.mine:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)) {
+  background:var(--q231-mine)!important;
+}
+#pageChat :is(.line-popup-menu:not([hidden]),#lineQuickMenu:not([hidden])),
+body > .chat-context-menu.chat-message-popover:not([hidden]) {
+  background:var(--q231-panel-alt)!important;
+}
+
+/* 5. Finance: every secondary card, holding row and budget panel receives
+   the same quiet gradient; branded net-worth/investment HERO gradients are
+   intentionally untouched. Keep v230 overflow/width fixes untouched. */
+#pageFinance .fin-card {
+  background:var(--q231-panel-alt)!important;
+  border-color:var(--q231-rim)!important;
+}
+#pageFinance .fin-holding-card {
+  background:var(--q231-list)!important;
+  border-color:var(--q231-rim)!important;
+}
+#pageFinance .fin-head,
+#pageFinance .fin-budget,
+#pageFinance .fin-entry,
+#pageFinance .fin-account {
+  background-image:linear-gradient(115deg,rgba(116,154,210,.026),transparent 78%);
+}
+#pageFinance .fin-budget .fin-track {
+  background:var(--field)!important;
+}
+
+/* 6. All segment bars / common secondary controls share the same light
+   direction, while active values and the primary buttons stay readable. */
+#pageChat .chat-mode-switch,
+#pageFinance :is(.fin-tabs,.fin-daily-toolbar,.fin-chart-periods,.fin-chart-modes),
+#pageSettings .appearance-options,
+#pageTasks #taskTabs {
+  background:var(--q231-control)!important;
+  border-color:var(--q231-rim)!important;
+}
+#pageChat .chat-mode-switch button:is(.active,[aria-pressed="true"]),
+#pageFinance .fin-tabs button.active,
+#pageFinance .fin-daily-toolbar button[aria-pressed="true"],
+#pageSettings .appearance-options button[aria-pressed="true"],
+#pageTasks #taskTabs .tab.active {
+  background:var(--q231-selected)!important;
+  box-shadow:0 1px 5px var(--qg-shadow)!important;
+}
+.language-picker select,
+#pageChat .chat-header-add,
+#pageChat :is(#linePrivateMore,#lineGroupMore),
+#pageChat .chat-jump-to-latest,
+#pageFinance .fin-small,
+#pageFinance .fin-invest-holdings .fin-holding-card-head :is(.fin-quote-link,.fin-holding-manage),
+#pageFinance .fin-invest-holdings .fin-section-title .fin-small,
+#pageCalendar .calendar-nav .icon-button {
+  background:var(--q231-control)!important;
+  border-color:var(--q231-rim)!important;
+}
+.bottom-tabs {
+  background:var(--q231-dock)!important;
+  border-color:var(--q231-rim)!important;
+}
+.bottom-tabs .tab.active {
+  background:var(--q231-selected)!important;
+}
+#pageSettings .appearance-options button[aria-pressed="true"] {
+  border-color:var(--qg-selected-edge)!important;
+}
+
+/* 7. Dialog sheets receive a hint of depth, not transparency behind text. */
+.fin-dialog,.fin-quote-dialog,.edit-dialog,.delete-dialog {
+  background:var(--q231-panel-alt)!important;
+}
+#pageFinance .fin-dialog :is(input,textarea,select),
+#pageSettings :is(input,textarea,select),
+#pageTasks :is(input,textarea,select),
+#pageLongTerm :is(input,textarea,select) {
+  background-color:var(--field)!important;
+  background-image:linear-gradient(138deg,rgba(140,167,207,.035),transparent 72%)!important;
+}
+
+/* 8. Accessibility and older devices: use solid fallback colors without
+   touching dimensions, safe-area insets or layout mechanics. */
+@media(prefers-reduced-transparency:reduce) {
+  .bottom-tabs,.language-picker select,
+  #pageChat :is(.chat-header-add,#linePrivateMore,#lineGroupMore,.chat-jump-to-latest) {
+    background:var(--surface)!important;
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  #pageChat .chat-friend,
+  #pageFinance .fin-card,.bottom-tabs {transition:none!important;}
+}
