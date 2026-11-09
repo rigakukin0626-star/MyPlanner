@@ -1,0 +1,452 @@
+/* My Planner v227 — Quiet Glass Pro
+ * Calm, high-contrast light/dark surfaces with restrained floating glass.
+ * Visual changes only. Do not change geometry of chat scrollers, keyboard,
+ * PWA viewport, finance forms, or tap targets. Keep animations compositor-light.
+ */
+
+/* 01. Unified semantic palette for every module and legacy CSS component. */
+:root{
+  --bg:#f5f7fa;--surface:#ffffff;--subtle:#f9fafc;--field:#edf1f6;
+  --ink:#192536;--muted:#738196;--line:#e0e6ee;
+  --accent:#376fb7;--accent-ink:#326cab;--on-accent:#ffffff;
+  --focus:#3979bd;--danger:#c55564;
+  --conversation:#f2f5f9;--mine:#e0eafa;
+  --ios-hairline:rgba(80,107,138,.115);
+  --ios-dock:rgba(249,251,255,.76);--ios-dock-active:rgba(68,115,178,.085);
+  --glass-fill:rgba(255,255,255,.72);
+  --glass-stroke:rgba(135,155,183,.16);--glass-highlight:rgba(255,255,255,.73);
+  --glass-shadow:rgba(33,51,77,.075);
+  --group-fill:rgba(255,255,255,.80);--group-line:rgba(124,146,179,.14);
+  --search-fill:rgba(239,243,248,.82);
+  --qg-track:rgba(110,135,170,.09);
+  --qg-hairline:rgba(101,131,170,.085);
+  --qg-selected:rgba(255,255,255,.82);
+  --qg-selected-edge:rgba(255,255,255,.68);
+  --qg-ink:#355f91;--qg-muted:#77859a;
+  --qg-shadow:rgba(31,49,78,.075);--qg-focus:rgba(60,119,194,.48);
+  --qg-focus-halo:rgba(60,119,194,.08);
+  --qp-card:rgba(255,255,255,.84);
+  --qp-card-soft:rgba(251,252,255,.74);
+  --qp-border:rgba(114,141,173,.135);
+  --qp-shadow:0 10px 28px rgba(35,52,80,.035),0 1px 2px rgba(35,52,80,.02);
+  --qp-frost:rgba(247,250,255,.71);
+  --qp-pressed:rgba(102,143,190,.12);
+  --qp-success:#188765;--qp-loss:#bd5365;
+  --qp-input-focus:rgba(61,114,183,.42);
+}
+html[data-theme="dark"]{
+  --bg:#101720;--surface:#1c2633;--subtle:#151e29;--field:#273342;
+  --ink:#f0f4fa;--muted:#a2b0c3;--line:#344252;
+  --accent:#6d9fdf;--accent-ink:#a7c9f4;--on-accent:#101d30;
+  --focus:#9dc6f5;--danger:#f18f9b;
+  --conversation:#121c28;--mine:#294562;
+  --ios-hairline:rgba(198,217,241,.11);
+  --ios-dock:rgba(25,34,47,.83);--ios-dock-active:rgba(129,174,229,.13);
+  --glass-fill:rgba(46,60,80,.57);
+  --glass-stroke:rgba(204,222,247,.12);--glass-highlight:rgba(255,255,255,.075);
+  --glass-shadow:rgba(0,0,0,.18);
+  --group-fill:rgba(29,40,55,.83);--group-line:rgba(183,207,239,.105);
+  --search-fill:rgba(35,47,63,.84);
+  --qg-track:rgba(174,194,226,.07);
+  --qg-hairline:rgba(193,214,239,.09);
+  --qg-selected:rgba(170,197,227,.13);
+  --qg-selected-edge:rgba(205,225,246,.13);
+  --qg-ink:#bfd8f9;--qg-muted:#9aabc0;
+  --qg-shadow:rgba(0,0,0,.17);--qg-focus:rgba(146,192,241,.54);
+  --qg-focus-halo:rgba(141,181,240,.085);
+  --qp-card:rgba(29,40,55,.87);
+  --qp-card-soft:rgba(32,43,59,.84);
+  --qp-border:rgba(181,207,239,.105);
+  --qp-shadow:0 9px 28px rgba(0,0,0,.105),0 1px 2px rgba(0,0,0,.05);
+  --qp-frost:rgba(39,52,70,.79);
+  --qp-pressed:rgba(137,176,229,.15);
+  --qp-success:#73d4ab;--qp-loss:#f18c9b;
+  --qp-input-focus:rgba(144,188,246,.51);
+}
+
+/* 02. Main canvas / typography. No huge, full-screen blur or gradients. */
+html,body,.app-shell,#appMain{
+  background:var(--bg)!important;
+  color:var(--ink);
+}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5,h6{color:var(--ink)}
+.topbar{
+  background:var(--bg)!important;border-bottom:1px solid var(--ios-hairline)!important;
+}
+.topbar h1{font-weight:780!important;letter-spacing:-.055em!important}
+#pageFinance .fin-head h1{font-weight:760;letter-spacing:-.045em}
+#pageFinance .fin-head p{letter-spacing:.16em;color:var(--muted)}
+.language-picker select{
+  background:var(--glass-fill)!important;
+  border:1px solid var(--glass-stroke)!important;
+  color:var(--ink)!important;
+  border-radius:15px!important;
+  box-shadow:inset 0 1px 0 var(--glass-highlight)!important;
+  -webkit-backdrop-filter:blur(10px) saturate(116%);
+  backdrop-filter:blur(10px) saturate(116%);
+}
+:where(input,textarea,select)::placeholder{color:var(--muted);opacity:.84}
+:where(input,textarea,select){color:var(--ink)}
+
+/* 03. Subtle, consistent card surfaces — opaque enough for content legibility. */
+#pageTasks .tasks-panel,
+#pageCalendar .calendar-panel,
+#pageLongTerm :is(.tasks-panel,.countdown-panel),
+#pageSettings :is(.appearance-panel,.auth-panel){
+  background:var(--qp-card)!important;
+  border:1px solid var(--qp-border)!important;
+  border-radius:24px!important;
+  box-shadow:var(--qp-shadow)!important;
+}
+#pageFinance :is(.fin-card,.fin-hero,.fin-invest-summary){
+  border:1px solid var(--qp-border)!important;
+  border-radius:25px!important;
+  box-shadow:var(--qp-shadow)!important;
+  color:var(--ink);
+}
+#pageFinance .fin-card{background:var(--qp-card)!important}
+#pageFinance .fin-hero{
+  background:linear-gradient(145deg,
+    rgba(190,211,237,.23) 0%,var(--qp-card) 68%)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-hero{
+  background:linear-gradient(145deg,
+    rgba(58,81,112,.38) 0%,var(--qp-card) 70%)!important;
+}
+#pageFinance .fin-invest-summary{
+  background:linear-gradient(150deg,rgba(198,215,237,.18),var(--qp-card) 72%)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-invest-summary{
+  background:linear-gradient(150deg,rgba(66,86,114,.29),var(--qp-card) 75%)!important;
+}
+#pageFinance .fin-holding-card{
+  background:var(--qp-card-soft)!important;
+  border-color:var(--qp-border)!important;
+  border-radius:20px!important;
+  box-shadow:none!important;
+}
+#pageFinance .fin-section-title h2{
+  font-size:19px;letter-spacing:-.035em;font-weight:740;
+}
+#pageFinance :is(.fin-hero>strong,.fin-invest-summary-main strong,.fin-daily-value){
+  letter-spacing:-.052em;font-variant-numeric:tabular-nums;
+}
+#pageFinance .fin-invest-summary-stats{border-color:var(--ios-hairline)!important}
+#pageFinance .fin-invest-summary .is-profit,
+#pageFinance .fin-holding-card .is-profit,
+#pageFinance .fin-chart-summary .is-profit{color:var(--qp-success)!important}
+#pageFinance .fin-invest-summary .is-loss,
+#pageFinance .fin-holding-card .is-loss,
+#pageFinance .fin-chart-summary .is-loss{color:var(--qp-loss)!important}
+
+/* 04. Primary, secondary and destructive controls. Consistent shapes,
+   no thick borders, forced scaling or glow. */
+.button-primary,.button.button-primary,
+#pageChat .chat-add .button-primary,
+#pageChat .chat-username-row .button-primary,
+#pageChat .chat-send .button-primary{
+  background:var(--accent)!important;
+  border-color:transparent!important;
+  color:var(--on-accent)!important;
+  border-radius:15px!important;
+  font-weight:680;
+  box-shadow:none!important;
+}
+.button-ghost,.button.button-ghost{
+  background:var(--qg-track)!important;
+  border:1px solid var(--qp-border)!important;
+  color:var(--ink)!important;
+  border-radius:14px!important;
+  box-shadow:none!important;
+}
+#pageFinance .fin-small,
+#pageFinance :is(.fin-record-currency select,.fin-actions button:not(:first-child)){
+  background:var(--qg-track)!important;
+  color:var(--accent-ink)!important;
+  border:1px solid var(--qp-border)!important;
+  border-radius:14px!important;
+  box-shadow:none!important;
+}
+#pageFinance .fin-actions button:first-child{
+  background:var(--accent)!important;color:var(--on-accent)!important;
+  border:1px solid transparent!important;box-shadow:none!important;
+}
+#pageFinance .fin-invest-holdings .fin-holding-card-head
+:is(.fin-quote-link,.fin-holding-manage),
+#pageFinance .fin-invest-holdings .fin-section-title .fin-small{
+  background:var(--qg-track)!important;
+  border:1px solid var(--qp-border)!important;
+  color:var(--accent-ink)!important;
+  box-shadow:none!important;
+}
+#pageFinance .fin-holding-delete,
+#pageFinance .fin-dialog .fin-holding-delete{
+  color:var(--danger)!important;
+  background:color-mix(in srgb,var(--danger) 8%,transparent)!important;
+  border-color:color-mix(in srgb,var(--danger) 20%,transparent)!important;
+}
+#pageFinance .fin-emblem{background:var(--qg-track)!important;color:var(--accent-ink)!important}
+:where(.button-primary,.button-ghost,.fin-small,.icon-button):active{
+  filter:brightness(.96);
+}
+
+/* 05. Low-contrast segmented controls, stable fitted selection. */
+#pageChat .chat-mode-switch,
+#pageSettings .appearance-options,
+#pageFinance .fin-tabs,
+#pageTasks #taskTabs{
+  background:var(--qg-track)!important;
+  border:1px solid var(--qg-hairline)!important;
+  box-shadow:none!important;
+}
+#pageChat .chat-mode-switch button:is(.active,[aria-pressed="true"]),
+#pageSettings .appearance-options button:is(.active,[aria-pressed="true"]),
+#pageFinance .fin-tabs button.active,
+#pageTasks #taskTabs .tab.active{
+  background:var(--qg-selected)!important;
+  border-color:var(--qg-selected-edge)!important;
+  color:var(--qg-ink)!important;
+  box-shadow:0 1px 5px var(--qg-shadow)!important;
+}
+#pageSettings .appearance-options button[aria-pressed="true"]{
+  border-color:var(--qg-selected-edge)!important;
+}
+
+/* 06. Bottom navigation is a floating lens, not a glowing crystal.
+   All positioning/safe area is inherited from the existing layout. */
+.bottom-tabs{
+  background:var(--ios-dock)!important;
+  border:1px solid var(--glass-stroke)!important;
+  box-shadow:0 8px 24px var(--glass-shadow),
+             inset 0 1px 0 var(--glass-highlight)!important;
+  -webkit-backdrop-filter:blur(10px) saturate(115%)!important;
+  backdrop-filter:blur(10px) saturate(115%)!important;
+}
+.bottom-tabs::before,.bottom-tabs::after,
+.bottom-tabs .tab.active::before,.bottom-tabs .tab.active::after{
+  display:none!important;content:none!important;
+}
+.bottom-tabs .tab:not(.active){
+  color:var(--muted)!important;
+  background:transparent!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+}
+.bottom-tabs .tab.active{
+  color:var(--accent-ink)!important;
+  background:var(--ios-dock-active)!important;
+  border:1px solid var(--qg-selected-edge)!important;
+  box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+.bottom-tabs .tab.active .tab-icon{
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  color:var(--accent-ink)!important;
+}
+.bottom-tabs .tab .tab-icon{color:inherit}
+.bottom-tabs .tab:active{transform:scale(.985)!important}
+
+/* 07. Chat list and compact action controls.
+   Do NOT override message scroller height/position or keyboard-safe paddings. */
+#pageChat .chat-app-header{
+  background:transparent!important;
+  border-bottom-color:var(--ios-hairline)!important;
+}
+#pageChat .chat-app-brand h2,
+#pageChat .nova-chat-heading h2{font-weight:770;letter-spacing:-.04em}
+#pageChat :is(#chatFriends,#chatGroups) .chat-friend{
+  background:var(--qp-card)!important;
+  border:1px solid var(--qp-border)!important;
+  border-radius:19px!important;
+  box-shadow:0 1px 4px rgba(28,47,74,.018)!important;
+}
+#pageChat :is(#chatFriends,#chatGroups) .chat-friend:active{
+  background:var(--qp-pressed)!important;
+}
+#pageChat .chat-list-avatar,#pageChat .chat-peer-avatar{
+  background:var(--field)!important;
+  color:var(--accent-ink)!important;
+  border-color:var(--qp-border)!important;
+}
+#pageChat .chat-friend-info strong{color:var(--ink)!important}
+#pageChat .chat-friend-info small,
+#pageChat .chat-friend-meta small{color:var(--muted)!important}
+#pageChat .chat-unread{
+  background:var(--accent)!important;color:var(--on-accent)!important;
+  box-shadow:none!important;
+}
+#pageChat .chat-list-search{
+  background:var(--search-fill)!important;
+  border-color:var(--qp-border)!important;
+  box-shadow:none!important;
+}
+#pageChat .chat-list-search:focus-within{
+  border-color:var(--qp-input-focus)!important;
+  background:var(--surface)!important;
+  box-shadow:0 0 0 2px var(--qg-focus-halo)!important;
+}
+#pageChat .chat-header-add,
+#pageChat :is(#linePrivateMore,#lineGroupMore),
+#pageChat .chat-jump-to-latest{
+  background:var(--glass-fill)!important;
+  border:1px solid var(--glass-stroke)!important;
+  color:var(--accent-ink)!important;
+  box-shadow:inset 0 1px 0 var(--glass-highlight),0 3px 9px var(--glass-shadow)!important;
+  -webkit-backdrop-filter:blur(8px) saturate(115%)!important;
+  backdrop-filter:blur(8px) saturate(115%)!important;
+}
+#pageChat :is(.chat-invite-section,.chat-group-tools){
+  background:var(--qp-card)!important;
+  border-color:var(--qp-border)!important;
+}
+#pageChat :is(.line-popup-menu:not([hidden]),#lineQuickMenu:not([hidden])),
+body>.chat-context-menu.chat-message-popover:not([hidden]){
+  background:var(--surface)!important;
+  border:1px solid var(--qp-border)!important;
+  box-shadow:0 10px 28px var(--glass-shadow)!important;
+}
+#pageChat .chat-send,
+#pageChat .chat-conversation-header{
+  background:var(--surface)!important;border-color:var(--ios-hairline)!important;
+}
+#pageChat .chat-send textarea{
+  background:var(--field)!important;
+  border-color:var(--ios-hairline)!important;
+  color:var(--ink)!important;font-size:16px!important;
+}
+#pageChat .chat-send textarea:focus{
+  border-color:var(--qp-input-focus)!important;
+  box-shadow:none!important;
+}
+#pageChat .chat-conversation{background:var(--conversation)!important}
+#pageChat .chat-messages .chat-bubble:not(.mine):not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+  background:var(--surface)!important;color:var(--ink)!important;
+}
+#pageChat .chat-messages .chat-bubble.mine:not(:has(.chat-media-frame)):not(:has(.chat-photo)){
+  background:var(--mine)!important;
+  color:var(--ink)!important;
+}
+
+/* 08. Task, calendar, and long-term lists: quieter controls. */
+#pageTasks :is(.task-item,.task-row),
+#pageLongTerm .countdown-row{
+  border-bottom-color:var(--ios-hairline)!important;
+}
+#pageTasks .task-check{accent-color:var(--accent)}
+#pageTasks :is(.task-check:checked,.progress-bar){background:var(--accent)!important}
+#pageCalendar .calendar-day.today{
+  outline-color:var(--accent-ink)!important;
+}
+#pageCalendar .calendar-day.selected{
+  background:var(--accent)!important;color:var(--on-accent)!important;
+  box-shadow:none!important;border-color:transparent!important;
+}
+.calendar-nav .icon-button,
+#pageCalendar .calendar-nav .icon-button{
+  background:var(--qg-track)!important;
+  color:var(--accent-ink)!important;
+  border:1px solid var(--qp-border)!important;
+  box-shadow:none!important;
+}
+#pageTasks :is(input,select,textarea),
+#pageLongTerm :is(input,select,textarea),
+#pageSettings :is(input,select,textarea),
+#pageFinance .fin-field :is(input,select,textarea){
+  background:var(--field)!important;
+  border:1px solid var(--qp-border)!important;
+  color:var(--ink)!important;
+  border-radius:14px!important;
+  box-shadow:none!important;
+}
+#pageTasks :is(input,select,textarea):focus,
+#pageLongTerm :is(input,select,textarea):focus,
+#pageSettings :is(input,select,textarea):focus,
+#pageFinance .fin-field :is(input,select,textarea):focus{
+  border-color:var(--qp-input-focus)!important;
+  box-shadow:0 0 0 2px var(--qg-focus-halo)!important;
+}
+
+/* 09. Finance detail/chart palette across light and dark. */
+#pageFinance :is(.fin-budget,.fin-entry,.fin-account){
+  border-bottom-color:var(--ios-hairline)!important;color:var(--ink);
+}
+#pageFinance .fin-track{
+  background:var(--field)!important;border-radius:999px;
+}
+#pageFinance .fin-track span{
+  border-radius:999px;background:var(--accent)!important;
+}
+#pageFinance .fin-track span.over{background:var(--qp-loss)!important}
+#pageFinance .fin-daily-plot.net{
+  --fin-line:#597ca5;--fin-area:rgba(80,126,174,.075);
+}
+#pageFinance .fin-daily-plot.investment{
+  --fin-line:#527f86;--fin-area:rgba(75,135,142,.075);
+}
+html[data-theme="dark"] #pageFinance .fin-daily-plot.net{
+  --fin-line:#9cbae5;--fin-area:rgba(110,150,206,.10);
+}
+html[data-theme="dark"] #pageFinance .fin-daily-plot.investment{
+  --fin-line:#8fc4b9;--fin-area:rgba(102,173,157,.10);
+}
+#pageFinance .fin-daily-grid{stroke:var(--ios-hairline)}
+#pageFinance .fin-daily-point{stroke:var(--surface)}
+#pageFinance .fin-daily-toolbar,
+#pageFinance :is(.fin-chart-periods,.fin-chart-modes){
+  background:var(--qg-track)!important;border:1px solid var(--qg-hairline)!important;
+  box-shadow:none!important;
+}
+#pageFinance .fin-daily-toolbar button[aria-pressed="true"],
+#pageFinance :is(.fin-chart-periods,.fin-chart-modes) button.active{
+  background:var(--qg-selected)!important;
+  border-color:var(--qg-selected-edge)!important;
+  color:var(--qg-ink)!important;
+  box-shadow:0 1px 4px var(--qg-shadow)!important;
+}
+#pageFinance :is(.fin-daily-delta.positive,.fin-chart-summary .is-profit){color:var(--qp-success)!important}
+#pageFinance :is(.fin-daily-delta.negative,.fin-chart-summary .is-loss){color:var(--qp-loss)!important}
+.fin-quote-dialog,.fin-dialog,
+.edit-dialog,.delete-dialog{
+  background:var(--surface)!important;
+  color:var(--ink)!important;
+  border:1px solid var(--qp-border)!important;
+  border-radius:24px!important;
+  box-shadow:0 18px 54px rgba(10,20,34,.15)!important;
+}
+.fin-native-dialog .fin-quote-frame{
+  background:var(--surface)!important;border-color:var(--qp-border)!important;
+}
+dialog::backdrop{background:rgba(8,17,32,.38)!important}
+html[data-theme="dark"] dialog::backdrop{background:rgba(2,8,15,.72)!important}
+
+/* 10. Clear emphasis for the few alerts that matter, not decorative color. */
+:where(.fin-positive,.fin-holding-pnl.is-profit){color:var(--qp-success)!important}
+:where(.fin-holding-pnl.is-loss){color:var(--qp-loss)!important}
+:where(.fin-alert){border-radius:13px}
+:where(.priority,.empty-state,.fin-daily-caption,.fin-note){letter-spacing:0}
+
+/* 11. Motion + accessibility. Fast feedback, no expensive large-pane blurs. */
+@media (hover:hover){
+  :is(.button-primary,.button.button-primary,.button-ghost,.button.button-ghost):hover{
+    filter:brightness(.985);
+  }
+}
+@media(prefers-reduced-transparency:reduce){
+  .bottom-tabs,.language-picker select,
+  #pageChat .chat-header-add,
+  #pageChat :is(#linePrivateMore,#lineGroupMore,#chatJumpToLatest){
+    background:var(--surface)!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .bottom-tabs .tab,.button,.fin-small,.fin-quote-link{
+    transition:none!important;animation:none!important;
+  }
+}
+@media(max-width:390px){
+  #pageFinance .fin-section-title{gap:8px}
+  #pageFinance .fin-section-title h2{font-size:18px}
+}
