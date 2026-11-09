@@ -7,7 +7,7 @@
 /* 01. Unified semantic palette for every module and legacy CSS component. */
 :root{
   --bg:#f5f7fa;--surface:#ffffff;--subtle:#f9fafc;--field:#edf1f6;
-  --ink:#192536;--muted:#738196;--line:#e0e6ee;
+  --ink:#192536;--muted:#617287;--line:#e0e6ee;
   --accent:#376fb7;--accent-ink:#326cab;--on-accent:#ffffff;
   --focus:#3979bd;--danger:#c55564;
   --conversation:#f2f5f9;--mine:#e0eafa;
@@ -22,7 +22,7 @@
   --qg-hairline:rgba(101,131,170,.085);
   --qg-selected:rgba(255,255,255,.82);
   --qg-selected-edge:rgba(255,255,255,.68);
-  --qg-ink:#355f91;--qg-muted:#77859a;
+  --qg-ink:#355f91;--qg-muted:#65778d;
   --qg-shadow:rgba(31,49,78,.075);--qg-focus:rgba(60,119,194,.48);
   --qg-focus-halo:rgba(60,119,194,.08);
   --qp-card:rgba(255,255,255,.84);
