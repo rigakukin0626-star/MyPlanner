@@ -1,0 +1,49 @@
+/* My Planner v221 — quiet financial history charts
+   Real recorded daily snapshots only; no synthetic points or fabricated history. */
+.fin-daily-chart{overflow:hidden}
+.fin-daily-chart .fin-section-title{margin-bottom:12px}
+.fin-daily-toolbar{display:flex;gap:5px;padding:3px;background:rgba(111,136,171,.085);
+  border:1px solid rgba(139,161,189,.10);border-radius:15px;max-width:100%;
+  width:max-content;box-sizing:border-box}
+.fin-daily-toolbar button{flex:0 1 auto;border:0;background:transparent;color:var(--muted,#7a879a);
+  min-height:32px;border-radius:12px;font-size:11px;font-weight:650;letter-spacing:0;
+  padding:6px 11px;white-space:nowrap;transition:background-color .17s,color .17s,box-shadow .17s}
+.fin-daily-toolbar button[aria-pressed="true"]{
+  background:rgba(255,255,255,.82);color:#355f90;box-shadow:0 1px 4px rgba(24,52,80,.065);
+  border:1px solid rgba(255,255,255,.55);padding:5px 10px}
+.fin-daily-value{font-size:clamp(23px,5.6vw,33px);font-weight:760;letter-spacing:-.035em;
+  color:var(--ink,#182333);font-variant-numeric:tabular-nums;line-height:1.25;margin:16px 0 5px}
+.fin-daily-delta{display:inline-flex;align-items:center;font-size:12px;font-weight:680;
+  letter-spacing:0;font-variant-numeric:tabular-nums;min-height:22px}
+.fin-daily-delta.positive{color:#168764}
+.fin-daily-delta.negative{color:#bb4e5e}
+.fin-daily-delta.neutral{color:var(--muted,#8490a2)}
+.fin-daily-plot{position:relative;width:100%;margin:7px 0 2px;min-height:160px}
+.fin-daily-plot svg{display:block;width:100%;height:auto;overflow:visible}
+.fin-daily-grid{stroke:rgba(122,148,185,.16);stroke-width:1;stroke-dasharray:3 7}
+.fin-daily-line{fill:none;stroke:var(--fin-line,#597ca4);stroke-width:3;stroke-linecap:round;
+  stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.fin-daily-gap{fill:none;stroke:var(--fin-line,#597ca4);stroke-width:2;stroke-dasharray:3 7;opacity:.47;vector-effect:non-scaling-stroke}
+.fin-daily-point{fill:var(--fin-line,#597ca4);stroke:var(--surface,#fff);stroke-width:2.8}
+.fin-daily-area{fill:var(--fin-area,rgba(76,119,176,.10))}
+.fin-daily-label{font-size:12px;fill:var(--muted,#7d889c);font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif}
+.fin-daily-plot.investment{--fin-line:#497d87;--fin-area:rgba(75,137,148,.10)}
+.fin-daily-plot.net{--fin-line:#57759c;--fin-area:rgba(79,116,160,.10)}
+.fin-daily-empty{min-height:115px;display:flex;align-items:center;justify-content:center;
+  padding:14px 16px;border:1px dashed rgba(142,166,193,.20);border-radius:15px;
+  color:var(--muted,#7a8696);text-align:center;font-size:13px;line-height:1.7}
+.fin-daily-footnote{font-size:11px;line-height:1.6;color:var(--muted,#8590a1);margin:9px 0 0}
+.fin-daily-caption{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  color:var(--muted,#8a94a5);font-size:11px;margin:6px 0 0}
+.fin-daily-caption .fin-dot{display:inline-block;width:6px;height:6px;background:#8da4ba;border-radius:50%}
+html[data-theme="dark"] .fin-daily-toolbar{background:rgba(198,214,239,.055);border-color:rgba(180,201,225,.065)}
+html[data-theme="dark"] .fin-daily-toolbar button[aria-pressed="true"]{
+  background:rgba(170,194,227,.13);border-color:rgba(204,219,240,.095);color:#bdd8f6;
+  box-shadow:0 1px 5px rgba(0,0,0,.12)}
+html[data-theme="dark"] .fin-daily-point{stroke:#283344}
+html[data-theme="dark"] .fin-daily-delta.positive{color:#76d9ae}
+html[data-theme="dark"] .fin-daily-delta.negative{color:#ff9aa8}
+html[data-theme="dark"] .fin-daily-plot.net{--fin-line:#9dbaeb;--fin-area:rgba(109,154,219,.13)}
+html[data-theme="dark"] .fin-daily-plot.investment{--fin-line:#8bc5bc;--fin-area:rgba(95,169,154,.12)}
+@media(max-width:360px){.fin-daily-toolbar{gap:2px}.fin-daily-toolbar button{padding:5px 8px}.fin-daily-toolbar button[aria-pressed="true"]{padding:4px 7px}}
+@media(prefers-reduced-motion:reduce){.fin-daily-toolbar button{transition:none}}
