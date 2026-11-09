@@ -158,8 +158,19 @@ function netChart(){
  const path=x.map((p,i)=>(i?'L':'M')+(8+i*624/(x.length-1)).toFixed(2)+','+(112-(p.value-min)*95/span).toFixed(2)).join(' ');
  return section(t('trend'),'', '<svg viewBox="0 0 640 130" class="fin-trend" role="img"><path d="'+path+'" stroke="#397ce6" fill="none" stroke-width="4" stroke-linecap="round"/></svg>');
 }
+const quoteLink=x=>{
+ const code=String(x.symbol||'').trim().toUpperCase().replace(/\.T$/,'');
+ // An external Japanese market page is a quote reference, NOT an automatic
+ // feed into user holdings and NOT a claim that the data is real-time.
+ if(x.currency!=='JPY'||!/^([0-9]{4}|[0-9]{3}[A-Z])$/.test(code))return '';
+ const label=language==='zh'?'查看行情':language==='ja'?'株価を見る':'View quote';
+ return '<a class="fin-quote-link" href="https://finance.yahoo.co.jp/quote/'+code+'.T" target="_blank" rel="noopener noreferrer" aria-label="'+label+' '+code+'">'+label+' ↗</a>';
+};
 function portfolio(){
- return section(t('invest'),button('＋ '+t('addHolding'),'holding'),'<p class="fin-note">'+t('manual')+'</p>'+doc.holdings.map(x=>'<button class="fin-account" data-fin-holding="'+h(x.id)+'"><span class="fin-emblem">↗</span><span class="fin-account-name"><b>'+h(x.symbol)+' · '+h(x.name)+'</b><small>'+qty(x)+' × '+nativeMoney(x.price,x.currency)+'</small></span><strong>'+nativeMoney(qty(x)*x.price,x.currency)+'</strong></button>').join('')+'<div class="fin-actions">'+button(t('addTrade'),'trade')+'</div>')+accounts();
+ return section(t('invest'),button('＋ '+t('addHolding'),'holding'),
+  '<p class="fin-note">'+t('manual')+'</p>'+
+  doc.holdings.map(x=>'<div class="fin-holding-row"><button class="fin-account" data-fin-holding="'+h(x.id)+'"><span class="fin-emblem">↗</span><span class="fin-account-name"><b>'+h(x.symbol)+' · '+h(x.name)+'</b><small>'+qty(x)+' × '+nativeMoney(x.price,x.currency)+'</small></span><strong>'+nativeMoney(qty(x)*x.price,x.currency)+'</strong></button>'+quoteLink(x)+'</div>').join('')+
+  '<div class="fin-actions">'+button(t('addTrade'),'trade')+'</div>')+accounts();
 }
 function budgetView(){
  const month=nowDate().slice(0,7);
