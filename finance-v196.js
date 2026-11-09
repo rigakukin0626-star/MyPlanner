@@ -17,7 +17,7 @@ const currencyWords={
  en:{display:'Currency',account:'Account currency',rate:'Manual FX rates',edit:'Set exchange rate',hint:'JPY for one unit of currency. This is not a live exchange rate.',missing:'Set this currency’s JPY rate first',info:'Conversions use manual rates, not live bank rates.'}
 };
 const ct=k=>currencyWords[language]?.[k]||currencyWords.en[k]||k;
-const blank=()=>({version:1,accounts:[],transactions:[],holdings:[],trades:[],budgets:[],snapshots:[],preferences:{display:'JPY',rates:{JPY:1}}});
+const blank=()=>({version:1,accounts:[],transactions:[],holdings:[],trades:[],budgets:[],snapshots:[],investmentSnapshots:[],preferences:{display:'JPY',rates:{JPY:1}}});
 function ensurePrefs(){
  if(!doc.preferences||typeof doc.preferences!=='object')doc.preferences={display:'JPY',rates:{JPY:1}};
  if(!doc.preferences.rates||typeof doc.preferences.rates!=='object')doc.preferences.rates={JPY:1};
@@ -78,6 +78,7 @@ const converted=jpy=>{
 };
 let language='zh',owner='guest',doc=blank(),pane='overview',revision=null,dirty=false,cloud='local',remote=null,api=null,modal=null,busy=false,pushTimer=null;
 const liveQuotes=new Map();let liveBusy=false,liveAttempt=0,liveError='';
+const financeHistoryRange={net:30,investment:30};let lastFinanceDate='';
 const liveCode=x=>String(x?.symbol||'').trim().toUpperCase().replace(/\.T$/,'');
 function liveQuote(x){
  const q=liveQuotes.get(liveCode(x)),age=q?Date.now()-Date.parse(q.asOf):Infinity;
@@ -109,7 +110,7 @@ async function refreshQuotes(force=false){
   }
   if(!data.quotes.length)liveError=language==='zh'?'暂时无法取得行情报价':language==='ja'?'参考株価なし':'No quotes available';
  }catch(e){liveError=language==='zh'?'行情接口未就绪，使用手动价格':language==='ja'?'株価API未接続、手入力価格を使用':'Quote API unavailable; manual price retained'}
- finally{liveBusy=false;render()}
+ finally{liveBusy=false;captureFinanceDay(true);render()}
 }
 function marketStatus(){
  const count=doc.holdings.filter(x=>liveQuote(x)).length;
@@ -146,9 +147,8 @@ function totals(){const b=balances();let assets=0,debt=0;for(const a of doc.acco
 function read(){try{const d=JSON.parse(localStorage.getItem(BASE+owner)||'null');doc=d&&d.version===1&&['accounts','transactions','holdings','trades','budgets','snapshots'].every(k=>Array.isArray(d[k]))?d:blank();ensurePrefs();const m=JSON.parse(localStorage.getItem(META+owner)||'null');revision=m?.revision??null;dirty=Boolean(m?.dirty)}catch(e){doc=blank();revision=null;dirty=false}}
 function metadata(){localStorage.setItem(META+owner,JSON.stringify({revision,dirty}))}
 function save(){
- const x=totals(),date=nowDate(),prev=doc.snapshots.at(-1);
- if(Number.isFinite(x.net)){if(prev?.date===date)prev.value=x.net;else doc.snapshots.push({date,value:x.net});}
- doc.snapshots=doc.snapshots.slice(-366);dirty=true;
+ captureFinanceDay(false,true);
+ dirty=true;
  localStorage.setItem(BASE+owner,JSON.stringify(doc));metadata();
  if(cloud==='synced')schedulePush();render();
 }
@@ -193,12 +193,120 @@ function categoryBreakdown(){
   rows.map(([k,v])=>'<div class="fin-category"><div><span>'+t(k)+'</span><strong>'+currencyMoney(v)+'</strong></div><i><b style="width:'+Math.min(100,Math.max(0,v/max*100))+'%"></b></i></div>').join('')
   ||'<p class="fin-empty">'+t('noData')+'</p>');
 }
-function netChart(){
- const x=doc.snapshots.slice(-45);if(x.length<2)return '';
- const min=Math.min(...x.map(p=>p.value)),max=Math.max(...x.map(p=>p.value)),span=Math.max(1,max-min);
- const path=x.map((p,i)=>(i?'L':'M')+(8+i*624/(x.length-1)).toFixed(2)+','+(112-(p.value-min)*95/span).toFixed(2)).join(' ');
- return section(t('trend'),'', '<svg viewBox="0 0 640 130" class="fin-trend" role="img"><path d="'+path+'" stroke="#397ce6" fill="none" stroke-width="4" stroke-linecap="round"/></svg>');
+/* v221 — daily valuations; JPY history is independent of display currency. */
+const japanFinanceDate=()=>{
+ const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Tokyo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+ const part=k=>parts.find(x=>x.type===k)?.value||"";
+ return part("year")+"-"+part("month")+"-"+part("day");
+};
+const dateNumber=d=>{
+ if(typeof d!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(d))return NaN;
+ const [y,m,day]=d.split("-").map(Number),t=Date.UTC(y,m-1,day),check=new Date(t);
+ return check.getUTCFullYear()===y&&check.getUTCMonth()===m-1&&check.getUTCDate()===day?t:NaN;
+};
+function captureFinanceDay(persist=true,force=false){
+ if(!hasRecords()||cloud==="conflict")return false;
+ const today=japanFinanceDate(),netValue=totals().net;
+ const investedValue=doc.holdings.length?doc.holdings.reduce((sum,x)=>sum+priceValue(x),0):null;
+ const quoteCount=doc.holdings.filter(x=>qty(x)>0&&liveQuote(x)).length;
+ const heldCount=doc.holdings.filter(x=>qty(x)>0).length;
+ let changed=false;
+ if(!Array.isArray(doc.snapshots))doc.snapshots=[];
+ if(!Array.isArray(doc.investmentSnapshots)){doc.investmentSnapshots=[];changed=true}
+ const put=(key,value)=>{
+  if(value===null||!Number.isFinite(value)||Math.abs(value)>1e13)return;
+  const record={date:today,value:Math.round(value*100)/100,quotes:quoteCount,holdings:heldCount};
+  const rows=doc[key],index=rows.findIndex(p=>p?.date===today);
+  if(index>=0){
+   const old=rows[index];
+   if(!force&&(Number(old.quotes)||0)>quoteCount)return;
+   if(old.value===record.value&&old.quotes===record.quotes&&old.holdings===record.holdings)return;
+   rows[index]=record;
+  }else rows.push(record);
+  rows.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if(rows.length>366)rows.splice(0,rows.length-366);
+  changed=true;
+ };
+ put("snapshots",netValue);put("investmentSnapshots",investedValue);
+ lastFinanceDate=today;
+ if(changed&&persist){
+  dirty=true;
+  localStorage.setItem(BASE+owner,JSON.stringify(doc));metadata();
+  if(cloud==="synced")schedulePush();
+ }
+ return changed;
 }
+function historyMoney(v){
+ const code=selectedRecordCurrency(),fx=rate(code);
+ return !Number.isFinite(v)||fx===null?"—":nativeMoney(code==="JPY"?v:v/fx,code);
+}
+function historyCard(kind){
+ const investing=kind==="investment",key=investing?"investmentSnapshots":"snapshots",days=financeHistoryRange[kind];
+ const title=investing?chartString("每日持仓市值","日次保有評価額","Daily investment value"):
+  chartString("每日净资产","日次純資産","Daily net worth");
+ const current=dateNumber(japanFinanceDate()),start=current-(days-1)*86400000;
+ const valid=(Array.isArray(doc[key])?doc[key]:[]).filter(p=>p&&Number.isFinite(p.value)&&
+  Number.isFinite(dateNumber(p.date))&&dateNumber(p.date)>=start&&dateNumber(p.date)<=current);
+ const points=[...new Map(valid.sort((a,b)=>a.date.localeCompare(b.date)).map(p=>[p.date,p])).values()];
+ const periods=[7,30,90,365].map(d=>'<button type="button" data-fin-history="'+kind+'" data-fin-days="'+d+
+  '" aria-pressed="'+(days===d)+'">'+(d===365?chartString("1年","1年","1Y"):d+chartString("天","日","D"))+'</button>').join("");
+ let content;
+ if(!points.length){
+  content='<div class="fin-daily-empty">'+(investing?
+   chartString("添加持仓后开始记录每日市值","銘柄登録後に毎日の評価額を記録","Add a holding to start daily valuation history"):
+   chartString("有资产记录后将开始每天保存净资产","資産登録後に純資産の記録を開始","Daily snapshots begin when you add assets"))+'</div>';
+ }else{
+  const first=points[0],last=points.at(-1),delta=last.value-first.value;
+  const pct=first.value===0?null:delta/Math.abs(first.value)*100,up=delta>0?"positive":delta<0?"negative":"neutral";
+  const change=points.length===1?chartString("首日记录","初日記録","First recorded day"):
+   (delta>0?"+":delta<0?"−":"")+historyMoney(Math.abs(delta))+
+   (pct===null?"":" ("+(pct>0?"+":"")+pct.toFixed(2)+"%)");
+  const L=18,R=618,T=20,B=158;
+  const hi=Math.max(...points.map(p=>p.value)),lo=Math.min(...points.map(p=>p.value));
+  const pad=Math.max(1,(hi-lo)*.12,Math.max(Math.abs(hi),Math.abs(lo))*.016);
+  const X=p=>L+(dateNumber(p.date)-start)/(Math.max(days-1,1)*86400000)*(R-L);
+  const Y=p=>T+(hi+pad-p.value)/(hi-lo+2*pad)*(B-T);
+  let lines="",previous=null;
+  for(const point of points){
+   if(previous){
+    const gap=dateNumber(point.date)-dateNumber(previous.date)>86400000;
+    lines+='<path class="'+(gap?"fin-daily-gap":"fin-daily-line")+'" d="M'+X(previous).toFixed(2)+','+
+      Y(previous).toFixed(2)+' L'+X(point).toFixed(2)+','+Y(point).toFixed(2)+'"/>';
+   }
+   previous=point;
+  }
+  const dots=(points.length<=12?points:[last]).map(p=>'<circle class="fin-daily-point" cx="'+
+   X(p).toFixed(2)+'" cy="'+Y(p).toFixed(2)+'" r="'+(p===last?4.5:3)+'"/>').join("");
+  const grid=[0,1,2,3].map(i=>'<line class="fin-daily-grid" x1="'+L+'" y1="'+
+   (T+i*(B-T)/3).toFixed(2)+'" x2="'+R+'" y2="'+(T+i*(B-T)/3).toFixed(2)+'"/>').join("");
+  const from=new Date(start).toISOString().slice(5,10).replace("-","/");
+  const to=japanFinanceDate().slice(5).replace("-","/");
+  const svg='<svg viewBox="0 0 640 210" role="img" aria-label="'+title+'">'+grid+lines+dots+
+    '<text x="'+L+'" y="197" text-anchor="start" class="fin-daily-label">'+from+'</text>'+
+    '<text x="'+R+'" y="197" text-anchor="end" class="fin-daily-label">'+to+'</text></svg>';
+  content='<div class="fin-daily-value">'+historyMoney(last.value)+'</div>'+
+    '<span class="fin-daily-delta '+up+'">'+change+'</span>'+
+    '<div class="fin-daily-plot '+(investing?"investment":"net")+'">'+svg+'</div>'+
+    '<p class="fin-daily-caption"><span class="fin-dot"></span>'+points.length+' '+
+    chartString("个记录日","日分の記録","recorded days")+' · '+last.date+'</p>'+
+    '<p class="fin-daily-footnote">'+(points.length===1?
+     chartString("已开始记录；不编造过去的价格。","過去の値は補完しません。","History starts with real records; no synthetic data."):
+     chartString("虚线表示未记录的日期间隔。","破線は記録のない期間です。","Dotted segments show days without recordings."))+'</p>';
+ }
+ const note=investing?
+  chartString("市值使用实际持仓与参考报价；行情不可用时采用手动价格。",
+   "保有数量と参考株価で計算し、取得できない場合は手入力価格を使用。",
+   "Uses holding quantities and reference quotes, with manual-price fallback."):
+  chartString("净资产包括账户、投资和负债；外币使用当前设定的手动汇率。",
+   "口座・投資・負債を含みます。外貨は現在の手動レートで換算。",
+   "Includes accounts, investments and debt; foreign currencies use current manual FX.");
+ return '<section class="fin-card fin-daily-chart"><div class="fin-section-title"><h2>'+title+
+  '</h2></div><div class="fin-daily-toolbar" role="group" aria-label="'+title+'">'+periods+'</div>'+
+  content+'<p class="fin-daily-footnote">'+note+'</p></section>';
+}
+function netChart(){return historyCard("net")}
+function investmentChart(){return historyCard("investment")}
+
 const quoteLink=x=>{
  const code=String(x.symbol||'').trim().toUpperCase().replace(/\.T$/,'');
  // An external Japanese market page is a quote reference, NOT an automatic
@@ -448,7 +556,7 @@ function render(){
  const root=document.getElementById('financeRoot');if(!root)return;
  const x=nativeTotals(),summary='<div class="fin-hero"><small>'+t('net')+'</small><strong>'+currencyMoney(x.net)+'</strong><div><span>'+t('assets')+'<b>'+currencyMoney(x.assets)+'</b></span><span>'+t('debt')+'<b>'+currencyMoney(x.debt)+'</b></span></div></div>';
  root.innerHTML='<header class="fin-head"><div><p>MY PLANNER / FINANCE</p><h1>'+t('title')+'</h1></div><label class="fin-record-currency">'+option('recordCurrency',currencyOptions(),selectedRecordCurrency())+'</label></header><div class="fin-tabs">'+['overview','history','invest','budgets','manage'].map(k=>'<button data-fin-pane="'+k+'" class="'+(k===pane?'active':'')+'">'+t(k)+'</button>').join('')+'</div>'+
- (pane==='overview'?summary+alerts()+cashFlow()+accounts()+bars()+netChart()+categoryBreakdown()+entries(7):pane==='history'?entries():pane==='invest'?summary+portfolio():pane==='budgets'?budgetView():settings()+accounts());
+ (pane==='overview'?summary+netChart()+alerts()+cashFlow()+accounts()+bars()+categoryBreakdown()+entries(7):pane==='history'?entries():pane==='invest'?summary+investmentChart()+portfolio():pane==='budgets'?budgetView():settings()+accounts());
  const label=document.getElementById('tabFinanceLabel');if(label)label.textContent=t('title');
   if(document.body.dataset.activePage==='finance'&&(pane==='overview'||pane==='invest'))void refreshQuotes();
 }
@@ -651,6 +759,7 @@ function importJSON(){
     (z.accountFx!=null&&!finite(z.accountFx,true))))throw Error('Invalid trade');
   if(d.budgets.some(z=>!z||typeof z.category!=='string'||!finite(z.limit,true)||Number(z.limit)<=0||(z.currency!=null&&!CURRENCIES.includes(z.currency))))throw Error('Invalid budget');
   if(d.snapshots.some(z=>!z||typeof z.date!=='string'||!finite(z.value)))throw Error('Invalid snapshot');
+   if(d.investmentSnapshots!==undefined&&(!Array.isArray(d.investmentSnapshots)||d.investmentSnapshots.length>366||d.investmentSnapshots.some(z=>!z||!Number.isFinite(dateNumber(z.date))||!finite(z.value))))throw Error('Invalid investment history');
   if(!confirm(t('replace')))return;
   doc=d;ensurePrefs();save();
  }catch(e){alert(e.message||t('invalid'))}};
@@ -687,6 +796,8 @@ async function login(){
   const {data}=await api.auth.getSession();const next=data.session?.user?.id||'guest';
   if(next!==owner){owner=next;read();cloud='local';remote=null;render()}
   if(owner!=='guest')await fetchCloud();
+   captureFinanceDay(true);
+   if(owner!=='guest')void refreshQuotes();
  }catch(e){cloud='failed';render()}
 }
 async function upload(){
@@ -724,7 +835,8 @@ function action(what,value){
 function bind(){
  document.getElementById('financeRoot')?.addEventListener('change',e=>{if(e.target?.name==='recordCurrency'){ensurePrefs();doc.preferences.record=e.target.value;save()}});
  document.getElementById('financeRoot')?.addEventListener('click',e=>{
-  const p=e.target.closest('[data-fin-pane]');if(p){pane=p.dataset.finPane;render();return}
+  const p=e.target.closest('[data-fin-pane]');if(p){pane=p.dataset.finPane;captureFinanceDay(true);render();return}
+   const range=e.target.closest('[data-fin-history][data-fin-days]');if(range){const k=range.dataset.finHistory,d=Number(range.dataset.finDays);if((k==='net'||k==='investment')&&[7,30,90,365].includes(d)){financeHistoryRange[k]=d;render()}return}
   const q=e.target.closest('[data-fin-quote]');if(q){const item=holding(q.dataset.finQuote);if(item)openNativeQuote(item);return}
   const a=e.target.closest('[data-fin-action]');if(a){action(a.dataset.finAction);return}
   const ac=e.target.closest('[data-fin-account]');if(ac){action('accountDetail',ac.dataset.finAccount);return}
@@ -738,8 +850,26 @@ window.MyPlannerFinance={render,setLanguage(l){language=translations[l]?l:'zh';r
 document.addEventListener('DOMContentLoaded',()=>{
  const v=document.getElementById('languageSelect')?.value||'auto';
  language=v!=='auto'?v:(navigator.language||'en').startsWith('ja')?'ja':(navigator.language||'en').startsWith('zh')?'zh':'en';
- bind();read();render();void login();
+ bind();read();lastFinanceDate=japanFinanceDate();captureFinanceDay(true);render();void login();
  if(typeof supabaseClient!=='undefined')supabaseClient.auth.onAuthStateChange(()=>setTimeout(()=>void login(),0));
- document.addEventListener('visibilitychange',()=>{if(!document.hidden&&owner!=='guest'&&!dirty)void fetchCloud()});
+ document.addEventListener('visibilitychange',()=>{
+   if(document.hidden)return;
+   void (async()=>{
+    if(owner!=='guest'&&!dirty)await fetchCloud();
+    captureFinanceDay(true);
+    if(owner!=='guest')void refreshQuotes();
+    if(document.body.dataset.activePage==='finance')render();
+   })();
+  });
+  window.addEventListener('online',()=>{if(!document.hidden){captureFinanceDay(true);if(owner!=='guest')void refreshQuotes()}});
+  setInterval(()=>{
+   if(document.hidden)return;
+   const today=japanFinanceDate();
+   if(today===lastFinanceDate)return;
+   lastFinanceDate=today;
+   captureFinanceDay(true);
+   if(owner!=='guest')void refreshQuotes(true);
+   if(document.body.dataset.activePage==='finance')render();
+  },10*60*1000);
 },{once:true});
 })();
