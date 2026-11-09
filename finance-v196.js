@@ -300,9 +300,13 @@ function historyCard(kind){
   chartString("净资产包括账户、投资和负债；外币使用当前设定的手动汇率。",
    "口座・投資・負債を含みます。外貨は現在の手動レートで換算。",
    "Includes accounts, investments and debt; foreign currencies use current manual FX.");
+ const collection=chartString(
+  "每日记录在打开 App、返回前台或取得新行情时更新；完全关闭期间不会后台补录。",
+  "アプリ起動・復帰・株価更新時に記録。完全終了中は自動記録されません。",
+  "Records update on app open, resume or quote refresh; no updates while the app is fully closed.");
  return '<section class="fin-card fin-daily-chart"><div class="fin-section-title"><h2>'+title+
   '</h2></div><div class="fin-daily-toolbar" role="group" aria-label="'+title+'">'+periods+'</div>'+
-  content+'<p class="fin-daily-footnote">'+note+'</p></section>';
+  content+'<p class="fin-daily-footnote">'+note+'</p><p class="fin-daily-footnote">'+collection+'</p></section>';
 }
 function netChart(){return historyCard("net")}
 function investmentChart(){return historyCard("investment")}
