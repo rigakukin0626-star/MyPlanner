@@ -1,0 +1,252 @@
+/* My Planner v230 — Finance viewport-fit + Platinum Slate investment hero
+   Scoped layout repair (not a page-wide overflow:hidden workaround).
+   Retains v229's shared card typography/height and all existing finance logic. */
+
+/* A grid's implicit auto track may grow to a child's min-content width.
+   Force a shrinkable one-column track so overview and investing use precisely
+   the same available space, including in narrow iPhone Safari viewports. */
+#pageFinance {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 760px;
+}
+#pageFinance #financeRoot {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+#pageFinance #financeRoot > * {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+#pageFinance .fin-head {
+  min-width: 0;
+  gap: 12px;
+}
+#pageFinance .fin-head > div {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+#pageFinance .fin-head > .fin-record-currency {
+  flex: 0 0 auto;
+  max-width: 47%;
+  min-width: 0;
+}
+#pageFinance .fin-head .fin-record-currency select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+#pageFinance .fin-tabs {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+#pageFinance .fin-tabs > button {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* Both heroes: identical outer width and spatial rhythm. */
+#pageFinance .fin-hero,
+#pageFinance .fin-invest-summary {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 182px;
+  padding: 18px 18px 17px !important;
+  margin-inline: 0 !important;
+}
+#pageFinance .fin-hero > div,
+#pageFinance .fin-invest-summary-stats,
+#pageFinance .fin-invest-summary-main {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+#pageFinance .fin-invest-summary-stats > div,
+#pageFinance .fin-hero > div > span {
+  min-width: 0;
+  max-width: 100%;
+}
+#pageFinance .fin-hero > strong,
+#pageFinance .fin-invest-summary-main > strong {
+  font-size: clamp(29px, 7.4vw, 40px) !important;
+  line-height: 1.14 !important;
+  font-weight: 780 !important;
+  letter-spacing: -.048em !important;
+}
+#pageFinance .fin-hero > div b,
+#pageFinance .fin-invest-summary-stats > div > strong {
+  font-size: clamp(17px, 4.55vw, 19px) !important;
+  line-height: 1.25 !important;
+  font-weight: 750 !important;
+}
+
+/* Detail cards and graph sections have no minimum content width that can
+   force their shared grid track wider than the phone screen. */
+#pageFinance .fin-card,
+#pageFinance .fin-daily-chart,
+#pageFinance .fin-invest-holdings,
+#pageFinance .fin-holding-card {
+  box-sizing: border-box;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-inline: 0;
+}
+#pageFinance .fin-section-title,
+#pageFinance .fin-daily-plot,
+#pageFinance .fin-daily-toolbar,
+#pageFinance .fin-holding-card-head,
+#pageFinance .fin-holding-prices,
+#pageFinance .fin-holding-totals {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+#pageFinance .fin-section-title h2 {min-width: 0}
+#pageFinance .fin-daily-plot svg {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+#pageFinance .fin-holding-card {
+  padding: 15px !important;
+}
+#pageFinance .fin-holding-card-head {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+}
+#pageFinance .fin-holding-identity {
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: 100%;
+}
+#pageFinance .fin-holding-name {min-width: 0}
+#pageFinance .fin-holding-name strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#pageFinance .fin-holding-card-head .fin-quote-link {
+  flex: 0 0 auto;
+}
+#pageFinance .fin-holding-card-head .fin-holding-manage {
+  flex: 0 0 40px;
+}
+#pageFinance .fin-holding-prices,
+#pageFinance .fin-holding-totals {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+}
+#pageFinance .fin-holding-prices > div,
+#pageFinance .fin-holding-totals > div {
+  min-width: 0;
+}
+#pageFinance .fin-holding-totals strong,
+#pageFinance .fin-holding-totals span {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Premium graphite-platinum gradient (not the old mint shade). Muted slate
+   light sources give depth while keeping financial typography legible. */
+#pageFinance .fin-invest-summary {
+  border-color: rgba(124,140,171,.24) !important;
+  background:
+    radial-gradient(ellipse 102% 120% at -10% -23%,
+      rgba(107,135,180,.38) 0%,
+      rgba(143,163,202,.13) 47%,
+      transparent 78%),
+    radial-gradient(ellipse 93% 112% at 111% 115%,
+      rgba(153,164,194,.33) 0%,
+      transparent 74%),
+    linear-gradient(128deg,
+      #d9e1ef 0%,
+      #e9edf5 31%,
+      #fbfcff 65%,
+      #dce4f1 100%) !important;
+  box-shadow:
+    0 13px 30px rgba(42,59,90,.07),
+    0 2px 5px rgba(42,59,90,.025),
+    inset 0 1px 0 rgba(255,255,255,.83) !important;
+}
+#pageFinance .fin-invest-summary::before {
+  background: linear-gradient(157deg,
+    rgba(255,255,255,.40) 0%,
+    rgba(255,255,255,.07) 37%,
+    transparent 68%);
+}
+#pageFinance .fin-invest-summary::after {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.66),
+    inset 0 -1px 0 rgba(119,139,177,.095);
+}
+html[data-theme="dark"] #pageFinance .fin-invest-summary {
+  border-color: rgba(175,195,230,.18) !important;
+  background:
+    radial-gradient(ellipse 106% 124% at -10% -22%,
+      rgba(108,136,185,.36) 0%,
+      rgba(83,109,157,.13) 46%,
+      transparent 80%),
+    radial-gradient(ellipse 94% 115% at 112% 111%,
+      rgba(112,123,169,.25) 0%,
+      transparent 72%),
+    linear-gradient(128deg,
+      #2e3e58 0%,
+      #27354c 32%,
+      #1b293e 68%,
+      #26364f 100%) !important;
+  box-shadow:
+    0 14px 32px rgba(0,0,0,.19),
+    0 2px 6px rgba(0,0,0,.09),
+    inset 0 1px 0 rgba(241,246,255,.075) !important;
+}
+html[data-theme="dark"] #pageFinance .fin-invest-summary::before {
+  background: linear-gradient(158deg,
+    rgba(224,236,253,.105) 0%,
+    rgba(224,236,253,.016) 37%,
+    transparent 66%);
+}
+html[data-theme="dark"] #pageFinance .fin-invest-summary::after {
+  box-shadow:
+    inset 0 1px 0 rgba(235,244,255,.077),
+    inset 0 -1px 0 rgba(0,0,0,.14);
+}
+
+@media (max-width: 390px) {
+  #pageFinance .fin-hero,
+  #pageFinance .fin-invest-summary {
+    padding: 17px 16px !important;
+  }
+  #pageFinance .fin-holding-card {
+    padding: 13px !important;
+  }
+  #pageFinance .fin-holding-card-head .fin-holding-manage {
+    flex-basis: 36px;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  #pageFinance .fin-invest-summary {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
