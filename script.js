@@ -2787,9 +2787,28 @@ showWelcomeAuth();
  const scheduleChatAnchor=measureChatAnchor;
  const recheckChatAnchor=measureChatAnchor;
  const messageList=field=>document.getElementById(field?.id==="chatGroupMessageInput"?"chatGroupMessages":"chatMessages");
+ // Keyboard focus is an intentional jump to the latest message, in both
+ // private and group conversations. A subsequent manual swipe disables
+ // follow mode so older messages remain readable.
  const scrollMessages=field=>{
   const list=messageList(field);
-  if(list)list.scrollTop=Math.max(0,list.scrollHeight-list.clientHeight);
+  if(list&&list.isConnected)list.scrollTop=Math.max(0,list.scrollHeight-list.clientHeight);
+ };
+ let focusPinLateTimer=0;
+ const pinFocusedLatest=(anchor=focusAnchor)=>{
+  if(!anchor?.follow||focusAnchor!==anchor||activeField()!==anchor.field||
+     !document.body.classList.contains("chat-open"))return;
+  scrollMessages(anchor.field);
+  if(anchor.field.id==="chatGroupMessageInput"&&chatActiveGroup)
+   groupScrollPin(chatActiveGroup.id,true);
+ };
+ const pinAfterFocus=()=>{
+  const anchor=focusAnchor;
+  if(!anchor?.follow)return;
+  pinFocusedLatest(anchor);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>pinFocusedLatest(anchor)));
+  if(focusPinLateTimer)clearTimeout(focusPinLateTimer);
+  focusPinLateTimer=setTimeout(()=>{focusPinLateTimer=0;pinFocusedLatest(anchor)},320);
  };
  const scheduleStablePin=()=>{
   if(settleTimer)clearTimeout(settleTimer);
@@ -2869,8 +2888,6 @@ showWelcomeAuth();
   },{passive:false});
   input.addEventListener("input",()=>scheduleGrow(input),{passive:true});
   input.addEventListener("focus",()=>{
-   const list=messageList(input);
-   const distance=list?Math.max(0,list.scrollHeight-list.scrollTop-list.clientHeight):Infinity;
    const composingInGroup=input.id==="chatGroupMessageInput"&&Boolean(chatActiveGroup);
    if(composingInGroup&&groupScrollFollow.groupId===chatActiveGroup.id){
     // Opening the keyboard to compose resumes reading the latest messages.
@@ -2879,23 +2896,35 @@ showWelcomeAuth();
     groupScrollFollow.gesture=false;
     groupScrollFollow.blockAutoUntil=0;
    }
-   focusAnchor={field:input,follow:composingInGroup||distance<140};
+   focusAnchor={field:input,follow:true};
    updateViewport();
    recheckChatAnchor();
-   if(composingInGroup){
-    groupScrollPin(chatActiveGroup.id,true);
-    requestAnimationFrame(()=>groupScrollPin(chatActiveGroup?.id,true));
-   }
+   // Immediately show the last message and retry after the iOS keyboard
+   // completes its animation, unless the user has scrolled manually.
+   pinAfterFocus();
   });
   input.addEventListener("blur",()=>{
    if(focusAnchor?.field===input)focusAnchor=null;
    if(settleTimer){clearTimeout(settleTimer);settleTimer=0}
+   if(focusPinLateTimer){clearTimeout(focusPinLateTimer);focusPinLateTimer=0}
    updateViewport();
    recheckChatAnchor();
   });
   // A manual swipe to read older messages must never be undone by
-  // keyboard viewport resize or keyboard switching.
+  // keyboard viewport resize or keyboard switching. A ResizeObserver
+  // also handles WebKit changing only the messages box's height.
   const list=messageList(input);
+  if(list&&window.ResizeObserver){
+   let measured=0;
+   new ResizeObserver(entries=>{
+    const height=Math.round(entries[0]?.contentRect?.height||0);
+    if(height&&Math.abs(height-measured)>1){
+     measured=height;
+     if(focusAnchor?.field===input&&focusAnchor.follow)
+      requestAnimationFrame(()=>pinFocusedLatest(focusAnchor));
+    }
+   }).observe(list);
+  }
   list?.addEventListener("touchstart",()=>{
    if(focusAnchor?.field===input)focusAnchor.follow=false;
   },{passive:true});

@@ -1,0 +1,8 @@
+/* v212. Short conversations keep their latest messages above the composer.
+   Margin-top:auto consumes only spare space in the flex column. */
+@media(max-width:719px){
+ body.chat-open[data-active-page="chat"] #pageChat.active
+ .chat-conversation:not([hidden]) > .chat-messages > :first-child{
+  margin-top:auto!important;
+ }
+}
