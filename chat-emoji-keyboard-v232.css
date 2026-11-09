@@ -1,0 +1,20 @@
+/* v232 — iOS 26 chat composer / emoji keyboard gap fix.
+   v210 uses visualViewport height. Safari sometimes leaves keyboard detection
+   temporarily false when moving between letters and emoji while the textarea
+   remains focused, causing env(safe-area-inset-bottom) to be added again.
+   Focus is a more reliable signal for the *composer padding only*.
+   Never alter viewport sizing, scroll geometry or image-bubble layout. */
+@media (max-width:719px) {
+  body.chat-open[data-active-page="chat"] #pageChat.active
+  .chat-conversation:not([hidden]) > .chat-send:focus-within,
+  body.chat-open.chat-input-focused[data-active-page="chat"] #pageChat.active
+  .chat-conversation:not([hidden]) > .chat-send {
+    padding-bottom:7px!important;
+  }
+  /* Keep the input at a native nonzooming size while the emoji keyboard opens. */
+  body.chat-open[data-active-page="chat"] #pageChat.active
+  .chat-conversation:not([hidden]) > .chat-send textarea:focus {
+    font-size:16px!important;
+    scroll-margin:0!important;
+  }
+}
