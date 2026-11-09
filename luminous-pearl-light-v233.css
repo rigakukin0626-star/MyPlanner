@@ -1,0 +1,64 @@
+/* My Planner v233 — Luminous Pearl Light
+ * A more readable, unmistakable gradient across all light-mode surfaces.
+ * This release deliberately changes NO dark-mode color tokens.
+ * Layout, sizing, keyboard behavior, chat scroll and financial logic untouched.
+ */
+
+/* Maintain an independent light palette rather than changing shared rules:
+   html[data-theme="dark"] keeps the original v231 dark gradients until approved. */
+html:not([data-theme="dark"]) {
+  /* Faint atmospheric blue at the upper left, pearl in the middle,
+     and a secondary cool-silver reflection toward the lower right. */
+  --q231-canvas:
+    radial-gradient(ellipse 100% 34% at 6% 4%,rgba(190,211,239,.60) 0%,transparent 76%),
+    radial-gradient(ellipse 70% 31% at 100% 90%,rgba(207,221,242,.43) 0%,transparent 78%),
+    linear-gradient(146deg,#e9f0fa 0%,#f6f9fd 35%,#eef3fb 70%,#f9fafc 100%);
+
+  /* The highlight now has a clear visual direction, while remaining pale. */
+  --q231-panel:
+    radial-gradient(ellipse 75% 95% at -9% -20%,rgba(179,203,235,.32),transparent 80%),
+    linear-gradient(136deg,#e6eef9 0%,#f4f8fe 33%,#ffffff 66%,#edf4fc 100%);
+  --q231-panel-alt:
+    linear-gradient(141deg,#eaf2fc 0%,#f9fbff 45%,#ffffff 66%,#ecf3fb 100%);
+  --q231-list:
+    linear-gradient(127deg,rgba(223,236,251,.92) 0%,rgba(248,251,255,.96) 46%,rgba(255,255,255,.96) 70%,rgba(233,242,253,.93) 100%);
+  --q231-control:
+    linear-gradient(144deg,rgba(227,238,251,.97),rgba(255,255,255,.88) 55%,rgba(222,235,251,.94));
+  --q231-selected:
+    linear-gradient(144deg,rgba(255,255,255,.98) 4%,rgba(239,247,255,.97) 100%);
+  --q231-dock:
+    linear-gradient(123deg,rgba(229,240,254,.91) 0%,rgba(255,255,255,.86) 52%,rgba(230,241,254,.91) 100%);
+  --q231-conversation:
+    linear-gradient(156deg,rgba(209,225,247,.27),transparent 48%,rgba(210,227,247,.21));
+  --q231-bubble:linear-gradient(133deg,#ffffff 0%,#f0f6fd 100%);
+  --q231-mine:linear-gradient(138deg,#d9e8fb 0%,#e5f0fd 56%,#d3e5fa 100%);
+
+  /* Slightly sharper edges improve depth without creating heavy card frames. */
+  --q231-rim:rgba(119,147,182,.17);
+  --q231-shadow:
+    0 9px 23px rgba(36,64,101,.048),
+    inset 0 1px 0 rgba(255,255,255,.65);
+}
+
+/* Detail layers used across apps already have gradients from v231;
+   increase their contrast gently but only in light mode. */
+html:not([data-theme="dark"]) #pageTasks :is(.task-form,.task-toolbar),
+html:not([data-theme="dark"]) #pageSettings .cloud-sync-details {
+  background-image:linear-gradient(125deg,rgba(155,184,223,.095),transparent 78%);
+}
+html:not([data-theme="dark"]) #pageTasks .task-item,
+html:not([data-theme="dark"]) #pageLongTerm .countdown-row {
+  background-image:linear-gradient(112deg,rgba(166,195,232,.072),transparent 79%);
+}
+html:not([data-theme="dark"]) #pageFinance :is(.fin-head,.fin-budget,.fin-entry,.fin-account) {
+  background-image:linear-gradient(118deg,rgba(139,174,220,.07),transparent 81%);
+}
+
+/* Stronger light-mode material still preserves the bespoke financial hero
+   gradients from v228/v230 and does not repaint their foreground elements. */
+@media(prefers-reduced-transparency:reduce) {
+  html:not([data-theme="dark"]) {
+    --q231-dock:linear-gradient(126deg,#ecf3fc,#fff 62%,#edf5fd);
+    --q231-list:linear-gradient(130deg,#edf4fd,#fff 65%,#f3f7fc);
+  }
+}
