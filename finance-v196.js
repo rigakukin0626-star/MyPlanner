@@ -344,24 +344,30 @@ function addHolding(x){
  });
 }
 function addTrade(){
- if(!doc.holdings.length||!doc.accounts.some(a=>!credit(a)))return alert(t('noHoldings'));
+ if(!doc.holdings.length)return alert(t('noHoldings'));
+ const accountList=doc.accounts.filter(a=>!credit(a));
+ const unlinkedLabel=language==='zh'?'仅记录股数（不影响资金余额）':language==='ja'?'数量のみ記録（口座残高は変更しない）':'Quantity only (no cash movement)';
+ const hint=language==='zh'?'不关联资金账户时，仅更新持仓股数，不记录买卖资金流；账户现金和净资产可能需要另行对账。':language==='ja'?'口座未連携の場合は保有数量のみ更新され、売買代金は口座に反映されません。':'Without a linked cash account, only shares change; proceeds and payments are not tracked.';
+ const options=[['__unlinked__',unlinkedLabel],...accountList.map(a=>[a.id,a.name+' ('+a.currency+')'])];
  dialog(t('addTrade'),
   pick(t('ticker'),'holding',doc.holdings.map(x=>[x.id,x.symbol+' '+x.name]))+
   pick(t('type'),'side',[['buy',t('buy')],['sell',t('sell')]])+
   field(t('qty'),'qty','number','','min="0.0001" step="0.0001"')+
   field(t('price'),'price','number','','min="0" step="0.0001"')+
-  field(t('fees'),'fees','number',0,'min="0" step="1"')+
-  pick(t('accounts'),'account',doc.accounts.filter(a=>!credit(a)).map(a=>[a.id,a.name]))+
+  field(t('fees'),'fees','number',0,'min="0" step="any"')+
+  pick(t('accounts'),'account',options,'__unlinked__')+
+  '<p class="fin-note">'+hint+'</p>'+
   field(t('date'),'date','date',nowDate()),v=>{
-  const x=holding(v.holding),a=account(v.account);
-  if(!x||!a||credit(a)||!number(v.qty)||!number(v.price,true)||!number(v.fees,true))return false;
-  if(v.side==='sell'&&Number(v.qty)>qty(x)+1e-8)return alert(t('noSell')),false;
-  const sameCurrency=x.currency===a.currency;
-  const stockFX=holdingFX(x),accountFX=rate(a.currency);
-  if(!sameCurrency&&(stockFX===null||accountFX===null)){alert(ct('missing'));return false}
-  doc.trades.push({id:id(),holding:x.id,side:v.side,qty:Number(v.qty),price:Number(v.price),
-   fees:Number(v.fees),fx:sameCurrency?1:stockFX,accountFx:sameCurrency?1:accountFX,account:v.account,date:v.date});
- });
+   const x=holding(v.holding),unlinked=v.account==='__unlinked__',a=unlinked?null:account(v.account);
+   if(!x||(!unlinked&&(!a||credit(a)))||!number(v.qty)||!number(v.price,true)||!number(v.fees,true))return false;
+   if(v.side==='sell'&&Number(v.qty)>qty(x)+1e-8)return alert(t('noSell')),false;
+   const sameCurrency=a&&x.currency===a.currency;
+   const stockFX=holdingFX(x),accountFX=a?rate(a.currency):null;
+   if(a&&!sameCurrency&&(stockFX===null||accountFX===null)){alert(ct('missing'));return false}
+   doc.trades.push({id:id(),holding:x.id,side:v.side,qty:Number(v.qty),price:Number(v.price),
+    fees:Number(v.fees),fx:unlinked?stockFX:sameCurrency?1:stockFX,
+    accountFx:unlinked?null:sameCurrency?1:accountFX,account:a?.id||null,date:v.date});
+  });
 }
 function addBudget(category){
  const old=doc.budgets.find(b=>b.category===category);
