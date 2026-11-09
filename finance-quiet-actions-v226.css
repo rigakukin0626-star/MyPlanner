@@ -1,0 +1,117 @@
+/* My Planner v226 — restrained finance action system.
+   All action buttons use a coherent matte-glass surface rather than mismatched
+   bright outlines or heavy crystal styling. Specific to the holdings section. */
+#pageFinance .fin-invest-holdings .fin-market-status{
+  display:flex;align-items:flex-start;gap:9px;min-width:0;
+  margin:2px 0 16px;color:var(--muted,#758294);
+  font-size:12px;font-weight:560;line-height:1.5;letter-spacing:0;
+}
+#pageFinance .fin-invest-holdings .fin-market-status-dot{
+  display:block;flex:0 0 6px;width:6px;height:6px;margin-top:6px;
+  border-radius:50%;background:rgba(123,146,174,.68);
+}
+#pageFinance .fin-invest-holdings .fin-market-status-dot.has-quotes{
+  background:#4a998b;
+}
+#pageFinance .fin-invest-holdings .fin-market-status-copy{
+  display:flex;min-width:0;flex:1;flex-direction:column;gap:2px;
+}
+#pageFinance .fin-invest-holdings .fin-market-status-copy>span{
+  display:block;font-size:12px;line-height:1.4;overflow-wrap:anywhere;
+}
+#pageFinance .fin-invest-holdings .fin-market-status-copy>small{
+  display:block;color:var(--muted,#8390a0);font-size:11px;font-weight:450;line-height:1.4;
+}
+/* Shared subtle action surface: no opaque gray fill, double rings or blue crystal border. */
+#pageFinance .fin-invest-holdings .fin-section-title .fin-small,
+#pageFinance .fin-invest-holdings .fin-holding-card-head .fin-quote-link,
+#pageFinance .fin-invest-holdings .fin-holding-card-head .fin-holding-manage{
+  appearance:none;-webkit-appearance:none;box-sizing:border-box;
+  background:var(--qg-track,rgba(125,148,178,.085))!important;
+  border:1px solid var(--qg-hairline,rgba(124,148,175,.10))!important;
+  border-radius:14px!important;
+  color:var(--qg-ink,#355e8e)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.31)!important;
+  -webkit-backdrop-filter:blur(12px) saturate(118%);
+  backdrop-filter:blur(12px) saturate(118%);
+  font-weight:640;letter-spacing:0;
+  -webkit-tap-highlight-color:transparent;
+  transition:background-color .16s ease,opacity .16s ease,transform .16s ease!important;
+}
+#pageFinance .fin-invest-holdings .fin-section-title .fin-small{
+  min-height:39px;min-width:0;padding:9px 12px;border-radius:15px!important;
+  font-size:12px;white-space:nowrap;flex:0 0 auto;
+}
+#pageFinance .fin-invest-holdings .fin-holding-card-head{
+  display:flex;align-items:center;justify-content:space-between;gap:7px;min-width:0;
+}
+#pageFinance .fin-invest-holdings .fin-holding-card-head .fin-holding-identity{
+  min-width:0;flex:1 1 0;
+}
+#pageFinance .fin-invest-holdings .fin-holding-card-head .fin-quote-link{
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  flex:0 0 auto;max-width:none;min-width:0;min-height:40px;
+  margin:0!important;padding:0 10px!important;
+  font-size:12px!important;line-height:1.2;white-space:nowrap;
+}
+#pageFinance .fin-invest-holdings .fin-holding-card-head .fin-quote-link svg{
+  width:14px;height:14px;stroke-width:1.8;flex:0 0 auto;opacity:.80;
+}
+#pageFinance .fin-invest-holdings .fin-holding-card-head .fin-holding-manage{
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 40px;width:40px;min-width:40px;height:40px;
+  margin:0!important;padding:0!important;font-size:0;
+}
+#pageFinance .fin-invest-holdings .fin-holding-card-head .fin-holding-manage svg{
+  display:block;opacity:.82;pointer-events:none;
+}
+#pageFinance .fin-invest-holdings .fin-section-title .fin-small:active,
+#pageFinance .fin-invest-holdings .fin-holding-card-head .fin-quote-link:active,
+#pageFinance .fin-invest-holdings .fin-holding-card-head .fin-holding-manage:active{
+  background:var(--qg-selected,rgba(255,255,255,.63))!important;
+  transform:scale(.985);
+}
+#pageFinance .fin-invest-holdings .fin-section-title .fin-small:focus-visible,
+#pageFinance .fin-invest-holdings .fin-holding-card-head .fin-quote-link:focus-visible,
+#pageFinance .fin-invest-holdings .fin-holding-card-head .fin-holding-manage:focus-visible{
+  outline:2px solid var(--qg-focus,rgba(55,117,201,.49))!important;
+  outline-offset:2px!important;
+}
+#pageFinance .fin-invest-holdings .fin-actions [data-fin-action="trade"]{
+  min-height:47px;border:0!important;border-radius:15px!important;
+  background:var(--accent,#3779cb)!important;
+  color:#fff!important;box-shadow:none!important;
+  font-weight:680;font-size:14px;letter-spacing:0;
+  -webkit-tap-highlight-color:transparent;
+}
+#pageFinance .fin-invest-holdings .fin-actions [data-fin-action="trade"]:active{opacity:.87}
+html[data-theme="dark"] #pageFinance .fin-invest-holdings .fin-market-status-dot.has-quotes{background:#7dcbac}
+html[data-theme="dark"] #pageFinance .fin-invest-holdings .fin-holding-card-head .fin-holding-manage,
+html[data-theme="dark"] #pageFinance .fin-invest-holdings .fin-holding-card-head .fin-quote-link,
+html[data-theme="dark"] #pageFinance .fin-invest-holdings .fin-section-title .fin-small{
+ box-shadow:inset 0 1px 0 rgba(244,249,255,.07)!important;
+}
+@media(max-width:390px){
+ #pageFinance .fin-invest-holdings .fin-holding-card-head{gap:5px}
+ #pageFinance .fin-invest-holdings .fin-holding-card-head .fin-quote-link{
+  padding:0 7px!important;font-size:11px!important;
+ }
+ #pageFinance .fin-invest-holdings .fin-holding-card-head .fin-holding-manage{
+  flex-basis:36px;width:36px;min-width:36px;height:40px;
+ }
+ #pageFinance .fin-invest-holdings .fin-holding-card-head .fin-holding-identity .fin-emblem{
+  width:36px;height:36px;flex-basis:36px;
+ }
+}
+@media(prefers-reduced-transparency:reduce){
+ #pageFinance .fin-invest-holdings .fin-section-title .fin-small,
+ #pageFinance .fin-invest-holdings .fin-holding-card-head .fin-quote-link,
+ #pageFinance .fin-invest-holdings .fin-holding-card-head .fin-holding-manage{
+  background:var(--field,#eef2f8)!important;backdrop-filter:none;-webkit-backdrop-filter:none;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #pageFinance .fin-invest-holdings .fin-section-title .fin-small,
+ #pageFinance .fin-invest-holdings .fin-holding-card-head .fin-quote-link,
+ #pageFinance .fin-invest-holdings .fin-holding-card-head .fin-holding-manage{transition:none!important}
+}
