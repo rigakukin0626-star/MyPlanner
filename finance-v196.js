@@ -52,7 +52,7 @@ const nativeTotals=()=>{
  const b=balances();let assets=0,debt=0;
  for(const a of doc.accounts){const v=currencyValue(b.get(a.id),a.currency);if(credit(a))debt+=v;else assets+=v}
  for(const holding of doc.holdings){
-  const value=qty(holding)*Number(holding.price),target=selectedRecordCurrency();
+  const value=qty(holding)*effectivePrice(holding),target=selectedRecordCurrency();
   if(!value)continue;
   if(holding.currency===target){assets+=value;continue}
   const sourceFX=holdingFX(holding),targetFX=rate(target);
@@ -77,6 +77,47 @@ const converted=jpy=>{
  return fx===null?'—':nativeMoney(jpy/fx,code);
 };
 let language='zh',owner='guest',doc=blank(),pane='overview',revision=null,dirty=false,cloud='local',remote=null,api=null,modal=null,busy=false,pushTimer=null;
+const liveQuotes=new Map();let liveBusy=false,liveAttempt=0,liveError='';
+const liveCode=x=>String(x?.symbol||'').trim().toUpperCase().replace(/\.T$/,'');
+function liveQuote(x){
+ const q=liveQuotes.get(liveCode(x)),age=q?Date.now()-Date.parse(q.asOf):Infinity;
+ return q&&Number.isFinite(q.price)&&q.price>0&&age>=-3600000&&age<345600000?q:null;
+}
+const effectivePrice=x=>(liveQuote(x)?.price??Number(x.price))||0;
+function holdingBasis(x){
+ let shares=Number(x.openingQty)||0,book=shares*(Number(x.cost)||0);
+ for(const trade of doc.trades.filter(t=>t.holding===x.id).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')))){
+  const n=Number(trade.qty)||0,p=Number(trade.price)||0;
+  if(trade.side==='buy'){shares+=n;book+=n*p}
+  else if(trade.side==='sell'&&shares>0){book*=Math.max(0,shares-n)/shares;shares=Math.max(0,shares-n)}
+ }
+ return shares>0?book/shares:0;
+}
+const quoteClock=at=>{try{return new Intl.DateTimeFormat(language==='ja'?'ja-JP':language==='en'?'en-US':'zh-CN',{timeZone:'Asia/Tokyo',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(at))}catch{return ''}};
+async function refreshQuotes(force=false){
+ if(!api||owner==='guest'||liveBusy||document.hidden)return;
+ const symbols=[...new Set(doc.holdings.filter(x=>x.currency==='JPY').map(liveCode).filter(x=>/^([0-9]{4}|[0-9]{3}[A-Z])$/.test(x)))];
+ if(!symbols.length||(!force&&Date.now()-liveAttempt<300000))return;
+ liveAttempt=Date.now();liveBusy=true;liveError='';
+ try{
+  const {data,error}=await api.functions.invoke('finance-quotes',{body:{symbols}});
+  if(error||!Array.isArray(data?.quotes))throw error||Error('Invalid quote response');
+  for(const q of data.quotes){
+   const symbol=String(q.symbol||'').toUpperCase(),price=Number(q.price),asOf=String(q.asOf||'');
+   if(symbols.includes(symbol)&&q.currency==='JPY'&&Number.isFinite(price)&&price>0&&Date.parse(asOf)>Date.now()-345600000&&Date.parse(asOf)<Date.now()+3600000)
+    liveQuotes.set(symbol,{price,asOf});
+  }
+  if(!data.quotes.length)liveError=language==='zh'?'暂时无法取得行情报价':language==='ja'?'参考株価なし':'No quotes available';
+ }catch(e){liveError=language==='zh'?'行情接口未就绪，使用手动价格':language==='ja'?'株価API未接続、手入力価格を使用':'Quote API unavailable; manual price retained'}
+ finally{liveBusy=false;render()}
+}
+function marketStatus(){
+ const count=doc.holdings.filter(x=>liveQuote(x)).length;
+ const text=count?(language==='zh'?'已取得 '+count+' 个参考报价（可能延迟）':language==='ja'?'参考株価 '+count+' 件（遅延あり）':count+' reference quotes (may be delayed)'):liveError||t('manual');
+ return '<p class="fin-note fin-market-status">'+h(liveBusy?(language==='zh'?'获取行情中…':language==='ja'?'取得中…':'Loading…'):text)+
+  ' <button type="button" data-fin-action="refreshQuotes">'+(language==='zh'?'更新行情':language==='ja'?'株価更新':'Refresh quotes')+'</button></p>';
+}
+
 const t=k=>translations[language]?.[k]||translations.en[k]||k;
 const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const yen=converted;
@@ -100,7 +141,7 @@ function balances(){
 }
 const qty=x=>doc.trades.filter(y=>y.holding===x.id).reduce((n,y)=>n+(y.side==='buy'?y.qty:-y.qty),Number(x.openingQty)||0);
 const holdingFX=x=>rate(x.currency)??(x.fx!=null&&Number.isFinite(Number(x.fx))&&Number(x.fx)>0?Number(x.fx):null);
-const priceValue=x=>{const original=qty(x)*Number(x.price);if(!original)return 0;const fx=holdingFX(x);return fx===null?NaN:original*fx};
+const priceValue=x=>{const original=qty(x)*effectivePrice(x);if(!original)return 0;const fx=holdingFX(x);return fx===null?NaN:original*fx};
 function totals(){const b=balances();let assets=0,debt=0;for(const a of doc.accounts){if(credit(a))debt+=toJPY(b.get(a.id),a.currency);else assets+=toJPY(b.get(a.id),a.currency)}for(const x of doc.holdings)assets+=priceValue(x);return {assets,debt,net:assets-debt}}
 function read(){try{const d=JSON.parse(localStorage.getItem(BASE+owner)||'null');doc=d&&d.version===1&&['accounts','transactions','holdings','trades','budgets','snapshots'].every(k=>Array.isArray(d[k]))?d:blank();ensurePrefs();const m=JSON.parse(localStorage.getItem(META+owner)||'null');revision=m?.revision??null;dirty=Boolean(m?.dirty)}catch(e){doc=blank();revision=null;dirty=false}}
 function metadata(){localStorage.setItem(META+owner,JSON.stringify({revision,dirty}))}
@@ -175,7 +216,7 @@ function openQuote(x){
  box.className='fin-quote-dialog';
  const title=quoteText('股票行情','株価チャート','Market quote');
  const delay=quoteText('行情可能延迟','相場は遅延する場合があります','Quotes may be delayed');
- const recorded=quoteText('手动记录价格','手入力の記録価格','Recorded manual price');
+ const recorded=liveQuote(x)?quoteText('行情价','参考株価','Reference quote'):quoteText('手动记录价格','手入力の記録価格','Recorded manual price');
  const disclaimer=quoteText(
   '图表由 TradingView 提供，东证行情可能延迟；不会自动修改你的持仓价格或资产总额。',
   'チャートはTradingView提供です。東証の価格は遅延する場合があります。保有資産の手入力価格は変更されません。',
@@ -187,7 +228,7 @@ function openQuote(x){
  const name=h(String(x.name||code));
  box.innerHTML='<div class="fin-quote-shell">'+
   '<header class="fin-quote-head"><div><small>'+title+' · TSE</small><h2>'+h(code)+' · '+name+'</h2></div><button type="button" data-quote-close aria-label="'+close+'">×</button></header>'+
-  '<div class="fin-quote-info"><span>'+delay+'</span><span>'+recorded+'：<strong>'+nativeMoney(x.price,x.currency)+'</strong></span></div>'+
+  '<div class="fin-quote-info"><span>'+delay+'</span><span>'+recorded+'：<strong>'+nativeMoney(effectivePrice(x),x.currency)+'</strong></span></div>'+
   '<div class="fin-quote-frame" role="region" aria-label="'+title+'"></div>'+
   '<p class="fin-quote-explain">'+disclaimer+'</p>'+
   '<footer class="fin-quote-footer"><button type="button" data-quote-refresh>'+refresh+'</button>'+
@@ -199,10 +240,10 @@ function openQuote(x){
   const frame=document.createElement('iframe');
   frame.title=title+' TSE:'+code;
   frame.className='fin-quote-iframe';
-  frame.setAttribute('sandbox','allow-scripts allow-popups allow-popups-to-escape-sandbox');
+  /* Trusted same-origin chart shell: avoid opaque sandbox origin breaking widget. */
   frame.setAttribute('loading','eager');
   frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
-  frame.src='./market-chart-v215.html?symbol='+encodeURIComponent(code)+
+  frame.src='./market-chart-v216.html?tvwidgetsymbol='+encodeURIComponent('TSE:'+code)+
     '&theme='+(document.documentElement.dataset.theme==='dark'?'dark':'light')+
     '&lang='+(language==='zh'?'zh':language==='ja'?'ja':'en')+
     '&r='+Date.now();
@@ -210,7 +251,7 @@ function openQuote(x){
  };
  document.body.append(box);
  box.querySelector('[data-quote-close]').onclick=()=>box.close();
- box.querySelector('[data-quote-refresh]').onclick=mount;
+ box.querySelector('[data-quote-refresh]').onclick=()=>{mount();void refreshQuotes(true)};
  box.addEventListener('click',e=>{if(e.target===box)box.close()});
  box.addEventListener('close',()=>box.remove(),{once:true});
  box.showModal();
@@ -218,9 +259,17 @@ function openQuote(x){
 }
 
 function portfolio(){
- return section(t('invest'),button('＋ '+t('addHolding'),'holding'),
-  '<p class="fin-note">'+t('manual')+'</p>'+
-  doc.holdings.map(x=>'<div class="fin-holding-row"><button class="fin-account" data-fin-holding="'+h(x.id)+'"><span class="fin-emblem">↗</span><span class="fin-account-name"><b>'+h(x.symbol)+' · '+h(x.name)+'</b><small>'+qty(x)+' × '+nativeMoney(x.price,x.currency)+'</small></span><strong>'+nativeMoney(qty(x)*x.price,x.currency)+'</strong></button>'+quoteLink(x)+'</div>').join('')+
+ const items=doc.holdings.map(x=>{
+  const n=qty(x),p=effectivePrice(x),base=holdingBasis(x),pl=n*(p-base),pct=base?100*(p-base)/base:0;
+  const gain=pl>0.005?'is-profit':pl<-.005?'is-loss':'is-flat',quote=liveQuote(x);
+  const source=quote?(language==='zh'?'行情价':language==='ja'?'参考株価':'Quote')+' '+quoteClock(quote.asOf):(language==='zh'?'手动价':language==='ja'?'手入力':'Manual');
+  const plText=base?(pl>0?'+':pl<0?'−':'')+nativeMoney(Math.abs(pl),x.currency)+' ('+(pct>0?'+':'')+pct.toFixed(2)+'%)':'—';
+  return '<div class="fin-holding-row"><button class="fin-account" data-fin-holding="'+h(x.id)+'"><span class="fin-emblem">↗</span>'+
+   '<span class="fin-account-name"><b>'+h(x.symbol)+' · '+h(x.name)+'</b><small>'+n+' × '+nativeMoney(p,x.currency)+' · '+h(source)+'</small>'+
+   '<small>'+(language==='zh'?'成本':language==='ja'?'平均取得単価':'Cost')+' '+nativeMoney(base,x.currency)+'</small></span>'+
+   '<span class="fin-holding-value"><strong>'+nativeMoney(n*p,x.currency)+'</strong><small class="fin-holding-pnl '+gain+'">'+plText+'</small></span></button>'+quoteLink(x)+'</div>';
+ }).join('');
+ return section(t('invest'),button('＋ '+t('addHolding'),'holding'),marketStatus()+items+
   '<div class="fin-actions">'+button(t('addTrade'),'trade')+'</div>')+accounts();
 }
 function budgetView(){
@@ -280,6 +329,7 @@ function render(){
  root.innerHTML='<header class="fin-head"><div><p>MY PLANNER / FINANCE</p><h1>'+t('title')+'</h1></div><label class="fin-record-currency">'+option('recordCurrency',currencyOptions(),selectedRecordCurrency())+'</label></header><div class="fin-tabs">'+['overview','history','invest','budgets','manage'].map(k=>'<button data-fin-pane="'+k+'" class="'+(k===pane?'active':'')+'">'+t(k)+'</button>').join('')+'</div>'+
  (pane==='overview'?summary+alerts()+cashFlow()+accounts()+bars()+netChart()+categoryBreakdown()+entries(7):pane==='history'?entries():pane==='invest'?summary+portfolio():pane==='budgets'?budgetView():settings()+accounts());
  const label=document.getElementById('tabFinanceLabel');if(label)label.textContent=t('title');
+  if(document.body.dataset.activePage==='finance'&&(pane==='overview'||pane==='invest'))void refreshQuotes();
 }
 function dialog(title,body,onSave,after){
  const box=document.createElement('dialog');box.className='fin-dialog';
@@ -537,7 +587,8 @@ function action(what,value){
  else if(what==='holding')addHolding();
  else if(what==='trade')addTrade();
  else if(what==='budget')addBudget();
- else if(what==='sync')void login();
+ else if(what==='refreshQuotes')void refreshQuotes(true);
+  else if(what==='sync')void login();
  else if(what==='export')exportJSON();
  else if(what==='import')importJSON();
  else if(what==='csv')exportCSV();
