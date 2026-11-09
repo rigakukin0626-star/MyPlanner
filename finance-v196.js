@@ -208,69 +208,190 @@ const quoteLink=x=>{
  return '<button type="button" class="fin-quote-link" data-fin-quote="'+h(x.id)+'" aria-label="'+label+' · '+code+'">'+label+' <span aria-hidden="true">▤</span></button>';
 };
 const quoteText=(zh,ja,en)=>language==='zh'?zh:language==='ja'?ja:en;
-function openQuote(x){
- const code=String(x?.symbol||'').trim().toUpperCase().replace(/\.T$/,'');
- if(!x||x.currency!=='JPY'||!/^([0-9]{4}|[0-9]{3}[A-Z])$/.test(code))return;
- document.querySelector('.fin-quote-dialog[open]')?.close();
- const box=document.createElement('dialog');
- box.className='fin-quote-dialog';
- const title=quoteText('股票行情','株価チャート','Market quote');
- const delay=quoteText('行情可能延迟','相場は遅延する場合があります','Quotes may be delayed');
- const recorded=liveQuote(x)?quoteText('行情价','参考株価','Reference quote'):quoteText('手动记录价格','手入力の記録価格','Recorded manual price');
- const disclaimer=quoteText(
-  '图表由 TradingView 提供，参考报价可能延迟或无法获取。自动估值不修改你的成本价和手动记录价格。',
-  'TradingViewの参考株価は遅延・取得失敗する場合があります。取得単価や手入力価格は変更されません。',
-  'TradingView quotes may be delayed or unavailable. Valuations use valid reference quotes without changing saved prices or costs.'
- );
- const refresh=quoteText('刷新行情','再読み込み','Refresh chart');
- const close=quoteText('关闭','閉じる','Close');
- const source=quoteText('TradingView 来源','TradingViewで確認','Open TradingView');
- const name=h(String(x.name||code));
+// v217 native chart: draws only ticker-specific OHLC data from our quote endpoint.
+const chartHistoryCache=new Map();
+const chartPeriods=["1d","5d","1mo","3mo","1y"];
+function chartString(zh,ja,en){return language==="zh"?zh:language==="ja"?ja:en}
+function chartDate(t,period){
+ const opts=period==="1d"||period==="5d"?
+  {timeZone:"Asia/Tokyo",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}:
+  {timeZone:"Asia/Tokyo",month:"numeric",day:"numeric"};
+ try{return new Intl.DateTimeFormat(language==="ja"?"ja-JP":language==="en"?"en-US":"zh-CN",opts).format(new Date(t*1000))}
+ catch{return "—"}
+}
+function nativeChartSVG(bars,period,mode){
+ const W=600,H=310,left=12,right=72,top=25,bottom=264;
+ const points=bars.slice(-180),n=points.length;
+ if(n<2)return "";
+ const min=Math.min(...points.map(p=>p.l)),max=Math.max(...points.map(p=>p.h)),spread=Math.max(1,max-min);
+ const low=Math.max(0,min-spread*.07),high=max+spread*.07,range=high-low;
+ const x=i=>left+(right?((W-left-right)*(i+.5)/n):0);
+ const y=p=>top+(high-p)/range*(bottom-top);
+ const fmt=v=>Math.round(v).toLocaleString("ja-JP");
+ const last=points[n-1].c,first=points[0].c,rising=last>=first;
+ const stroke=rising?"#15956c":"#d84d65";
+ let grid="";
+ for(let i=0;i<=4;i++){
+  const val=low+(range*i)/4, yy=y(val);
+  grid+='<line x1="'+left+'" y1="'+yy.toFixed(1)+'" x2="'+(W-right+6)+'" y2="'+yy.toFixed(1)+'" class="fin-chart-grid"/>'+
+   '<text x="'+(W-right+11)+'" y="'+(yy+4).toFixed(1)+'" class="fin-chart-axis">'+fmt(val)+'</text>';
+ }
+ const line=points.map((p,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(p.c).toFixed(1)).join(" ");
+ let plot="";
+ if(mode==="candle"){
+  const w=Math.max(1.5,Math.min(13,(W-left-right)/n*.64));
+  plot=points.map((p,i)=>{
+   const cx=x(i),up=p.c>=p.o,c=up?"#18a47b":"#e25b6e";
+   const yt=y(Math.max(p.o,p.c)),yb=y(Math.min(p.o,p.c));
+   return '<line x1="'+cx.toFixed(2)+'" x2="'+cx.toFixed(2)+'" y1="'+y(p.h).toFixed(2)+'" y2="'+y(p.l).toFixed(2)+'" stroke="'+c+'" stroke-width="1.4"/>'+
+    '<rect x="'+(cx-w/2).toFixed(2)+'" y="'+yt.toFixed(2)+'" width="'+w.toFixed(2)+'" height="'+Math.max(1.1,yb-yt).toFixed(2)+'" fill="'+c+'" rx=".4"/>';
+  }).join("");
+ }else{
+  const area=line+" L"+x(n-1).toFixed(1)+","+bottom+" L"+x(0).toFixed(1)+","+bottom+" Z";
+  plot='<path d="'+area+'" fill="url(#finNativeArea217)"/><path d="'+line+'" fill="none" stroke="'+stroke+'" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>'+
+   '<circle cx="'+x(n-1).toFixed(1)+'" cy="'+y(last).toFixed(1)+'" r="4" fill="'+stroke+'" stroke="var(--surface,#fff)" stroke-width="2"/>';
+ }
+ const iMid=Math.floor((n-1)/2);
+ const ticks=[[0,"start"],[iMid,"middle"],[n-1,"end"]].map(([i,anchor])=>
+  '<text x="'+x(i).toFixed(1)+'" y="296" text-anchor="'+anchor+'" class="fin-chart-axis">'+h(chartDate(points[i].t,period))+'</text>').join("");
+ const latestY=y(last);
+ return '<svg class="fin-native-chart" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+
+  h(chartString("行情价格走势图","株価チャート","Stock price history"))+'">'+
+  '<defs><linearGradient id="finNativeArea217" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+stroke+'" stop-opacity=".22"/><stop offset="1" stop-color="'+stroke+'" stop-opacity=".01"/></linearGradient></defs>'+
+  grid+plot+ticks+
+  '<line x1="'+(W-right+6)+'" y1="'+latestY.toFixed(1)+'" x2="'+(W-right+6)+'" y2="'+latestY.toFixed(1)+'" stroke="'+stroke+'"/>'+
+  '</svg>';
+}
+function openNativeQuote(x){
+ const symbol=liveCode(x);
+ if(!x||x.currency!=="JPY"||!/^([0-9]{4}|[0-9]{3}[A-Z])$/.test(symbol))return;
+ document.querySelector(".fin-quote-dialog[open]")?.close();
+ const box=document.createElement("dialog");box.className="fin-quote-dialog fin-native-dialog";
+ const labels={"1d":chartString("1日","1日","1D"),"5d":chartString("5日","5日","5D"),"1mo":chartString("1月","1か月","1M"),"3mo":chartString("3月","3か月","3M"),"1y":chartString("1年","1年","1Y")};
+ let period="1mo",mode="line",seq=0;
+ const latest=()=>liveQuote(x);
+ const quoteInfo=()=>latest()?
+  chartString("参考报价","参考株価","Reference quote")+" · "+quoteClock(latest().asOf):
+  chartString("手动记录价格","手入力価格","Manual recorded price");
  box.innerHTML='<div class="fin-quote-shell">'+
-  '<header class="fin-quote-head"><div><small>'+title+' · TSE</small><h2>'+h(code)+' · '+name+'</h2></div><button type="button" data-quote-close aria-label="'+close+'">×</button></header>'+
-  '<div class="fin-quote-info"><span>'+delay+'</span><span>'+recorded+'：<strong>'+nativeMoney(effectivePrice(x),x.currency)+'</strong></span></div>'+
-  '<div class="fin-quote-frame" role="region" aria-label="'+title+'"></div>'+
-  '<p class="fin-quote-explain">'+disclaimer+'</p>'+
-  '<footer class="fin-quote-footer"><button type="button" data-quote-refresh>'+refresh+'</button>'+
-  '<a href="https://www.tradingview.com/symbols/TSE-'+code+'/" target="_blank" rel="noopener noreferrer">'+source+' ↗</a></footer>'+
-  '</div>';
- const mount=()=>{
-  const wrap=box.querySelector('.fin-quote-frame');
-  wrap.replaceChildren();
-  const frame=document.createElement('iframe');
-  frame.title=title+' TSE:'+code;
-  frame.className='fin-quote-iframe';
-  /* Trusted same-origin chart shell: avoid opaque sandbox origin breaking widget. */
-  frame.setAttribute('loading','eager');
-  frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
-  frame.src='./market-chart-v216.html?tvwidgetsymbol='+encodeURIComponent('TSE:'+code)+
-    '&theme='+(document.documentElement.dataset.theme==='dark'?'dark':'light')+
-    '&lang='+(language==='zh'?'zh':language==='ja'?'ja':'en')+
-    '&r='+Date.now();
-  wrap.append(frame);
- };
+  '<header class="fin-quote-head"><div><small>'+chartString("东京证券交易所参考行情","東京証券取引所・参考株価","Tokyo reference quote")+
+  '</small><h2>'+h(symbol)+' · '+h(x.name||symbol)+'</h2></div><button type="button" data-quote-close aria-label="'+
+  chartString("关闭","閉じる","Close")+'">×</button></header>'+
+  '<div class="fin-quote-info"><span data-chart-source>'+h(quoteInfo())+'</span><span><strong data-chart-price>'+
+  nativeMoney(effectivePrice(x),"JPY")+'</strong></span></div>'+
+  '<div class="fin-chart-controls"><div class="fin-chart-periods" role="group" aria-label="Period">'+
+  chartPeriods.map(p=>'<button type="button" data-chart-period="'+p+'" class="'+(p===period?"active":"")+'">'+labels[p]+'</button>').join("")+
+  '</div><div class="fin-chart-modes" role="group" aria-label="Chart style">'+
+  '<button type="button" data-chart-mode="line" class="active">'+chartString("走势","ライン","Line")+'</button>'+
+  '<button type="button" data-chart-mode="candle">'+chartString("K线","ローソク","Candles")+'</button></div></div>'+
+  '<div class="fin-quote-frame"><div class="fin-chart-status" role="status">'+chartString("正在读取行情…","株価データを取得中…","Loading market data…")+'</div></div>'+
+  '<div class="fin-chart-summary" data-chart-summary></div>'+
+  '<p class="fin-quote-explain">'+chartString(
+   "图表由 My Planner 绘制，数据为非官方参考行情，可能延迟或不可用；不会修改持仓成本。",
+   "My Planner独自表示。非公式参考データのため遅延・取得失敗の可能性があります。取得原価は変更しません。",
+   "Chart rendered by My Planner using unofficial reference data; may be delayed or unavailable. Cost basis is unchanged.")+'</p>'+
+  '<footer class="fin-quote-footer"><button type="button" data-quote-refresh>'+
+  chartString("刷新数据","再取得","Refresh")+'</button><button type="button" data-quote-close>'+
+  chartString("完成","閉じる","Done")+'</button></footer></div>';
  document.body.append(box);
- box.querySelector('[data-quote-close]').onclick=()=>box.close();
- box.querySelector('[data-quote-refresh]').onclick=()=>{mount();void refreshQuotes(true)};
- box.addEventListener('click',e=>{if(e.target===box)box.close()});
- box.addEventListener('close',()=>box.remove(),{once:true});
- box.showModal();
- mount();
+ const chartNode=box.querySelector(".fin-quote-frame"),summary=box.querySelector("[data-chart-summary]");
+ function setStatus(message){
+  chartNode.innerHTML='<div class="fin-chart-status" role="status">'+h(message)+'</div>';
+  summary.textContent="";
+ }
+ function paint(history){
+  const bars=history?.bars;
+  if(!Array.isArray(bars)||bars.length<2){
+   setStatus(chartString("该时间段暂无可用历史行情；请换一个周期或稍后重试。",
+    "この期間のデータは取得できません。期間を変更してください。",
+    "History unavailable for this period. Try another timeframe."));return;
+  }
+  chartNode.innerHTML=nativeChartSVG(bars,period,mode);
+  const first=bars[0].c,last=bars[bars.length-1].c,diff=last-first,pct=first?diff/first*100:0;
+  const trend=diff>0?"is-profit":diff<0?"is-loss":"is-flat";
+  summary.innerHTML='<span>'+chartString("最新图表收盘","最終チャート価格","Latest plotted close")+
+   ' <b>'+nativeMoney(last,"JPY")+'</b></span><span class="'+trend+'">'+(diff>0?"+":diff<0?"−":"")+
+   nativeMoney(Math.abs(diff),"JPY")+' ('+(pct>0?"+":"")+pct.toFixed(2)+'%)</span>'+
+   '<small>'+chartString("数据时间","データ日時","Data timestamp")+': '+h(chartDate(bars[bars.length-1].t,period))+'</small>';
+ }
+ async function load(force=false){
+  const token=++seq,key=symbol+":"+period,requestPeriod=period;
+  box.querySelectorAll("[data-chart-period]").forEach(b=>{const active=b.dataset.chartPeriod===period;b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active))});
+  box.querySelectorAll("[data-chart-mode]").forEach(b=>{const active=b.dataset.chartMode===mode;b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active))});
+  const cached=chartHistoryCache.get(key);
+  if(cached&&!force&&cached.expires>Date.now()){paint(cached.history);return}
+  setStatus(chartString("正在读取 "+symbol+" 行情…","株価データを取得中…","Loading "+symbol+" history…"));
+  if(!api||owner==="guest"){
+   setStatus(chartString("登录 My Planner 后才能加载在线行情。","ログイン後に株価を取得できます。","Sign in to load market data."));return;
+  }
+  try{
+   const {data,error}=await api.functions.invoke("finance-quotes",{body:{symbols:[symbol],period:requestPeriod}});
+   if(error)throw error;
+   if(token!==seq||!box.isConnected)return;
+   const history=data?.history;
+   if(history?.symbol!==symbol||history?.period!==requestPeriod||history?.currency!=="JPY"||!Array.isArray(history.bars))
+    throw Error("Invalid chart response");
+   const bars=history.bars.filter(b=>Number.isFinite(Number(b.t))&&
+    ["o","h","l","c"].every(k=>Number.isFinite(Number(b[k]))&&Number(b[k])>0)).map(b=>({t:Number(b.t),o:Number(b.o),h:Number(b.h),l:Number(b.l),c:Number(b.c)}));
+   const cleaned={...history,bars};
+   chartHistoryCache.set(key,{history:cleaned,expires:Date.now()+(requestPeriod==="1d"?90000:300000)});
+   const quote=(data.quotes||[]).find(q=>q.symbol===symbol&&q.currency==="JPY");
+   if(quote&&Number(quote.price)>0&&Date.parse(quote.asOf)>Date.now()-345600000){
+    liveQuotes.set(symbol,{price:Number(quote.price),asOf:quote.asOf});
+    box.querySelector("[data-chart-price]").textContent=nativeMoney(Number(quote.price),"JPY");
+    box.querySelector("[data-chart-source]").textContent=quoteInfo();
+    render();
+   }
+   paint(cleaned);
+  }catch(error){
+   if(token!==seq||!box.isConnected)return;
+   setStatus(chartString(
+    "历史行情暂时无法获取。请确认 Supabase finance-quotes 函数已更新到 v217。",
+    "履歴データを取得できません。finance-quotes v217のデプロイをご確認ください。",
+    "History unavailable. Check that finance-quotes v217 is deployed."));
+  }
+ }
+ box.querySelectorAll("[data-quote-close]").forEach(b=>b.addEventListener("click",()=>box.close()));
+ box.querySelectorAll("[data-chart-period]").forEach(b=>b.addEventListener("click",()=>{if(period!==b.dataset.chartPeriod){period=b.dataset.chartPeriod;void load()}}));
+ box.querySelectorAll("[data-chart-mode]").forEach(b=>b.addEventListener("click",()=>{
+  if(mode===b.dataset.chartMode)return;
+  mode=b.dataset.chartMode;
+  const cached=chartHistoryCache.get(symbol+":"+period);
+  if(cached){box.querySelectorAll("[data-chart-mode]").forEach(c=>{c.classList.toggle("active",c.dataset.chartMode===mode);c.setAttribute("aria-pressed",String(c.dataset.chartMode===mode))});paint(cached.history)}
+  else void load();
+ }));
+ box.querySelector("[data-quote-refresh]").addEventListener("click",()=>{chartHistoryCache.delete(symbol+":"+period);void load(true)});
+ box.addEventListener("click",e=>{if(e.target===box)box.close()});
+ box.addEventListener("close",()=>{seq++;box.remove()},{once:true});
+ box.showModal();void load();
 }
 
 function portfolio(){
- const items=doc.holdings.map(x=>{
-  const n=qty(x),p=effectivePrice(x),base=holdingBasis(x),pl=n*(p-base),pct=base?100*(p-base)/base:0;
-  const gain=pl>0.005?'is-profit':pl<-.005?'is-loss':'is-flat',quote=liveQuote(x);
-  const source=quote?(language==='zh'?'行情价':language==='ja'?'参考株価':'Quote')+' '+quoteClock(quote.asOf):(language==='zh'?'手动价':language==='ja'?'手入力':'Manual');
-  const plText=base?(pl>0?'+':pl<0?'−':'')+nativeMoney(Math.abs(pl),x.currency)+' ('+(pct>0?'+':'')+pct.toFixed(2)+'%)':'—';
-  return '<div class="fin-holding-row"><button class="fin-account" data-fin-holding="'+h(x.id)+'"><span class="fin-emblem">↗</span>'+
-   '<span class="fin-account-name"><b>'+h(x.symbol)+' · '+h(x.name)+'</b><small>'+n+' × '+nativeMoney(p,x.currency)+' · '+h(source)+'</small>'+
-   '<small>'+(language==='zh'?'成本':language==='ja'?'平均取得単価':'Cost')+' '+nativeMoney(base,x.currency)+'</small></span>'+
-   '<span class="fin-holding-value"><strong>'+nativeMoney(n*p,x.currency)+'</strong><small class="fin-holding-pnl '+gain+'">'+plText+'</small></span></button>'+quoteLink(x)+'</div>';
- }).join('');
- return section(t('invest'),button('＋ '+t('addHolding'),'holding'),marketStatus()+items+
-  '<div class="fin-actions">'+button(t('addTrade'),'trade')+'</div>')+accounts();
+ const rows=doc.holdings.map(x=>{
+  const q=qty(x),p=effectivePrice(x),basis=holdingBasis(x),value=q*p,delta=q*(p-basis),percent=basis?(p-basis)/basis*100:null;
+  const quote=liveQuote(x),sign=delta>0?"+":delta<0?"−":"",pClass=delta>0?"is-profit":delta<0?"is-loss":"is-flat";
+  const priceLabel=quote?chartString("参考行情价","参考株価","Reference price"):chartString("手动价格","手入力価格","Manual price");
+  const quoteDate=quote?quoteClock(quote.asOf):chartString("未连接行情","株価未取得","No live quote");
+  const costLabel=chartString("平均成本","平均取得単価","Average cost");
+  const marketValueLabel=chartString("持仓市值","評価額","Market value");
+  const gainLabel=chartString("浮动盈亏","評価損益","Unrealized P/L");
+  const pnlText=basis>0?sign+nativeMoney(Math.abs(delta),x.currency):"—";
+  const pctText=percent!==null?"("+ (percent>0?"+":"")+percent.toFixed(2)+"%)":chartString("未填写成本","取得単価未設定","No cost basis");
+  return '<div class="fin-holding-card"><div class="fin-holding-card-head">'+
+   '<button type="button" class="fin-holding-identity" data-fin-holding="'+h(x.id)+'" title="'+h(x.name)+'">'+
+   '<span class="fin-emblem">↗</span><span class="fin-holding-name"><strong>'+h(x.symbol)+' · '+h(x.name)+'</strong>'+
+   '<small>'+q+' '+chartString("股","株","shares")+'</small></span></button>'+
+   quoteLink(x)+'</div>'+
+   '<div class="fin-holding-prices"><div><small>'+priceLabel+'</small><strong>'+nativeMoney(p,x.currency)+'</strong>'+
+   '<span>'+h(quoteDate)+'</span></div><div><small>'+costLabel+'</small><strong>'+nativeMoney(basis,x.currency)+'</strong>'+
+   '<span>'+chartString("每股","1株あたり","Per share")+'</span></div></div>'+
+   '<div class="fin-holding-totals"><div><small>'+marketValueLabel+'</small><strong>'+nativeMoney(value,x.currency)+'</strong></div>'+
+   '<div class="fin-holding-totals-right"><small>'+gainLabel+'</small><strong class="'+pClass+'">'+pnlText+'</strong>'+
+   '<span class="'+pClass+'">'+pctText+'</span></div></div></div>';
+ }).join("");
+ return section(t("invest"),button("＋ "+t("addHolding"),"holding"),marketStatus()+
+  (rows||'<p class="fin-empty">'+t("noHoldings")+'</p>')+
+  '<div class="fin-actions">'+button(t("addTrade"),"trade")+'</div>')+accounts();
 }
 function budgetView(){
  const month=nowDate().slice(0,7);
@@ -604,7 +725,7 @@ function bind(){
  document.getElementById('financeRoot')?.addEventListener('change',e=>{if(e.target?.name==='recordCurrency'){ensurePrefs();doc.preferences.record=e.target.value;save()}});
  document.getElementById('financeRoot')?.addEventListener('click',e=>{
   const p=e.target.closest('[data-fin-pane]');if(p){pane=p.dataset.finPane;render();return}
-  const q=e.target.closest('[data-fin-quote]');if(q){const item=holding(q.dataset.finQuote);if(item)openQuote(item);return}
+  const q=e.target.closest('[data-fin-quote]');if(q){const item=holding(q.dataset.finQuote);if(item)openNativeQuote(item);return}
   const a=e.target.closest('[data-fin-action]');if(a){action(a.dataset.finAction);return}
   const ac=e.target.closest('[data-fin-account]');if(ac){action('accountDetail',ac.dataset.finAccount);return}
   const hd=e.target.closest('[data-fin-holding]');if(hd){action('holdingDetail',hd.dataset.finHolding);return}
