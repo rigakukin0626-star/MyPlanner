@@ -1,0 +1,118 @@
+/* My Planner v229 — finance hero typography and proportions
+   Overview (net worth) and Investing (market value) now share the same
+   visual metrics. Values, categories and v228 gradients stay unchanged. */
+
+#pageFinance .fin-hero,
+#pageFinance .fin-invest-summary {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 182px;
+  padding: 18px 18px 17px !important;
+  gap: 0 !important;
+}
+
+/* Identical primary labels and numeric hierarchy. */
+#pageFinance .fin-hero > small,
+#pageFinance .fin-invest-summary-main > small {
+  display: block;
+  color: var(--muted) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  letter-spacing: .01em !important;
+}
+
+#pageFinance .fin-hero > strong,
+#pageFinance .fin-invest-summary-main > strong {
+  display: block;
+  margin: 7px 0 0 !important;
+  font-size: clamp(29px, 7.4vw, 40px) !important;
+  line-height: 1.14 !important;
+  font-weight: 780 !important;
+  letter-spacing: -.048em !important;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink) !important;
+  overflow-wrap: anywhere;
+}
+
+/* Investing has one extra detail (number of holdings). Keep it compact
+   rather than increasing the card's height. */
+#pageFinance .fin-invest-summary-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0 !important;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+#pageFinance .fin-invest-summary-main > span {
+  display: block;
+  margin-top: 5px !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  font-weight: 550 !important;
+  color: var(--muted) !important;
+}
+
+/* Put the lower row at the same baseline on both cards. */
+#pageFinance .fin-hero > div,
+#pageFinance .fin-invest-summary-stats {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: auto !important;
+  padding-top: 14px !important;
+  border-top-width: 1px !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  column-gap: 12px !important;
+  align-items: start;
+}
+#pageFinance .fin-hero > div > span,
+#pageFinance .fin-invest-summary-stats > div {
+  display: block !important;
+  min-width: 0;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  font-weight: 600 !important;
+  color: var(--muted) !important;
+  text-align: left !important;
+}
+#pageFinance .fin-invest-summary-stats > div > small {
+  display: block;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  font-weight: 600 !important;
+  color: var(--muted) !important;
+}
+#pageFinance .fin-hero > div b,
+#pageFinance .fin-invest-summary-stats > div > strong {
+  display: block !important;
+  margin-top: 7px !important;
+  font-size: clamp(17px, 4.55vw, 19px) !important;
+  line-height: 1.25 !important;
+  font-weight: 750 !important;
+  letter-spacing: -.025em !important;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+#pageFinance .fin-hero > div b {
+  color: var(--ink) !important;
+}
+#pageFinance .fin-invest-summary-stats .is-profit {color: var(--qp-success) !important;}
+#pageFinance .fin-invest-summary-stats .is-loss {color: var(--qp-loss) !important;}
+
+/* Narrow iPhones retain the shared dimensions; long numbers may wrap
+   and increase height rather than clipping financial information. */
+@media (max-width: 370px) {
+  #pageFinance .fin-hero,
+  #pageFinance .fin-invest-summary {
+    min-height: 180px;
+    padding: 17px 16px !important;
+  }
+  #pageFinance .fin-hero > div,
+  #pageFinance .fin-invest-summary-stats {
+    column-gap: 9px !important;
+  }
+}
