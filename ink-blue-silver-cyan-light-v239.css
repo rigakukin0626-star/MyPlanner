@@ -1,0 +1,335 @@
+/* My Planner v239 — Ink Blue × Silver White × Ice Cyan (selection 06).
+   Light appearance ONLY. Dark obsidian/violet v234–238 is never overridden.
+   Global gradients, cards, controls, chat, finance, PWA top surface.
+   Visual-only: no safe-area, chat viewport, keyboard, layout or data changes. */
+
+html:not([data-theme="dark"]) {
+  color-scheme:light;
+  /* Selected 06 reference swatches: ink blue #6884A0, metallic silver
+     #D6E1EA, near-white ice cyan #EDF6F7. */
+  --bg:#e8f1f5;
+  --surface:#f8fcfd;
+  --subtle:#e2edf2;
+  --field:#e1ecf2;
+  --ink:#203548;
+  --muted:#5d7284;
+  --line:#bed0dd;
+  --accent:#476b85;
+  --accent-ink:#315875;
+  --on-accent:#ffffff;
+  --focus:#527b96;
+  --conversation:#edf5f7;
+  --mine:#d1e7ee;
+
+  --ios-hairline:rgba(82,112,138,.20);
+  --ios-dock:rgba(229,240,246,.88);
+  --ios-dock-active:rgba(120,154,182,.21);
+  --glass-fill:rgba(243,250,252,.80);
+  --glass-stroke:rgba(121,153,179,.25);
+  --glass-highlight:rgba(255,255,255,.86);
+  --glass-shadow:rgba(37,65,89,.10);
+  --group-fill:rgba(247,251,253,.91);
+  --group-line:rgba(114,144,169,.21);
+  --search-fill:rgba(224,237,244,.91);
+
+  --qg-track:rgba(128,163,189,.15);
+  --qg-hairline:rgba(94,127,156,.19);
+  --qg-selected:rgba(233,244,249,.90);
+  --qg-selected-edge:rgba(255,255,255,.80);
+  --qg-ink:#315875;
+  --qg-muted:#60778b;
+  --qg-shadow:rgba(41,71,101,.10);
+  --qg-focus:rgba(76,117,151,.54);
+  --qg-focus-halo:rgba(72,115,150,.10);
+
+  --qp-card:rgba(244,250,252,.92);
+  --qp-card-soft:rgba(236,245,250,.89);
+  --qp-border:rgba(106,140,168,.21);
+  --qp-shadow:0 11px 26px rgba(45,83,112,.083),inset 0 1px 0 rgba(255,255,255,.77);
+  --qp-frost:rgba(229,241,246,.90);
+  --qp-pressed:rgba(114,151,180,.18);
+  --qp-input-focus:rgba(65,105,140,.48);
+
+  /* Large continuous blue/silver/cyan sweep: obvious, never neon. */
+  --q231-canvas:
+    radial-gradient(ellipse 104% 51% at -16% -4%,rgba(104,132,160,.32),transparent 78%),
+    radial-gradient(ellipse 84% 52% at 112% 84%,rgba(127,185,195,.25),transparent 79%),
+    linear-gradient(148deg,#bacddf 0%,#d6e1ea 25%,#f0f7f9 52%,#e1eff2 75%,#c8dfe8 100%);
+
+  --q231-panel:
+    radial-gradient(ellipse 90% 116% at -16% -16%,rgba(114,152,181,.24),transparent 80%),
+    linear-gradient(138deg,#cbdce8 0%,#e7eff4 37%,#fcfefe 70%,#d9edf0 100%);
+  --q231-panel-alt:
+    radial-gradient(ellipse 86% 112% at 112% 107%,rgba(133,188,199,.16),transparent 77%),
+    linear-gradient(143deg,#d9e7ef 0%,#f5fafb 49%,#fff 69%,#dbe9ee 100%);
+  --q231-list:
+    radial-gradient(ellipse 97% 128% at -20% -20%,rgba(114,154,185,.20),transparent 78%),
+    linear-gradient(127deg,rgba(212,229,240,.95),rgba(248,252,253,.96) 56%,rgba(228,243,245,.95));
+  --q231-control:
+    radial-gradient(ellipse 90% 140% at -12% 104%,rgba(118,157,181,.19),transparent 79%),
+    linear-gradient(132deg,#dae8f0 0%,#f5fafc 49%,#dfedf1 100%);
+  --q231-selected:
+    radial-gradient(ellipse 97% 135% at -10% 115%,rgba(117,167,189,.24),transparent 78%),
+    linear-gradient(134deg,#c2d7e5 0%,#f7fcfd 50%,#d6eaef 100%);
+  --q231-dock:
+    radial-gradient(ellipse 94% 165% at -10% 100%,rgba(105,148,183,.18),transparent 85%),
+    linear-gradient(120deg,rgba(210,227,239,.95) 0%,rgba(250,253,254,.91) 56%,rgba(215,237,241,.96) 100%);
+  --q231-conversation:
+    radial-gradient(ellipse 108% 56% at -12% -13%,rgba(111,153,187,.13),transparent 81%),
+    linear-gradient(153deg,#e3eef4 0%,#f6fafb 54%,#e5f2f3 100%);
+  --q231-bubble:linear-gradient(137deg,#ffffff 0%,#eaf5f9 100%);
+  --q231-mine:linear-gradient(136deg,#c2dce9 0%,#e1f1f5 58%,#c9e4ec 100%);
+  --q231-rim:rgba(100,134,164,.20);
+  --q231-shadow:0 10px 25px rgba(49,86,115,.088),inset 0 1px 0 rgba(255,255,255,.79);
+
+  /* Live iOS native status bar follows a solid near the gradient's upper edge. */
+  --q238-status-base:#c5d6e3;
+  --q238-top-blend:
+    radial-gradient(ellipse 112% 238px at 0% 0%,rgba(109,145,175,.26),rgba(146,184,202,.11) 50%,transparent 88%),
+    linear-gradient(180deg,rgba(186,209,225,.27) 0px,rgba(213,232,240,.11) 120px,transparent 306px);
+  --q239-primary:
+    linear-gradient(135deg,#3d607b 0%,#547b95 43%,#3b637c 100%);
+  --q239-soft:
+    radial-gradient(ellipse 100% 130% at -10% -8%,rgba(121,160,188,.20),transparent 76%),
+    linear-gradient(137deg,#d7e6ef,#f8fcfd 60%,#dbeaf0);
+}
+
+/* The root/body gradient is supplied by v238 through updated tokens.
+   No duplicate body-only layers, so top and the rest of the page blend. */
+html:not([data-theme="dark"]) .topbar {
+  background:transparent!important;
+  border-bottom-color:var(--q231-rim)!important;
+}
+html:not([data-theme="dark"]) .language-picker select {
+  background:var(--q231-control)!important;
+  border-color:var(--q231-rim)!important;
+  color:var(--ink)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.82),0 3px 9px rgba(47,82,112,.06)!important;
+}
+
+/* Important cards: same silver-blue light source, but slightly distinct hues. */
+html:not([data-theme="dark"]) #pageTasks > .overview {
+  background:
+    radial-gradient(ellipse 92% 120% at -13% -24%,rgba(110,148,182,.24),transparent 77%),
+    linear-gradient(135deg,#c6dae8 0%,#e4eef5 42%,#fbfefe 72%,#d6edf1 100%)!important;
+  border-color:var(--q231-rim)!important;
+  box-shadow:var(--q231-shadow)!important;
+}
+html:not([data-theme="dark"]) #pageTasks .tasks-panel,
+html:not([data-theme="dark"]) #pageCalendar .calendar-panel,
+html:not([data-theme="dark"]) #pageLongTerm :is(.tasks-panel,.countdown-panel),
+html:not([data-theme="dark"]) #pageSettings :is(.appearance-panel,.auth-panel) {
+  background:var(--q231-panel)!important;
+  border-color:var(--q231-rim)!important;
+  box-shadow:var(--q231-shadow)!important;
+}
+html:not([data-theme="dark"]) #pageTasks :is(.task-form,.task-toolbar),
+html:not([data-theme="dark"]) #pageSettings :is(.cloud-sync-details,.account-username-row),
+html:not([data-theme="dark"]) #pageLongTerm .countdown-row {
+  background-image:linear-gradient(120deg,rgba(113,154,181,.095),rgba(209,237,237,.055) 72%,transparent)!important;
+}
+html:not([data-theme="dark"]) #pageTasks .progress-track {
+  background:linear-gradient(95deg,#c6d8e3,#e1eff2)!important;
+}
+html:not([data-theme="dark"]) #pageTasks .progress-bar {
+  background:linear-gradient(97deg,#476f8e,#6b9aaa)!important;
+}
+html:not([data-theme="dark"]) #pageTasks #taskList > .task-item,
+html:not([data-theme="dark"]) #pageLongTerm .countdown-row {
+  background-image:linear-gradient(112deg,rgba(123,166,192,.08),transparent 79%)!important;
+}
+
+/* Conversation list, friend/group selector, and controls. */
+html:not([data-theme="dark"]) #pageChat :is(#chatFriends,#chatGroups) .chat-friend {
+  background:var(--q231-list)!important;
+  border-color:var(--q231-rim)!important;
+  box-shadow:var(--q231-shadow)!important;
+}
+html:not([data-theme="dark"]) #pageChat .chat-list-search,
+html:not([data-theme="dark"]) #pageChat .chat-mode-switch,
+html:not([data-theme="dark"]) #pageFinance :is(.fin-tabs,.fin-daily-toolbar,.fin-chart-periods,.fin-chart-modes),
+html:not([data-theme="dark"]) #pageSettings .appearance-options,
+html:not([data-theme="dark"]) #pageTasks #taskTabs {
+  background:var(--q231-control)!important;
+  border-color:var(--q231-rim)!important;
+}
+html:not([data-theme="dark"]) #pageChat .chat-mode-switch button:is(.active,[aria-pressed="true"]),
+html:not([data-theme="dark"]) #pageFinance .fin-tabs button.active,
+html:not([data-theme="dark"]) #pageFinance .fin-daily-toolbar button[aria-pressed="true"],
+html:not([data-theme="dark"]) #pageFinance :is(.fin-chart-periods,.fin-chart-modes) button.active,
+html:not([data-theme="dark"]) #pageSettings .appearance-options button[aria-pressed="true"],
+html:not([data-theme="dark"]) #pageTasks #taskTabs .tab.active {
+  background:var(--q231-selected)!important;
+  border-color:rgba(106,148,176,.31)!important;
+  color:var(--accent-ink)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.86),0 3px 8px rgba(55,94,129,.08)!important;
+}
+html:not([data-theme="dark"]) #pageChat .chat-header-add,
+html:not([data-theme="dark"]) #pageChat :is(#linePrivateMore,#lineGroupMore,.chat-jump-to-latest),
+html:not([data-theme="dark"]) #pageFinance .fin-small:not(.fin-holding-delete),
+html:not([data-theme="dark"]) #pageFinance .fin-invest-holdings .fin-holding-card-head :is(.fin-quote-link,.fin-holding-manage),
+html:not([data-theme="dark"]) #pageCalendar .calendar-nav .icon-button,
+html:not([data-theme="dark"]) .button-ghost:not(.fin-holding-delete) {
+  background:var(--q239-soft)!important;
+  border-color:var(--q231-rim)!important;
+  color:var(--accent-ink)!important;
+}
+html:not([data-theme="dark"]) #pageChat .chat-list-search:focus-within {
+  background:var(--q231-panel-alt)!important;
+  border-color:var(--qp-input-focus)!important;
+}
+
+/* Messages inherit the same colors without touching keyboard/scroll behavior. */
+html:not([data-theme="dark"]) #pageChat .chat-conversation {
+  background-color:var(--conversation)!important;
+}
+html:not([data-theme="dark"]) #pageChat .chat-messages {
+  background-color:var(--conversation)!important;
+  background-image:var(--q231-conversation)!important;
+}
+html:not([data-theme="dark"]) #pageChat .chat-conversation-header,
+html:not([data-theme="dark"]) #pageChat .chat-send {
+  background:var(--q231-panel-alt)!important;
+  border-color:var(--q231-rim)!important;
+}
+html:not([data-theme="dark"]) #pageChat .chat-messages .chat-bubble:not(.mine):not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)) {
+  background:var(--q231-bubble)!important;
+}
+html:not([data-theme="dark"]) #pageChat .chat-messages .chat-bubble.mine:not(.chat-reply-bubble):not(:has(.chat-media-frame)):not(:has(.chat-photo)) {
+  background:var(--q231-mine)!important;
+}
+html:not([data-theme="dark"]) #pageChat #lineActionScreen,
+html:not([data-theme="dark"]) #pageChat .line-action-content {
+  background:var(--q231-canvas)!important;
+}
+html:not([data-theme="dark"]) #pageChat :is(.line-popup-menu:not([hidden]),#lineQuickMenu:not([hidden])),
+html:not([data-theme="dark"]) body > .chat-context-menu.chat-message-popover:not([hidden]),
+html:not([data-theme="dark"]) :is(.fin-dialog,.fin-quote-dialog,.edit-dialog,.delete-dialog) {
+  background:var(--q231-panel-alt)!important;
+  border-color:var(--q231-rim)!important;
+}
+
+/* Finance: one coherent silver-blue/cyan card system; preserve all numbers.
+   Exclude hero cards from per-row tint, and keep budget gradients continuous. */
+html:not([data-theme="dark"]) #pageFinance .fin-card {
+  background:var(--q231-panel-alt)!important;
+  border-color:var(--q231-rim)!important;
+  box-shadow:var(--q231-shadow)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-holding-card {
+  background:var(--q231-list)!important;
+  border-color:var(--q231-rim)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-hero {
+  background:
+    radial-gradient(ellipse 95% 119% at -15% -24%,rgba(104,132,160,.35),transparent 78%),
+    radial-gradient(ellipse 82% 110% at 112% 107%,rgba(132,193,198,.25),transparent 76%),
+    linear-gradient(127deg,#bed3e3 0%,#d6e1ea 31%,#fbfdfd 65%,#d9edef 100%)!important;
+  border-color:rgba(102,138,166,.25)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-invest-summary {
+  background:
+    radial-gradient(ellipse 95% 115% at -16% -21%,rgba(111,147,173,.32),transparent 76%),
+    radial-gradient(ellipse 90% 106% at 111% 110%,rgba(136,197,202,.25),transparent 77%),
+    linear-gradient(129deg,#c5d8e3 0%,#dce9ef 31%,#fcfefe 65%,#d2e9eb 100%)!important;
+  border-color:rgba(102,138,166,.24)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-hero,
+html:not([data-theme="dark"]) #pageFinance .fin-invest-summary {
+  box-shadow:0 13px 29px rgba(47,84,115,.11),inset 0 1px 0 rgba(255,255,255,.78)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-hero::before,
+html:not([data-theme="dark"]) #pageFinance .fin-invest-summary::before {
+  background:linear-gradient(157deg,rgba(255,255,255,.31),rgba(255,255,255,.035) 45%,transparent 75%)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-card:has(> .fin-budget) {
+  background:
+    radial-gradient(ellipse 99% 91% at 105% 105%,rgba(120,185,191,.13),transparent 81%),
+    linear-gradient(137deg,#d3e3ed 0%,#eff7f9 44%,#fafdfe 71%,#dceff0 100%)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-card:has(> .fin-budget) > .fin-budget {
+  background:transparent!important;
+  background-image:none!important;
+  border-bottom-color:var(--q231-rim)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-entry,
+html:not([data-theme="dark"]) #pageFinance .fin-account {
+  background-image:linear-gradient(112deg,rgba(105,153,182,.085),transparent 83%)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-track {
+  background:linear-gradient(90deg,#c7dae5,#e1eff2)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-track span:not(.over) {
+  background:linear-gradient(90deg,#476e8c,#77a4b5)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-daily-plot.net {
+  --fin-line:#577b97;
+  --fin-area:rgba(105,157,182,.11);
+}
+html:not([data-theme="dark"]) #pageFinance .fin-daily-plot.investment {
+  --fin-line:#497e8b;
+  --fin-area:rgba(103,174,181,.10);
+}
+
+/* Persistent bottom tabs: floating silver-blue lens, clear ink-blue selection. */
+html:not([data-theme="dark"]) .bottom-tabs {
+  background:var(--q231-dock)!important;
+  border-color:rgba(103,141,169,.25)!important;
+  box-shadow:0 13px 28px rgba(43,79,112,.14),inset 0 1px 0 rgba(255,255,255,.85)!important;
+}
+html:not([data-theme="dark"]) .bottom-tabs .tab.active {
+  background:var(--q231-selected)!important;
+  color:var(--accent-ink)!important;
+  border-color:rgba(112,149,177,.23)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85)!important;
+}
+html:not([data-theme="dark"]) .bottom-tabs .tab.active .tab-icon {
+  color:var(--accent-ink)!important;
+  background:transparent!important;
+}
+
+/* Inputs and action surfaces. Use full background for consistent gradient
+   (rather than painting rectangular overlays on individual finance rows). */
+html:not([data-theme="dark"]) .button-primary,
+html:not([data-theme="dark"]) .button.button-primary,
+html:not([data-theme="dark"]) #pageChat .chat-send .button-primary,
+html:not([data-theme="dark"]) #pageFinance .fin-actions button:first-child:not(.fin-holding-delete) {
+  background:var(--q239-primary)!important;
+  color:var(--on-accent)!important;
+  border-color:rgba(46,85,110,.16)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20),0 5px 11px rgba(47,83,114,.12)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-dialog :is(input,select,textarea),
+html:not([data-theme="dark"]) #pageSettings :is(input,select,textarea),
+html:not([data-theme="dark"]) #pageTasks :is(input,select,textarea),
+html:not([data-theme="dark"]) #pageLongTerm :is(input,select,textarea),
+html:not([data-theme="dark"]) #pageChat .chat-send textarea {
+  background-color:var(--field)!important;
+  background-image:linear-gradient(139deg,rgba(127,165,190,.11),rgba(246,252,253,.23) 73%)!important;
+  border-color:var(--q231-rim)!important;
+  color:var(--ink)!important;
+}
+html:not([data-theme="dark"]) #pageFinance .fin-dialog :is(input,select,textarea):focus,
+html:not([data-theme="dark"]) #pageSettings :is(input,select,textarea):focus,
+html:not([data-theme="dark"]) #pageTasks :is(input,select,textarea):focus,
+html:not([data-theme="dark"]) #pageLongTerm :is(input,select,textarea):focus {
+  border-color:var(--qp-input-focus)!important;
+  box-shadow:0 0 0 2px var(--qg-focus-halo)!important;
+}
+html:not([data-theme="dark"]) #pageCalendar .calendar-day.selected {
+  background:linear-gradient(145deg,#446c87,#60869a)!important;
+  color:#ffffff!important;
+  border-color:rgba(53,91,120,.18)!important;
+}
+html:not([data-theme="dark"]) #pageCalendar .calendar-day.today:not(.selected) {
+  background:var(--q231-selected)!important;
+  color:var(--accent-ink)!important;
+}
+
+/* No motion, positions, dimensions, insets, or input event handlers changed. */
+@media(prefers-reduced-transparency:reduce) {
+  html:not([data-theme="dark"]) {
+    --q231-dock:linear-gradient(123deg,#d9e8f0,#f8fcfd 62%,#e1f0f1);
+    --q231-list:linear-gradient(128deg,#dbe8ef,#f8fcfd 60%,#e5f2f2);
+  }
+}
