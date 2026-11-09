@@ -299,6 +299,19 @@ html:not([data-theme="dark"]) #pageFinance .fin-actions button:first-child:not(.
   border-color:rgba(46,85,110,.16)!important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.20),0 5px 11px rgba(47,83,114,.12)!important;
 }
+/* Finance native dialogs have submit/cancel buttons without .button-primary;
+   give them the same selected-06 surface instead of leaving a flat block. */
+html:not([data-theme="dark"]) .fin-dialog footer button[type="submit"] {
+  background:var(--q239-primary)!important;
+  border-color:rgba(46,85,110,.16)!important;
+  color:#ffffff!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20)!important;
+}
+html:not([data-theme="dark"]) .fin-dialog footer button[data-close] {
+  background:var(--q239-soft)!important;
+  color:var(--ink)!important;
+  border-color:var(--q231-rim)!important;
+}
 html:not([data-theme="dark"]) #pageFinance .fin-dialog :is(input,select,textarea),
 html:not([data-theme="dark"]) #pageSettings :is(input,select,textarea),
 html:not([data-theme="dark"]) #pageTasks :is(input,select,textarea),
