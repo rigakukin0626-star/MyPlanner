@@ -1,0 +1,29 @@
+/* v211: keep mobile composer compact, focus soft and media inside bubbles.
+   v210 visualViewport geometry remains unchanged. */
+@media (max-width:719px){
+ body.chat-open[data-active-page="chat"] #pageChat.active
+ .chat-conversation:not([hidden]) > .chat-messages{
+   scroll-padding-block-end:18px!important;
+   padding-block-end:18px!important;
+ }
+ body.chat-open[data-active-page="chat"] #pageChat.active
+ .chat-conversation:not([hidden]) > .chat-send textarea:focus{
+   border-color:rgba(75,123,200,.45)!important;
+   outline:none!important;
+   box-shadow:none!important;
+ }
+ body.chat-open[data-active-page="chat"] #pageChat.active
+ .chat-conversation:not([hidden]) .chat-media-frame,
+ body.chat-open[data-active-page="chat"] #pageChat.active
+ .chat-conversation:not([hidden]) .chat-photo{
+   max-width:100%!important;
+ }
+ body.chat-open[data-active-page="chat"] #pageChat.active
+ .chat-conversation:not([hidden]) .chat-bubble:has(.chat-media-frame){
+   max-width:min(78vw,330px)!important;
+ }
+ body.chat-open.chat-keyboard-open[data-active-page="chat"] #pageChat.active
+ .chat-conversation:not([hidden]) .chat-jump-to-latest:not([hidden]){
+   bottom:73px!important;
+ }
+}

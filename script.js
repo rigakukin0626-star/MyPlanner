@@ -2244,6 +2244,18 @@ function groupScrollWireUserGestures(){
  const keepLatestAfterViewportChange=()=>{if(groupScrollFollow.followLatest)groupScrollPin()};
  window.addEventListener("resize",keepLatestAfterViewportChange,{passive:true});
  window.visualViewport?.addEventListener("resize",keepLatestAfterViewportChange,{passive:true});
+ // Keyboard resize may change only the message-list box, not window size.
+ // Keep the most recent bubble in view while latest-message follow is active.
+ if(window.ResizeObserver){
+  let previousHeight=0;
+  new ResizeObserver(entries=>{
+   if(document.body.dataset.activePage!=="chat"||!chatActiveGroup||!groupScrollFollow.followLatest||groupScrollFollow.gesture)return;
+   const height=Math.round(entries[0]?.contentRect?.height||root.clientHeight);
+   if(!height||Math.abs(height-previousHeight)<2)return;
+   previousHeight=height;
+   groupScrollPin(chatActiveGroup.id,true);
+  }).observe(root);
+ }
 }
 
 async function groupOpen(group){
@@ -2818,7 +2830,11 @@ showWelcomeAuth();
   // Follow only when the reader was already near the most recent message;
   // pin once when the visual viewport finishes settling.
   if(keyboardOpen&&focused&&focusAnchor?.field===field&&
-     focusAnchor.follow&&(resized||repositioned||!wasOpen))scheduleStablePin();
+     focusAnchor.follow&&(resized||repositioned||!wasOpen)){
+   scheduleStablePin();
+   if(field?.id==="chatGroupMessageInput"&&groupScrollFollow.followLatest)
+    groupScrollPin(chatActiveGroup?.id,true);
+  }
   if(!keyboardOpen&&settleTimer){clearTimeout(settleTimer);settleTimer=0}
   if(chatOpened&&activeConversation()){
    scheduleChatAnchor();
@@ -2855,9 +2871,21 @@ showWelcomeAuth();
   input.addEventListener("focus",()=>{
    const list=messageList(input);
    const distance=list?Math.max(0,list.scrollHeight-list.scrollTop-list.clientHeight):Infinity;
-   focusAnchor={field:input,follow:distance<140};
+   const composingInGroup=input.id==="chatGroupMessageInput"&&Boolean(chatActiveGroup);
+   if(composingInGroup&&groupScrollFollow.groupId===chatActiveGroup.id){
+    // Opening the keyboard to compose resumes reading the latest messages.
+    // A later deliberate swipe still disengages auto-follow.
+    groupScrollFollow.followLatest=true;
+    groupScrollFollow.gesture=false;
+    groupScrollFollow.blockAutoUntil=0;
+   }
+   focusAnchor={field:input,follow:composingInGroup||distance<140};
    updateViewport();
    recheckChatAnchor();
+   if(composingInGroup){
+    groupScrollPin(chatActiveGroup.id,true);
+    requestAnimationFrame(()=>groupScrollPin(chatActiveGroup?.id,true));
+   }
   });
   input.addEventListener("blur",()=>{
    if(focusAnchor?.field===input)focusAnchor=null;
