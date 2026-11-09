@@ -1,0 +1,65 @@
+/* My Planner v238 — iOS status-bar / page gradient continuity.
+ * iOS 26+ owns the native clock/battery bar: make the page's top sampled
+ * color agree with its first gradient stops rather than using the deprecated
+ * black-translucent status-bar mode, which can harm light-mode legibility.
+ * The same gradient begins at (0,0) on root and body. No viewport, keyboard,
+ * safe-area, fixed-position, z-index or layout overrides are introduced. */
+
+/* Pearlescent mist above light UI, easing into the existing v233 background. */
+:root {
+  --q238-status-base:#eaf1fc;
+  --q238-top-blend:
+    radial-gradient(ellipse 105% 225px at 4% 0%,
+      rgba(185,210,242,.46) 0%,rgba(199,219,246,.17) 51%,transparent 87%),
+    linear-gradient(180deg,
+      rgba(236,244,254,.78) 0px,
+      rgba(237,245,255,.47) 88px,
+      rgba(234,242,253,.16) 175px,
+      transparent 290px);
+}
+/* Muted black-purple upper reflection: not bright purple and no harsh band. */
+html[data-theme="dark"] {
+  --q238-status-base:#0b0813;
+  --q238-top-blend:
+    radial-gradient(ellipse 100% 245px at 100% 0%,
+      rgba(42,19,70,.24) 0%,rgba(34,15,55,.11) 54%,transparent 88%),
+    linear-gradient(180deg,
+      rgba(10,7,17,.66) 0px,
+      rgba(11,8,18,.34) 92px,
+      rgba(12,8,21,.11) 190px,
+      transparent 302px);
+}
+
+/* iOS Home Screen web apps may sample the HTML root instead of BODY for
+ * native status-bar tint. Both now carry identical top-anchored layers;
+ * browser-controlled bars inherit a close solid base via theme-color. */
+html {
+  background-color:var(--q238-status-base)!important;
+  background-image:var(--q238-top-blend),var(--q231-canvas)!important;
+  background-position:top center,top center!important;
+  background-repeat:no-repeat!important;
+  background-size:100% 100%,100% 100%!important;
+}
+html body {
+  background-color:var(--q238-status-base)!important;
+  background-image:var(--q238-top-blend),var(--q231-canvas)!important;
+  background-position:top center,top center!important;
+  background-repeat:no-repeat!important;
+  background-size:100% 100%,100% 100%!important;
+}
+/* The app/header and chat list stay transparent so the same canvas shows
+ * through instead of revealing a second, flat background strip. */
+html body .topbar,
+html body .app-shell,
+html body #appMain,
+html body #pageChat,
+html body #pageChat .chat-panel,
+html body #pageTasks,
+html body #pageLongTerm,
+html body #pageCalendar,
+html body #pageFinance,
+html body #pageSettings {
+  background-color:transparent!important;
+}
+/* Full-screen chat's existing solid conversation surface and its keyboard
+ * offsets remain governed by chat-viewport-v210.css and later styles. */
