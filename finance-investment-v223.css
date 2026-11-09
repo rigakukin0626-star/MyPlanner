@@ -1,0 +1,43 @@
+/* v223 — Investment overview with professional, understated neutral glass.
+   The investment screen presents securities only; banking accounts stay in Overall. */
+#pageFinance .fin-invest-summary{
+  position:relative;display:flex;flex-direction:column;gap:17px;min-width:0;
+  padding:22px 20px 19px;border-radius:25px;
+  background:linear-gradient(148deg,rgba(230,239,249,.68),rgba(250,252,255,.83));
+  border:1px solid rgba(133,160,194,.16);
+  box-shadow:0 6px 20px rgba(36,59,89,.035),inset 0 1px 0 rgba(255,255,255,.65);
+  color:var(--ink,#1d2b3c);
+}
+#pageFinance .fin-invest-summary-main{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0}
+#pageFinance .fin-invest-summary-main small,
+#pageFinance .fin-invest-summary-stats small{font-size:12px;font-weight:600;color:var(--muted,#8390a2);letter-spacing:.015em}
+#pageFinance .fin-invest-summary-main strong{font-size:clamp(29px,8vw,42px);font-weight:780;line-height:1.16;
+  letter-spacing:-.047em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#pageFinance .fin-invest-summary-main>span{font-size:11px;color:var(--muted,#8a96a6);font-weight:550}
+#pageFinance .fin-invest-summary-stats{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:13px;
+  padding-top:16px;border-top:1px solid rgba(117,151,188,.15)}
+#pageFinance .fin-invest-summary-stats>div{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+#pageFinance .fin-invest-summary-stats strong{font-size:clamp(15px,4.4vw,20px);font-weight:760;line-height:1.35;
+  letter-spacing:-.025em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#pageFinance .fin-invest-summary-stats span{font-size:12px;font-weight:670;font-variant-numeric:tabular-nums}
+#pageFinance .fin-invest-summary .is-profit{color:#19845e}
+#pageFinance .fin-invest-summary .is-loss{color:#bd5260}
+#pageFinance .fin-invest-summary .is-neutral{color:var(--muted,#8190a3)}
+#pageFinance .fin-daily-chart .fin-daily-brief{margin:11px 0 0;font-size:11px;
+  line-height:1.5;color:var(--muted,#8893a3);letter-spacing:.008em}
+#pageFinance .fin-daily-chart .fin-daily-caption{margin-top:4px}
+html[data-theme="dark"] #pageFinance .fin-invest-summary{
+  background:linear-gradient(135deg,rgba(41,53,71,.80),rgba(32,41,57,.88));
+  border-color:rgba(190,207,230,.11);
+  box-shadow:inset 0 1px 0 rgba(231,244,255,.07),0 8px 19px rgba(0,0,0,.09)}
+html[data-theme="dark"] #pageFinance .fin-invest-summary-stats{border-color:rgba(190,210,237,.12)}
+html[data-theme="dark"] #pageFinance .fin-invest-summary .is-profit{color:#7cddb4}
+html[data-theme="dark"] #pageFinance .fin-invest-summary .is-loss{color:#f89caa}
+@media(max-width:370px){
+ #pageFinance .fin-invest-summary{padding:19px 16px 17px}
+ #pageFinance .fin-invest-summary-stats{gap:9px}
+ #pageFinance .fin-invest-summary-stats strong{font-size:15px}
+}
+@media(prefers-reduced-transparency:reduce){
+ #pageFinance .fin-invest-summary{background:var(--surface)!important;box-shadow:none!important}
+}
