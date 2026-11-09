@@ -2787,7 +2787,7 @@ showWelcomeAuth();
  const root=document.documentElement;
  let raf=0, lastHeight=0, lastTop=-1, wasOpen=false;
  let knownWidth=window.innerWidth, baseline=window.visualViewport?.height||window.innerHeight;
- let focusAnchor=null, settleTimer=0;
+ let focusAnchor=null, settleTimer=0, viewportSettleTimer=0;
  // WebKit can pan fixed descendants when the keyboard opens even though the
  // page itself reports scrollY=0. A measured correction (not a guessed keyboard
  // height) keeps the entire conversation above the software keyboard.
@@ -2881,6 +2881,16 @@ showWelcomeAuth();
  };
  const updateViewport=()=>{
   if(!raf)raf=requestAnimationFrame(applyViewport);
+  // iOS can finish a keyboard/emoji transition after the last resize event.
+  // Coalesce a trailing sample instead of relying on the intermediate size.
+  if(activeField()&&document.body.classList.contains("chat-open")){
+   if(viewportSettleTimer)clearTimeout(viewportSettleTimer);
+   viewportSettleTimer=setTimeout(()=>{
+    viewportSettleTimer=0;
+    if(!document.hidden&&activeField()&&document.body.classList.contains("chat-open")&&!raf)
+     raf=requestAnimationFrame(applyViewport);
+   },220);
+  }
  };
  const scheduledGrow=new WeakSet();
  const grow=input=>{
