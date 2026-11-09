@@ -1,5 +1,5 @@
-const CACHE_NAME = "my-planner-v216";
-const FILES = ["./","./index.html","./minimal.css?v=184","./liquid-glass-v185.css?v=185.1","./liquid-glass-fix-v186.css?v=186","./liquid-glass-v187.css?v=187","./liquid-glass-v188.css?v=188","./liquid-glass-v189.css?v=189","./liquid-glass-v190.css?v=190","./liquid-glass-v191.css?v=191","./liquid-glass-v192.css?v=192","./keyboard-stability-v194.css?v=194","./chat-viewport-v210.css?v=210","./chat-composer-v211.css?v=211","./chat-latest-v212.css?v=212","./script.js?v=216","./finance-v196.js?v=216","./finance-v196.css?v=196","./english-layout-v197.css?v=197","./currency-v198.css?v=198","./native-currency-v199.css?v=199","./currency-record-v200.css?v=200","./currency-ui-v201.css?v=201","./modal-footer-v202.css?v=202","./dialog-grid-v203.css?v=203","./finance-currency-fix-v204.css?v=204","./finance-account-v205.css?v=205","./finance-trades-v214.css?v=214","./finance-quotes-v215.css?v=215","./finance-quotes-v216.css?v=216","./market-chart-v216.html","./line-ui.js?v=184","./manifest.json?v=63","./icon.svg?v=170"];
+const CACHE_NAME = "my-planner-v217";
+const FILES = ["./","./index.html","./minimal.css?v=184","./liquid-glass-v185.css?v=185.1","./liquid-glass-fix-v186.css?v=186","./liquid-glass-v187.css?v=187","./liquid-glass-v188.css?v=188","./liquid-glass-v189.css?v=189","./liquid-glass-v190.css?v=190","./liquid-glass-v191.css?v=191","./liquid-glass-v192.css?v=192","./keyboard-stability-v194.css?v=194","./chat-viewport-v210.css?v=210","./chat-composer-v211.css?v=211","./chat-latest-v212.css?v=212","./script.js?v=216","./finance-v196.js?v=217","./finance-v196.css?v=196","./english-layout-v197.css?v=197","./currency-v198.css?v=198","./native-currency-v199.css?v=199","./currency-record-v200.css?v=200","./currency-ui-v201.css?v=201","./modal-footer-v202.css?v=202","./dialog-grid-v203.css?v=203","./finance-currency-fix-v204.css?v=204","./finance-account-v205.css?v=205","./finance-trades-v214.css?v=214","./finance-quotes-v215.css?v=215","./finance-quotes-v216.css?v=216","./finance-chart-v217.css?v=217","./line-ui.js?v=184","./manifest.json?v=63","./icon.svg?v=170"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)));
   self.skipWaiting();
@@ -13,12 +13,7 @@ self.addEventListener("fetch", event => {
   const url = new URL(event.request.url);
   // Never cache authentication, Supabase data, signed media, or other cross-origin requests.
   if (url.origin !== self.location.origin) return;
-  // The chart iframe is a separate document. Never replace the offline app
-  // shell (index.html) with its markup when the iframe navigates.
-  if (url.pathname.endsWith("/market-chart-v216.html")) {
-    event.respondWith(caches.match("./market-chart-v216.html").then(cached => cached || fetch(event.request)));
-    return;
-  }
+  // Charts are rendered natively; no external chart iframe is precached.
   if (event.request.mode === "navigate") {
     event.respondWith(fetch(event.request,{cache:"no-store"}).then(response => {
       if (response.ok) { const copy=response.clone(); caches.open(CACHE_NAME).then(cache=>cache.put("./index.html",copy)); }
