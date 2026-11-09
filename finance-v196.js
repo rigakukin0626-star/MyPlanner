@@ -541,7 +541,7 @@ function portfolio(){
    '<div class="fin-holding-totals-right"><small>'+gainLabel+'</small><strong class="'+pClass+'">'+pnlText+'</strong>'+
    '<span class="'+pClass+'">'+pctText+'</span></div></div></div>';
  }).join("");
- return section(t("invest"),button("＋ "+t("addHolding"),"holding"),marketStatus()+
+ return section(chartString("持仓明细","保有銘柄","Holdings"),button("＋ "+t("addHolding"),"holding"),marketStatus()+
   (rows||'<p class="fin-empty">'+t("noHoldings")+'</p>')+
   '<div class="fin-actions">'+button(t("addTrade"),"trade")+'</div>');
 }
