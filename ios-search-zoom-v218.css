@@ -1,0 +1,33 @@
+/* v218: iOS Safari does not auto-zoom focused inputs when computed font-size >= 16px.
+   Do not disable user pinch-zoom or modify viewport maximum-scale. */
+@media (hover:none) and (pointer:coarse) {
+  #pageChat #chatListSearchInput,
+  #pageChat #chatSearchUsername,
+  #pageChat #chatFriendCode,
+  #pageChat #chatGroupName,
+  #pageChat #chatGroupJoinCode,
+  #pageChat #chatGroupAddUsername,
+  #pageChat #chatGroupInviteCode,
+  #pageChat #chatMessageInput,
+  #pageChat #chatGroupMessageInput,
+  #pageChat input:not([type="file"]):not([type="hidden"]),
+  #pageChat textarea {
+    font-size:16px!important;
+    line-height:1.4;
+    -webkit-text-size-adjust:100%;
+    text-size-adjust:100%;
+  }
+  #pageChat .chat-list-search,
+  #pageChat .chat-list-search input,
+  #pageChat .chat-list-search input:focus {
+    transform:none!important;
+    scale:1!important;
+  }
+  #pageChat .chat-list-search input:focus {
+    outline:none;
+    box-shadow:none;
+  }
+  #pageChat .chat-list-search:focus-within {
+    box-shadow:0 0 0 1px rgba(55,116,210,.35);
+  }
+}
