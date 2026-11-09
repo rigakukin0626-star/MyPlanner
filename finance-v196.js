@@ -265,8 +265,8 @@ function historyMoney(v){
 }
 function historyCard(kind){
  const investing=kind==="investment",key=investing?"investmentSnapshots":"snapshots",days=financeHistoryRange[kind];
- const title=investing?chartString("每日持仓市值","日次保有評価額","Daily investment value"):
-  chartString("每日净资产","日次純資産","Daily net worth");
+ const title=investing?chartString("市值走势","評価額の推移","Market value trend"):
+  chartString("净资产走势","純資産の推移","Net worth trend");
  const current=dateNumber(japanFinanceDate()),start=current-(days-1)*86400000;
  const valid=(Array.isArray(doc[key])?doc[key]:[]).filter(p=>p&&Number.isFinite(p.value)&&
   Number.isFinite(dateNumber(p.date))&&dateNumber(p.date)>=start&&dateNumber(p.date)<=current);
@@ -311,25 +311,14 @@ function historyCard(kind){
     '<span class="fin-daily-delta '+up+'">'+change+'</span>'+
     '<div class="fin-daily-plot '+(investing?"investment":"net")+'">'+svg+'</div>'+
     '<p class="fin-daily-caption"><span class="fin-dot"></span>'+points.length+' '+
-    chartString("个记录日","日分の記録","recorded days")+' · '+last.date+'</p>'+
-    '<p class="fin-daily-footnote">'+(points.length===1?
-     chartString("已开始记录；不编造过去的价格。","過去の値は補完しません。","History starts with real records; no synthetic data."):
-     chartString("虚线表示未记录的日期间隔。","破線は記録のない期間です。","Dotted segments show days without recordings."))+'</p>';
+    chartString("个记录日","日分の記録","recorded days")+' · '+last.date+'</p>';
  }
  const note=investing?
-  chartString("市值使用实际持仓与参考报价；行情不可用时采用手动价格。",
-   "保有数量と参考株価で計算し、取得できない場合は手入力価格を使用。",
-   "Uses holding quantities and reference quotes, with manual-price fallback."):
-  chartString("净资产包括账户、投资和负债；外币使用当前设定的手动汇率。",
-   "口座・投資・負債を含みます。外貨は現在の手動レートで換算。",
-   "Includes accounts, investments and debt; foreign currencies use current manual FX.");
- const collection=chartString(
-  "当天曲线随持仓行情、消费、收入和负债变化自动更新；资产页打开时每约3分钟检查报价。完全关闭期间不会后台更新。",
-  "当日の記録は株価・支出・収入・負債の変更で更新。資産画面では約3分ごとに株価を確認。完全終了中は更新されません。",
-  "Today's record follows quotes, spending, income and liabilities. Checks prices about every 3 minutes while Finance is open; no updates when fully closed.");
+  chartString("每日估值 · 参考行情可能延迟","日次評価 · 参考株価は遅延する場合があります","Daily valuation · reference prices may be delayed"):
+  chartString("每日估值 · 包含账户、投资及负债","日次評価 · 口座・投資・負債を含みます","Daily valuation · accounts, investments and liabilities");
  return '<section class="fin-card fin-daily-chart"><div class="fin-section-title"><h2>'+title+
   '</h2></div><div class="fin-daily-toolbar" role="group" aria-label="'+title+'">'+periods+'</div>'+
-  content+'<p class="fin-daily-footnote">'+note+'</p><p class="fin-daily-footnote">'+collection+'</p></section>';
+  content+'<p class="fin-daily-footnote fin-daily-brief">'+note+'</p></section>';
 }
 function netChart(){return historyCard("net")}
 function investmentChart(){return historyCard("investment")}
@@ -501,6 +490,34 @@ function openNativeQuote(x){
  box.showModal();void load();
 }
 
+// v223: Investment tab metrics are independent of cash/credit account presentation.
+function investmentSummary(){
+ let marketJPY=0,costJPY=0,active=0,allCostsKnown=true;
+ for(const item of doc.holdings){
+  const shares=qty(item);if(!(shares>0))continue;
+  active++;
+  marketJPY+=priceValue(item);
+  const unit=holdingBasis(item),fx=holdingFX(item);
+  if(!(unit>0)||fx===null){allCostsKnown=false;continue}
+  costJPY+=shares*unit*fx;
+ }
+ const validMarket=Number.isFinite(marketJPY),validCost=allCostsKnown&&Number.isFinite(costJPY);
+ const change=validMarket&&validCost?marketJPY-costJPY:null;
+ const pct=change!==null&&costJPY>0?change/costJPY*100:null;
+ const tone=change===null?'is-neutral':change>0?'is-profit':change<0?'is-loss':'is-neutral';
+ const diff=change===null?'—':(change>0?'+':change<0?'−':'')+historyMoney(Math.abs(change));
+ const pctLabel=pct===null?'':(pct>0?'+':'')+pct.toFixed(2)+'%';
+ const label=(zh,ja,en)=>chartString(zh,ja,en);
+ return '<section class="fin-invest-summary" aria-label="'+label('投资概况','投資サマリー','Investment overview')+'">'+
+  '<div class="fin-invest-summary-main"><small>'+label('投资总市值','保有資産評価額','Total market value')+
+  '</small><strong>'+(validMarket?historyMoney(marketJPY):'—')+'</strong>'+
+  '<span>'+active+' '+label('项持仓','銘柄','holdings')+'</span></div>'+
+  '<div class="fin-invest-summary-stats"><div><small>'+label('持仓成本','保有原価','Cost basis')+
+  '</small><strong>'+(validCost?historyMoney(costJPY):'—')+'</strong></div>'+
+  '<div><small>'+label('浮动盈亏','評価損益','Unrealized P/L')+
+  '</small><strong class="'+tone+'">'+diff+'</strong>'+
+  (pctLabel?'<span class="'+tone+'">'+pctLabel+'</span>':'')+'</div></div></section>';
+}
 function portfolio(){
  const rows=doc.holdings.map(x=>{
   const q=qty(x),p=effectivePrice(x),basis=holdingBasis(x),value=q*p,delta=q*(p-basis),percent=basis?(p-basis)/basis*100:null;
@@ -526,7 +543,7 @@ function portfolio(){
  }).join("");
  return section(t("invest"),button("＋ "+t("addHolding"),"holding"),marketStatus()+
   (rows||'<p class="fin-empty">'+t("noHoldings")+'</p>')+
-  '<div class="fin-actions">'+button(t("addTrade"),"trade")+'</div>')+accounts();
+  '<div class="fin-actions">'+button(t("addTrade"),"trade")+'</div>');
 }
 function budgetView(){
  const month=nowDate().slice(0,7);
@@ -583,7 +600,7 @@ function render(){
  const root=document.getElementById('financeRoot');if(!root)return;
  const x=nativeTotals(),summary='<div class="fin-hero"><small>'+t('net')+'</small><strong>'+currencyMoney(x.net)+'</strong><div><span>'+t('assets')+'<b>'+currencyMoney(x.assets)+'</b></span><span>'+t('debt')+'<b>'+currencyMoney(x.debt)+'</b></span></div></div>';
  root.innerHTML='<header class="fin-head"><div><p>MY PLANNER / FINANCE</p><h1>'+t('title')+'</h1></div><label class="fin-record-currency">'+option('recordCurrency',currencyOptions(),selectedRecordCurrency())+'</label></header><div class="fin-tabs">'+['overview','history','invest','budgets','manage'].map(k=>'<button data-fin-pane="'+k+'" class="'+(k===pane?'active':'')+'">'+t(k)+'</button>').join('')+'</div>'+
- (pane==='overview'?summary+netChart()+alerts()+cashFlow()+accounts()+bars()+categoryBreakdown()+entries(7):pane==='history'?entries():pane==='invest'?summary+investmentChart()+portfolio():pane==='budgets'?budgetView():settings()+accounts());
+ (pane==='overview'?summary+netChart()+alerts()+cashFlow()+accounts()+bars()+categoryBreakdown()+entries(7):pane==='history'?entries():pane==='invest'?investmentSummary()+investmentChart()+portfolio():pane==='budgets'?budgetView():settings()+accounts());
  const label=document.getElementById('tabFinanceLabel');if(label)label.textContent=t('title');
   if(document.body.dataset.activePage==='finance'&&(pane==='overview'||pane==='invest'))void refreshQuotes();
 }
