@@ -1,0 +1,204 @@
+/* My Planner v220 — Quiet Frost / restrained iOS glass.
+   Replaces the overly saturated v219 crystal gradient; no double rings,
+   exaggerated glow, or stacking pseudo-elements. Existing click handlers stay intact. */
+:root{
+  --qg-track:rgba(119,143,178,.095);
+  --qg-hairline:rgba(102,131,169,.095);
+  --qg-selected:rgba(255,255,255,.77);
+  --qg-selected-edge:rgba(255,255,255,.66);
+  --qg-ink:#2f649f;
+  --qg-muted:var(--muted,#7c899b);
+  --qg-shadow:rgba(28,48,78,.075);
+  --qg-focus:rgba(53,113,190,.45);
+  --qg-focus-halo:rgba(53,113,190,.065);
+}
+html[data-theme="dark"]{
+  --qg-track:rgba(193,212,240,.075);
+  --qg-hairline:rgba(195,212,239,.075);
+  --qg-selected:rgba(187,208,238,.13);
+  --qg-selected-edge:rgba(226,238,255,.15);
+  --qg-ink:#bfd9ff;
+  --qg-muted:#93a1b7;
+  --qg-shadow:rgba(0,0,0,.14);
+  --qg-focus:rgba(142,187,249,.52);
+  --qg-focus-halo:rgba(114,169,241,.08);
+}
+
+/* Chat: equal-width, flush-fitted neutral glass segments. */
+#pageChat .chat-mode-switch{
+  box-sizing:border-box!important;
+  display:flex!important;
+  align-items:stretch!important;
+  width:100%!important;
+  min-height:50px!important;
+  margin:8px 0 5px!important;
+  padding:3px!important;
+  gap:3px!important;
+  background:var(--qg-track)!important;
+  border:1px solid transparent!important;
+  border-radius:19px!important;
+  box-shadow:inset 0 0 0 .5px var(--qg-hairline)!important;
+  -webkit-backdrop-filter:blur(12px) saturate(125%);
+  backdrop-filter:blur(12px) saturate(125%);
+}
+#pageChat .chat-mode-switch button{
+  box-sizing:border-box!important;
+  flex:1 1 0%!important;
+  min-width:0!important;
+  min-height:43px!important;
+  margin:0!important;
+  padding:8px 12px!important;
+  border:1px solid transparent!important;
+  border-radius:15px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:var(--qg-muted)!important;
+  font-size:15px!important;
+  font-weight:650!important;
+  line-height:1.25!important;
+  -webkit-tap-highlight-color:transparent;
+  transition:background-color .17s ease,color .17s ease,box-shadow .17s ease!important;
+}
+#pageChat .chat-mode-switch button:is(.active,[aria-pressed="true"]){
+  background:var(--qg-selected)!important;
+  border-color:var(--qg-selected-edge)!important;
+  color:var(--qg-ink)!important;
+  box-shadow:0 1px 5px var(--qg-shadow)!important;
+  font-weight:740!important;
+  -webkit-backdrop-filter:blur(8px) saturate(112%);
+  backdrop-filter:blur(8px) saturate(112%);
+}
+
+/* Settings: same quiet material instead of large shining blue pills. */
+#pageSettings .appearance-options{
+  box-sizing:border-box!important;
+  display:flex!important;
+  align-items:stretch!important;
+  gap:3px!important;
+  padding:3px!important;
+  border:1px solid transparent!important;
+  border-radius:18px!important;
+  background:var(--qg-track)!important;
+  box-shadow:inset 0 0 0 .5px var(--qg-hairline)!important;
+  -webkit-backdrop-filter:blur(12px) saturate(125%);
+  backdrop-filter:blur(12px) saturate(125%);
+}
+#pageSettings .appearance-options button{
+  box-sizing:border-box!important;
+  flex:1 1 0%!important;
+  min-width:0!important;
+  min-height:43px!important;
+  margin:0!important;
+  padding:8px 4px!important;
+  border:1px solid transparent!important;
+  border-radius:14px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:var(--qg-muted)!important;
+  font-weight:630!important;
+  transition:background-color .17s ease,color .17s ease,box-shadow .17s ease!important;
+}
+#pageSettings .appearance-options button:is(.active,[aria-pressed="true"]){
+  background:var(--qg-selected)!important;
+  border-color:var(--qg-selected-edge)!important;
+  color:var(--qg-ink)!important;
+  box-shadow:0 1px 5px var(--qg-shadow)!important;
+}
+#pageSettings .appearance-options button small{color:inherit!important;opacity:.70}
+
+/* Finance and tasks use the identical understated selection. */
+#pageFinance .fin-tabs,
+#pageTasks #taskTabs{
+  box-sizing:border-box!important;
+  gap:3px!important;
+  padding:3px!important;
+  border:1px solid transparent!important;
+  border-radius:18px!important;
+  background:var(--qg-track)!important;
+  box-shadow:inset 0 0 0 .5px var(--qg-hairline)!important;
+  -webkit-backdrop-filter:blur(12px) saturate(125%);
+  backdrop-filter:blur(12px) saturate(125%);
+}
+#pageFinance .fin-tabs button,
+#pageTasks #taskTabs .tab{
+  box-sizing:border-box!important;
+  min-width:0!important;
+  min-height:41px!important;
+  margin:0!important;
+  border:1px solid transparent!important;
+  border-radius:14px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:var(--qg-muted)!important;
+  transition:background-color .17s ease,color .17s ease,box-shadow .17s ease!important;
+}
+#pageFinance .fin-tabs button{
+  flex:1 1 0%!important;
+  font-size:clamp(11px,2.9vw,13px)!important;
+  font-weight:650!important;
+  padding:9px 2px!important;
+}
+#pageFinance .fin-tabs button.active,
+#pageTasks #taskTabs .tab.active{
+  background:var(--qg-selected)!important;
+  border-color:var(--qg-selected-edge)!important;
+  color:var(--qg-ink)!important;
+  box-shadow:0 1px 5px var(--qg-shadow)!important;
+}
+
+/* Keep search/focus coherent: one fine outline, no stacked blue halos. */
+#pageChat .chat-list-search{
+  border:1px solid var(--qg-hairline)!important;
+  border-radius:17px!important;
+  background:var(--qg-track)!important;
+  box-shadow:none!important;
+}
+#pageChat .chat-list-search:focus-within{
+  border-color:var(--qg-focus)!important;
+  background:var(--surface)!important;
+  box-shadow:0 0 0 2px var(--qg-focus-halo)!important;
+}
+#pageChat .chat-list-search input:is(:focus,:focus-visible){
+  outline:none!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+#pageChat #lineActionScreen :is(#chatSearchUsername,#chatFriendCode,#chatGroupName,#chatGroupJoinCode,#chatGroupAddUsername){
+  box-sizing:border-box!important;
+  max-width:100%!important;
+  font-size:16px!important;
+  border:1px solid var(--qg-hairline)!important;
+  border-radius:16px!important;
+  background:var(--surface)!important;
+  box-shadow:none!important;
+}
+#pageChat #lineActionScreen :is(#chatSearchUsername,#chatFriendCode,#chatGroupName,#chatGroupJoinCode,#chatGroupAddUsername):is(:focus,:focus-visible){
+  outline:none!important;
+  border-color:var(--qg-focus)!important;
+  box-shadow:0 0 0 2px var(--qg-focus-halo)!important;
+}
+
+/* Visible keyboard focus stays accessible; touch states remain calm. */
+#pageChat .chat-mode-switch button:focus-visible,
+#pageSettings .appearance-options button:focus-visible,
+#pageFinance .fin-tabs button:focus-visible,
+#pageTasks #taskTabs .tab:focus-visible{
+  outline:2px solid var(--qg-focus)!important;
+  outline-offset:1px!important;
+}
+@media(prefers-reduced-transparency:reduce){
+  #pageChat .chat-mode-switch,
+  #pageSettings .appearance-options,
+  #pageFinance .fin-tabs,
+  #pageTasks #taskTabs{background:var(--field)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+  #pageChat .chat-mode-switch button:is(.active,[aria-pressed="true"]),
+  #pageSettings .appearance-options button:is(.active,[aria-pressed="true"]),
+  #pageFinance .fin-tabs button.active,
+  #pageTasks #taskTabs .tab.active{background:var(--surface)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+}
+@media(prefers-reduced-motion:reduce){
+  #pageChat .chat-mode-switch button,
+  #pageSettings .appearance-options button,
+  #pageFinance .fin-tabs button,
+  #pageTasks #taskTabs .tab{transition:none!important}
+}
