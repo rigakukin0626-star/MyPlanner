@@ -1,0 +1,70 @@
+/* My Planner v217: native market charts + readable, liquid-glass holding cards */
+.fin-holding-card{box-sizing:border-box;display:flex;flex-direction:column;gap:15px;
+ margin:12px 0 18px;padding:16px;border:1px solid rgba(145,166,197,.19);
+ border-radius:22px;background:linear-gradient(145deg,rgba(244,248,255,.76),rgba(255,255,255,.46));
+ min-width:0;box-shadow:0 4px 18px rgba(47,68,108,.035)}
+.fin-holding-card-head{display:flex;align-items:center;gap:10px;justify-content:space-between;min-width:0}
+.fin-holding-identity{display:flex;align-items:center;gap:10px;min-width:0;flex:1;background:none;border:0;
+ padding:0;text-align:left;color:var(--ink,#182338);font:inherit;cursor:pointer}
+.fin-holding-identity .fin-emblem{flex:0 0 44px;width:44px;height:44px;display:grid;place-items:center;
+ border-radius:15px;background:rgba(45,115,213,.095);color:#3477cc;font-size:21px}
+.fin-holding-name{min-width:0;display:flex;flex-direction:column;gap:5px}
+.fin-holding-name strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:750;line-height:1.4}
+.fin-holding-name small{font-size:12px;color:var(--muted,#788398);font-weight:550}
+.fin-holding-card-head .fin-quote-link{flex:0 0 auto;min-width:0;font-size:12px;padding:9px 11px;
+ white-space:nowrap;margin:0;max-width:110px}
+.fin-holding-prices{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.fin-holding-prices>div{min-width:0;display:flex;flex-direction:column;gap:5px}
+.fin-holding-prices small,.fin-holding-totals small{font-size:11px;line-height:1.5;color:var(--muted,#788398);font-weight:600}
+.fin-holding-prices strong{font-size:16px;line-height:1.35;color:var(--ink,#16233a);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fin-holding-prices span{font-size:11px;color:var(--muted,#7c899a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fin-holding-totals{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;
+ border-top:1px solid rgba(133,155,185,.17);padding-top:13px}
+.fin-holding-totals>div{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fin-holding-totals strong{font-size:clamp(15px,4vw,20px);line-height:1.25;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+.fin-holding-totals-right{align-items:flex-end;text-align:right}
+.fin-holding-totals-right span{font-weight:750;font-size:12px;white-space:nowrap}
+.fin-holding-card .is-profit,.fin-chart-summary .is-profit{color:#148965}
+.fin-holding-card .is-loss,.fin-chart-summary .is-loss{color:#bf4559}
+.fin-holding-card .is-flat,.fin-chart-summary .is-flat{color:var(--muted,#768398)}
+.fin-native-dialog .fin-quote-shell{min-height:0}
+.fin-native-dialog .fin-quote-head{padding-bottom:5px}
+.fin-native-dialog .fin-quote-info{align-items:center;font-size:12px}
+.fin-native-dialog .fin-quote-info strong{font-size:18px;font-variant-numeric:tabular-nums}
+.fin-chart-controls{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:8px 14px 12px}
+.fin-chart-periods,.fin-chart-modes{display:flex;gap:3px;border-radius:14px;background:var(--field,#edf2f9);padding:3px;min-width:0}
+.fin-chart-periods button,.fin-chart-modes button{font:inherit;font-size:12px;font-weight:700;
+ min-height:32px;border-radius:11px;padding:5px 8px;color:var(--muted,#7b8799);background:transparent;border:0;white-space:nowrap}
+.fin-chart-periods button.active,.fin-chart-modes button.active{background:var(--surface,#fff);
+ color:var(--ink,#182334);box-shadow:0 1px 6px rgba(38,61,100,.12)}
+.fin-native-dialog .fin-quote-frame{display:flex;align-items:center;justify-content:center;
+ min-height:180px;flex:1 1 auto;overflow:hidden;border-radius:17px;background:var(--surface,#fff)}
+.fin-native-chart{display:block;max-width:100%;width:100%;height:100%;min-height:180px;overflow:visible}
+.fin-chart-grid{stroke:var(--line,#e5eaf0);stroke-width:1;stroke-dasharray:3 5}
+.fin-chart-axis{fill:var(--muted,#7e8b9e);font-size:12px;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif}
+.fin-chart-status{font-size:13px;color:var(--muted,#718094);text-align:center;line-height:1.7;padding:20px;max-width:300px}
+.fin-chart-summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;
+ justify-content:space-between;padding:10px 17px 0;font-size:12px;color:var(--muted,#788398)}
+.fin-chart-summary b{font-size:15px;color:var(--ink,#182334)}
+.fin-chart-summary>span{white-space:nowrap}
+.fin-chart-summary small{width:100%;color:var(--muted,#83909f);font-size:11px}
+.fin-native-dialog .fin-quote-explain{font-size:10px;line-height:1.4;padding:8px 16px 11px}
+.fin-native-dialog .fin-quote-footer{padding-top:0;gap:8px}
+.fin-native-dialog .fin-quote-footer>button:last-child{background:#2e76d5;color:#fff;border-color:transparent}
+html[data-theme="dark"] .fin-holding-card{background:linear-gradient(140deg,rgba(42,53,73,.7),rgba(28,35,48,.76));border-color:rgba(172,195,228,.13)}
+html[data-theme="dark"] .fin-holding-prices strong{color:var(--ink,#e8eef7)}
+html[data-theme="dark"] .fin-holding-card .is-profit{color:#6fe4b0}
+html[data-theme="dark"] .fin-holding-card .is-loss{color:#ff8b99}
+@media(max-width:400px){
+ .fin-holding-card{padding:13px;gap:13px}
+ .fin-holding-card-head .fin-quote-link{padding:8px 10px;font-size:11px}
+ .fin-holding-name strong{font-size:13px}
+ .fin-holding-prices strong{font-size:15px}
+ .fin-chart-controls{padding:7px 12px 9px;gap:5px}
+ .fin-chart-periods button,.fin-chart-modes button{font-size:11px;padding:5px 7px}
+}
+@media(max-height:650px){
+ .fin-native-dialog .fin-quote-frame{min-height:130px}
+ .fin-native-dialog .fin-quote-explain{padding-block:5px}
+ .fin-chart-controls{padding-block:5px}
+}
