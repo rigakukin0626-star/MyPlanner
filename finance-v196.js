@@ -51,7 +51,13 @@ const currencyMoney=value=>Number.isFinite(value)?nativeMoney(value,selectedReco
 const nativeTotals=()=>{
  const b=balances();let assets=0,debt=0;
  for(const a of doc.accounts){const v=currencyValue(b.get(a.id),a.currency);if(credit(a))debt+=v;else assets+=v}
- for(const holding of doc.holdings){const v=priceValue(holding),r=rate(selectedRecordCurrency());assets+=v===0?0:r===null?NaN:v/r}
+ for(const holding of doc.holdings){
+  const value=qty(holding)*Number(holding.price),target=selectedRecordCurrency();
+  if(!value)continue;
+  if(holding.currency===target){assets+=value;continue}
+  const sourceFX=holdingFX(holding),targetFX=rate(target);
+  assets+=sourceFX===null||targetFX===null?NaN:value*sourceFX/targetFX;
+ }
  return {assets,debt,net:assets-debt};
 };
 const nativeMonthData=(ym=nowDate().slice(0,7))=>doc.transactions.filter(x=>x.date.startsWith(ym)).reduce((sum,x)=>{
@@ -93,7 +99,8 @@ function balances(){
  return sums;
 }
 const qty=x=>doc.trades.filter(y=>y.holding===x.id).reduce((n,y)=>n+(y.side==='buy'?y.qty:-y.qty),Number(x.openingQty)||0);
-const priceValue=x=>qty(x)*x.price*x.fx;
+const holdingFX=x=>rate(x.currency)??(x.fx!=null&&Number.isFinite(Number(x.fx))&&Number(x.fx)>0?Number(x.fx):null);
+const priceValue=x=>{const original=qty(x)*Number(x.price);if(!original)return 0;const fx=holdingFX(x);return fx===null?NaN:original*fx};
 function totals(){const b=balances();let assets=0,debt=0;for(const a of doc.accounts){if(credit(a))debt+=toJPY(b.get(a.id),a.currency);else assets+=toJPY(b.get(a.id),a.currency)}for(const x of doc.holdings)assets+=priceValue(x);return {assets,debt,net:assets-debt}}
 function read(){try{const d=JSON.parse(localStorage.getItem(BASE+owner)||'null');doc=d&&d.version===1&&['accounts','transactions','holdings','trades','budgets','snapshots'].every(k=>Array.isArray(d[k]))?d:blank();ensurePrefs();const m=JSON.parse(localStorage.getItem(META+owner)||'null');revision=m?.revision??null;dirty=Boolean(m?.dirty)}catch(e){doc=blank();revision=null;dirty=false}}
 function metadata(){localStorage.setItem(META+owner,JSON.stringify({revision,dirty}))}
@@ -152,7 +159,7 @@ function netChart(){
  return section(t('trend'),'', '<svg viewBox="0 0 640 130" class="fin-trend" role="img"><path d="'+path+'" stroke="#397ce6" fill="none" stroke-width="4" stroke-linecap="round"/></svg>');
 }
 function portfolio(){
- return section(t('invest'),button('＋ '+t('addHolding'),'holding'),'<p class="fin-note">'+t('manual')+'</p>'+doc.holdings.map(x=>'<button class="fin-account" data-fin-holding="'+h(x.id)+'"><span class="fin-emblem">↗</span><span class="fin-account-name"><b>'+h(x.symbol)+' · '+h(x.name)+'</b><small>'+qty(x)+' × '+x.price+' '+h(x.currency)+' / FX '+x.fx+'</small></span><strong>'+yen(priceValue(x))+'</strong></button>').join('')+'<div class="fin-actions">'+button(t('addTrade'),'trade')+'</div>')+accounts();
+ return section(t('invest'),button('＋ '+t('addHolding'),'holding'),'<p class="fin-note">'+t('manual')+'</p>'+doc.holdings.map(x=>'<button class="fin-account" data-fin-holding="'+h(x.id)+'"><span class="fin-emblem">↗</span><span class="fin-account-name"><b>'+h(x.symbol)+' · '+h(x.name)+'</b><small>'+qty(x)+' × '+nativeMoney(x.price,x.currency)+'</small></span><strong>'+nativeMoney(qty(x)*x.price,x.currency)+'</strong></button>').join('')+'<div class="fin-actions">'+button(t('addTrade'),'trade')+'</div>')+accounts();
 }
 function budgetView(){
  const month=nowDate().slice(0,7);
@@ -316,23 +323,24 @@ function addTx(){
  });
 }
 function addHolding(x){
- const current=x?.currency||'JPY',defaultFX=x?.fx||rate(current)||'';
+ const current=x?.currency||'JPY';
  dialog(x?t('price'):t('addHolding'),
   field(t('ticker'),'symbol','text',x?.symbol||'','maxlength="20"')+
   field(t('name'),'name','text',x?.name||'','maxlength="70"')+
   pick(t('type'),'currency',currencyOptions(),current)+
   (x?'':field(t('qty'),'openingQty','number',0,'min="0" step="0.0001"')+
     field(t('cost'),'cost','number',0,'min="0" step="0.0001"'))+
-  field(t('price'),'price','number',x?.price||0,'min="0" step="0.0001"')+
-  field(t('fx'),'fx','number',defaultFX,'min="0.000001" step="any"'),
+  field(t('price'),'price','number',x?.price||0,'min="0" step="0.0001"'),
  v=>{
-  if(!v.symbol.trim()||!CURRENCIES.includes(v.currency)||!number(v.price,true)||!number(v.fx)||
+  if(!v.symbol.trim()||!CURRENCIES.includes(v.currency)||!number(v.price,true)||
      (!x&&(!number(v.openingQty,true)||!number(v.cost,true))))return false;
-  if(x)Object.assign(x,{name:v.name.trim().slice(0,70),symbol:v.symbol.trim().slice(0,20),currency:v.currency,price:Number(v.price),fx:Number(v.fx)});
-  else doc.holdings.push({id:id(),name:v.name.trim().slice(0,70),symbol:v.symbol.trim().slice(0,20),currency:v.currency,openingQty:Number(v.openingQty),cost:Number(v.cost),price:Number(v.price),fx:Number(v.fx)});
- },box=>{
-  const select=box.querySelector('[name="currency"]'),rateInput=box.querySelector('[name="fx"]');
-  select.addEventListener('change',()=>{rateInput.value=rate(select.value)||''});
+  // The share price is recorded in its selected currency. A JPY rate is not
+  // required to save; retain a historical FX rate for unchanged currencies.
+  const oldFx=x&&x.currency===v.currency&&x.fx!=null&&Number(x.fx)>0?Number(x.fx):null;
+  const fx=rate(v.currency)??oldFx;
+  const data={name:v.name.trim().slice(0,70),symbol:v.symbol.trim().slice(0,20),currency:v.currency,price:Number(v.price),fx};
+  if(x)Object.assign(x,data);
+  else doc.holdings.push({id:id(),...data,openingQty:Number(v.openingQty),cost:Number(v.cost)});
  });
 }
 function addTrade(){
@@ -348,10 +356,11 @@ function addTrade(){
   const x=holding(v.holding),a=account(v.account);
   if(!x||!a||credit(a)||!number(v.qty)||!number(v.price,true)||!number(v.fees,true))return false;
   if(v.side==='sell'&&Number(v.qty)>qty(x)+1e-8)return alert(t('noSell')),false;
-  const accountFX=rate(a.currency);
-  if(accountFX===null){alert(ct('missing'));return false}
+  const sameCurrency=x.currency===a.currency;
+  const stockFX=holdingFX(x),accountFX=rate(a.currency);
+  if(!sameCurrency&&(stockFX===null||accountFX===null)){alert(ct('missing'));return false}
   doc.trades.push({id:id(),holding:x.id,side:v.side,qty:Number(v.qty),price:Number(v.price),
-   fees:Number(v.fees),fx:x.fx,accountFx:accountFX,account:v.account,date:v.date});
+   fees:Number(v.fees),fx:sameCurrency?1:stockFX,accountFx:sameCurrency?1:accountFX,account:v.account,date:v.date});
  });
 }
 function addBudget(category){
@@ -397,7 +406,7 @@ function importJSON(){
     (z.jpy!=null&&!finite(z.jpy,true))||
     (z.toAmount!=null&&!finite(z.toAmount,true))))throw Error('Invalid transaction');
   if(d.holdings.some(z=>!z||typeof z.id!=='string'||!CURRENCIES.includes(z.currency||'JPY')||
-    !finite(z.openingQty,true)||!finite(z.price,true)||!finite(z.fx,true)||Number(z.fx)<=0))throw Error('Invalid holding');
+    !finite(z.openingQty,true)||!finite(z.price,true)||(z.fx!=null&&(!finite(z.fx,true)||Number(z.fx)<=0))))throw Error('Invalid holding');
   if(d.trades.some(z=>!z||!['buy','sell'].includes(z.side)||!finite(z.qty,true)||
     !finite(z.price,true)||!finite(z.fx,true)||!finite(z.fees,true)||
     (z.accountFx!=null&&!finite(z.accountFx,true))))throw Error('Invalid trade');
