@@ -544,7 +544,10 @@ function portfolio(){
    '<button type="button" class="fin-holding-identity" data-fin-holding="'+h(x.id)+'" title="'+h(x.name)+'">'+
    '<span class="fin-emblem">↗</span><span class="fin-holding-name"><strong>'+h(x.symbol)+' · '+h(x.name)+'</strong>'+
    '<small>'+q+' '+chartString("股","株","shares")+'</small></span></button>'+
-   quoteLink(x)+'</div>'+
+   quoteLink(x)+
+   '<button type="button" class="fin-holding-manage" data-fin-holding="'+h(x.id)+'" aria-label="'+
+   h(chartString("编辑或删除持仓","保有銘柄の編集・削除","Edit or remove holding"))+'" title="'+
+   h(chartString("管理持仓","保有銘柄の管理","Manage holding"))+'">···</button></div>'+
    '<div class="fin-holding-prices"><div><small>'+priceLabel+'</small><strong>'+nativeMoney(p,x.currency)+'</strong>'+
    '<span>'+h(quoteDate)+'</span></div><div><small>'+costLabel+'</small><strong>'+nativeMoney(basis,x.currency)+'</strong>'+
    '<span>'+chartString("每股","1株あたり","Per share")+'</span></div></div>'+
@@ -720,7 +723,7 @@ function addTx(){
 }
 function addHolding(x){
  const current=x?.currency||'JPY';
- dialog(x?t('price'):t('addHolding'),
+ dialog(x?chartString('编辑持仓','保有銘柄の編集','Edit holding'):t('addHolding'),
   field(t('ticker'),'symbol','text',x?.symbol||'','maxlength="20"')+
   field(t('name'),'name','text',x?.name||'','maxlength="70"')+
   pick(t('type'),'currency',currencyOptions(),current)+
@@ -730,13 +733,53 @@ function addHolding(x){
  v=>{
   if(!v.symbol.trim()||!CURRENCIES.includes(v.currency)||!number(v.price,true)||
      (!x&&(!number(v.openingQty,true)||!number(v.cost,true))))return false;
-  // The share price is recorded in its selected currency. A JPY rate is not
-  // required to save; retain a historical FX rate for unchanged currencies.
   const oldFx=x&&x.currency===v.currency&&x.fx!=null&&Number(x.fx)>0?Number(x.fx):null;
   const fx=rate(v.currency)??oldFx;
   const data={name:v.name.trim().slice(0,70),symbol:v.symbol.trim().slice(0,20),currency:v.currency,price:Number(v.price),fx};
   if(x)Object.assign(x,data);
   else doc.holdings.push({id:id(),...data,openingQty:Number(v.openingQty),cost:Number(v.cost)});
+ },box=>{
+  if(!x)return;
+  const fields=box.querySelector('.fin-dialog-fields');
+  if(!fields)return;
+  const remove=document.createElement('button');
+  remove.type='button';
+  remove.className='fin-holding-delete';
+  remove.textContent=chartString('删除此持仓','この銘柄を削除','Remove this holding');
+  fields.append(remove);
+  remove.addEventListener('click',()=>{
+   const linked=doc.trades.filter(trade=>trade.holding===x.id);
+   const name=String(x.symbol||'')+(x.name?' · '+x.name:'');
+   const count=linked.length;
+   const message=language==='zh'?
+    '删除持仓「'+name+'」？\n'+(count?'关联的 '+count+' 条买卖记录也会删除，并可能改变账户余额和净资产。\n':'')+'删除前会在本机保存财务数据备份。':
+    language==='ja'?
+    '「'+name+'」を削除しますか？\n'+(count?'関連する売買 '+count+' 件も削除し、口座残高や純資産が変わる場合があります。\n':'')+'削除前に端末へバックアップを保存します。':
+    'Remove "'+name+'"?\n'+(count?count+' linked trades will also be deleted and may change account balances or net worth.\n':'')+'A local finance backup will be saved first.';
+   if(!confirm(message))return;
+   if(count){
+    const doubleCheck=language==='zh'?'再次确认：同时删除 '+count+' 条买卖记录？':
+     language==='ja'?'最終確認：売買記録 '+count+' 件も削除しますか？':
+     'Confirm removal of '+count+' linked trades?';
+    if(!confirm(doubleCheck))return;
+   }
+   // Preserve the complete original dataset before mutating linked holdings/trades.
+   // Abort instead of deleting if device storage is full.
+   try{
+    localStorage.setItem(BASE+owner+'.backup.holding-delete.'+Date.now(),
+      JSON.stringify({format:'mpfinance-v196',doc}));
+   }catch(err){
+    alert(chartString('备份失败，删除已取消。请先导出 JSON 备份。',
+      'バックアップ失敗のため削除を中止しました。先にJSONを書き出してください。',
+      'Backup failed. Deletion cancelled; export a JSON backup first.'));
+    return;
+   }
+   doc.holdings=doc.holdings.filter(item=>item.id!==x.id);
+   doc.trades=doc.trades.filter(trade=>trade.holding!==x.id);
+   // Historical daily valuations remain unchanged; today's value is updated by save().
+   box.close();
+   save();
+  });
  });
 }
 function addTrade(){
