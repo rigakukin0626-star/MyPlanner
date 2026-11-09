@@ -681,7 +681,7 @@ function updateChatLanguage(){
 }
 function chatStatus(message){const status=$("chatStatus");if(status.textContent!==message)status.textContent=message;if(!/^(好友列表已同步|友達一覧を同期しました|Friends synced)/.test(message))delete status.dataset.friendsSyncedCount}
 function chatError(error){chatStatus(error?.message||String(error))}
-function chatShowList(){chatReplyTarget=null;chatUpdateReplyPreview();if(chatActiveGroup)groupClose();document.body.classList.remove("chat-open");chatConfirmedCache=[];chatCachePeer=null;chatReadLastId=null;chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime()}
+function chatShowList(){chatReplyTarget=null;chatUpdateReplyPreview();if(chatActiveGroup)groupClose();const leaving=chatPeer;document.body.classList.remove("chat-open");chatConfirmedCache=[];chatCachePeer=null;chatReadLastId=null;chatLastSignature="";chatPeer=null;$("chatConversation").hidden=true;$("chatFriends").hidden=false;chatStopRealtime();if(leaving){chatFriendsLastLoaded=0;queueMicrotask(()=>void loadChatFriends())}}
 let chatRecallChannel=null;
 function chatRecallTopic(a,b){return "chat-recall-"+[a,b].sort().join("-")}
 function chatStopRealtime(){
@@ -756,7 +756,7 @@ function chatShowCachedFriends(){
   const orderedFriends=[...saved.friends].sort((a,b)=>Number(pinnedFriends.has(b.id))-Number(pinnedFriends.has(a.id)));
   for(const [order,friend] of orderedFriends.entries()){
    if(typeof friend.id!=="string"||typeof friend.name!=="string")continue;
-   const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
+   const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";btn.dataset.peerId=friend.id;
    const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=((chatRemarkFor(friend.id)||friend.name).trim()[0]||"?").toUpperCase();
    const content=document.createElement("span");content.className="chat-friend-info";
    const title=document.createElement("strong");title.textContent=chatRemarkFor(friend.id)||friend.name;
@@ -803,7 +803,7 @@ async function loadChatFriends(){
  const pinnedIds=new Set(chatPinnedPeers());
  sorted.sort((a,b)=>Number(pinnedIds.has(b))-Number(pinnedIds.has(a)));
  for(const [order,id] of sorted.entries()){
-  const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";
+  const btn=document.createElement("button");btn.type="button";btn.className="chat-friend";btn.dataset.peerId=id;
   const name=names.get(id)||id.slice(0,8);
   const avatar=document.createElement("span");avatar.className="chat-list-avatar";avatar.textContent=((chatRemarkFor(id)||name).trim()[0]||"?").toUpperCase();
   const content=document.createElement("span");content.className="chat-friend-info";
@@ -1472,21 +1472,37 @@ function chatRenderMessages(){
  root.dataset.chatStructure=structure;
  if(wasNearBottom||Date.now()<chatAutoScrollUntil)chatScrollToLatest();
 }
+// v216: read receipts are server-acknowledged; never hide badges on a failed update.
 async function chatMarkRead(){
  if(chatReadBusy||!currentUser||!chatPeer||document.hidden||document.body.dataset.activePage!=="chat")return;
- const peer=chatPeer;
- const unread=(chatCachePeer===peer?chatConfirmedCache:[]).filter(m=>m.sender_id===peer&&m.recipient_id===currentUser.id&&!m.read_at);
+ const peer=chatPeer,userId=currentUser.id;
+ const unread=(chatCachePeer===peer?chatConfirmedCache:[]).filter(m=>m.sender_id===peer&&m.recipient_id===userId&&!m.read_at);
  if(!unread.length)return;
  const latest=unread[unread.length-1].id;
  if(chatReadLastId===latest)return;
  chatReadBusy=true;
  try{
-  const {error}=await supabaseClient.from("chat_messages").update({read_at:new Date().toISOString()}).eq("recipient_id",currentUser.id).eq("sender_id",peer).is("read_at",null);
-  if(error)throw error;
-  chatReadLastId=latest;
-  for(const item of unread)item.read_at=new Date().toISOString();
- }catch(error){console.warn("Read receipt update failed",error)}
- finally{chatReadBusy=false}
+  // RPC updates only read_at for this signed-in recipient, avoiding general UPDATE RLS issues.
+  const result=await supabaseClient.rpc("chat_mark_read",{p_peer:peer});
+  if(result.error){
+   // Backwards-compatible until chat-mark-read-v216.sql is installed.
+   if(!["PGRST202","42883","PGRST116"].includes(result.error.code))throw result.error;
+   const {error}=await supabaseClient.from("chat_messages").update({read_at:new Date().toISOString()}).eq("recipient_id",userId).eq("sender_id",peer).is("read_at",null);
+   if(error)throw error;
+  }
+  const at=new Date().toISOString();
+  for(const item of unread)item.read_at=at;
+  if(chatPeer===peer&&currentUser?.id===userId)chatReadLastId=latest;
+  // Clear only the specific private-chat badge after the server confirms.
+  const row=[...$("chatFriends").querySelectorAll(".chat-friend")].find(el=>el.dataset.peerId===peer);
+  row?.querySelector(".chat-unread")?.remove();
+  $("chatFriends").dataset.renderSignature="";
+  chatFriendsLastLoaded=0;
+  if(!chatPeer&&chatMode==="private")void loadChatFriends();
+ }catch(error){
+  console.warn("Read receipt update failed",error);
+  if(chatPeer===peer)chatStatus(chatText("已读状态同步失败，稍后重试","既読の同期に失敗しました","Read sync failed; retrying later"));
+ }finally{chatReadBusy=false}
 }
 async function loadChatMessages(){
  if(!currentUser||!chatPeer)return;
