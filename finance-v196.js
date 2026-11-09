@@ -218,9 +218,9 @@ function openQuote(x){
  const delay=quoteText('行情可能延迟','相場は遅延する場合があります','Quotes may be delayed');
  const recorded=liveQuote(x)?quoteText('行情价','参考株価','Reference quote'):quoteText('手动记录价格','手入力の記録価格','Recorded manual price');
  const disclaimer=quoteText(
-  '图表由 TradingView 提供，东证行情可能延迟；不会自动修改你的持仓价格或资产总额。',
-  'チャートはTradingView提供です。東証の価格は遅延する場合があります。保有資産の手入力価格は変更されません。',
-  'TradingView chart data may be delayed. It does not replace your manually recorded holding price or portfolio valuation.'
+  '图表由 TradingView 提供，参考报价可能延迟或无法获取。自动估值不修改你的成本价和手动记录价格。',
+  'TradingViewの参考株価は遅延・取得失敗する場合があります。取得単価や手入力価格は変更されません。',
+  'TradingView quotes may be delayed or unavailable. Valuations use valid reference quotes without changing saved prices or costs.'
  );
  const refresh=quoteText('刷新行情','再読み込み','Refresh chart');
  const close=quoteText('关闭','閉じる','Close');
