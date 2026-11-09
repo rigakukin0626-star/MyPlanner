@@ -36,7 +36,7 @@ Deno.serve(async req=>{
   if(req.method!=="POST")return new Response(JSON.stringify({error:"Method not allowed"}),{status:405,headers});
   try{
     const body=await req.json();
-    const symbols=Array.isArray(body?.symbols)?[...new Set(body.symbols.map((s:unknown)=>String(s).trim().toUpperCase().replace(/\\.T$/,"")))].slice(0,12):[];
+    const symbols=Array.isArray(body?.symbols)?[...new Set(body.symbols.map((s:unknown)=>String(s).trim().toUpperCase().replace(/\.T$/,"")))].slice(0,12):[];
     if(!symbols.length||symbols.some(s=>!valid(s)))return new Response(JSON.stringify({error:"Invalid TSE ticker"}),{status:400,headers});
     const entries=await Promise.all(symbols.map(async s=>{try{return await fetchOne(s)}catch{return null}}));
     return new Response(JSON.stringify({quotes:entries.filter(Boolean),unavailable:symbols.filter((s,i)=>!entries[i]),disclaimer:"Reference quotes may be delayed or unavailable; not a licensed real-time feed."}),{headers});
