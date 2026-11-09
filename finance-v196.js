@@ -126,20 +126,16 @@ function marketStatus(){
  const quotes=doc.holdings.map(x=>liveQuote(x)).filter(Boolean);
  const count=quotes.length;
  const newest=count?quotes.reduce((a,b)=>Date.parse(a.asOf)>=Date.parse(b.asOf)?a:b):null;
- const base=count?(
-   language==='zh'?'已获取 '+count+' 个参考报价 · 数据截至 '+quoteClock(newest.asOf):
-   language==='ja'?'参考株価 '+count+' 件 · 更新時刻 '+quoteClock(newest.asOf):
-   count+' reference quotes · as of '+quoteClock(newest.asOf)
- ):liveError||t('manual');
- const detail=language==='zh'?'资产页打开时每约3分钟检查行情（报价可能延迟）':
-  language==='ja'?'資産画面表示中、約3分ごとに参考株価を確認（遅延あり）':
-  'Checks reference quotes about every 3 minutes while Finance is open (may be delayed)';
- const label=language==='zh'?'更新行情':language==='ja'?'株価更新':'Refresh quotes';
- return '<p class="fin-note fin-market-status">'+h(liveBusy?(
-   language==='zh'?'正在检查行情…':language==='ja'?'参考株価を確認中…':'Checking reference quotes…'
-  ):base)+
-  ' <button type="button" data-fin-action="refreshQuotes">'+label+'</button>'+
-  '<small style="display:block;margin-top:5px;font-size:11px;line-height:1.5">'+h(detail)+'</small></p>';
+ const message=liveBusy?chartString("正在同步行情","株価を確認中","Checking quotes"):
+  count?chartString(
+   "参考行情 "+count+" 项 · 截至 "+quoteClock(newest.asOf),
+   "参考株価 "+count+" 件 · "+quoteClock(newest.asOf),
+   count+" reference quotes · "+quoteClock(newest.asOf)):
+   (liveError||chartString("暂无可用行情，使用手动价格","株価未取得・手入力価格を使用","Quotes unavailable · manual prices"));
+ const note=chartString("自动更新 · 行情可能延迟","自動更新 · 株価は遅延する場合があります","Auto updates · reference quotes may be delayed");
+ return '<div class="fin-market-status" role="status">'+
+  '<span class="fin-market-status-dot'+(count?' has-quotes':'')+'" aria-hidden="true"></span>'+
+  '<span class="fin-market-status-copy"><span>'+h(message)+'</span><small>'+h(note)+'</small></span></div>';
 }
 
 const t=k=>translations[language]?.[k]||translations.en[k]||k;
@@ -177,7 +173,7 @@ function save(){
 }
 const hasRecords=()=>doc.accounts.length||doc.transactions.length||doc.holdings.length||doc.trades.length||doc.budgets.length;
 function monthData(ym=nowDate().slice(0,7)){return doc.transactions.filter(x=>x.date.startsWith(ym)).reduce((a,x)=>{if(x.kind==='income')a.income+=bookedJPY(x);if(x.kind==='expense')a.expense+=bookedJPY(x);return a},{income:0,expense:0})}
-const section=(title,action,content)=>'<section class="fin-card"><div class="fin-section-title"><h2>'+title+'</h2>'+(action||'')+'</div>'+(content||'')+'</section>';
+const section=(title,action,content,kind='')=>'<section class="fin-card'+(kind?' '+kind:'')+'"><div class="fin-section-title"><h2>'+title+'</h2>'+(action||'')+'</div>'+(content||'')+'</section>';
 const button=(label,act)=>'<button type="button" class="fin-small" data-fin-action="'+act+'">'+label+'</button>';
 const option=(name,choices,selected)=>'<select name="'+name+'" required>'+choices.map(([v,label])=>'<option value="'+h(v)+'" '+(v===selected?'selected':'')+'>'+h(label)+'</option>').join('')+'</select>';
 const field=(label,name,type='text',value='',extra='')=>'<label class="fin-field"><span>'+label+'</span><input type="'+type+'" name="'+name+'" value="'+h(value)+'" '+extra+' required></label>';
@@ -328,8 +324,10 @@ const quoteLink=x=>{
  // An external Japanese market page is a quote reference, NOT an automatic
  // feed into user holdings and NOT a claim that the data is real-time.
  if(x.currency!=='JPY'||!/^([0-9]{4}|[0-9]{3}[A-Z])$/.test(code))return '';
- const label=language==='zh'?'查看行情':language==='ja'?'株価を見る':'View quote';
- return '<button type="button" class="fin-quote-link" data-fin-quote="'+h(x.id)+'" aria-label="'+label+' · '+code+'">'+label+' <span aria-hidden="true">▤</span></button>';
+ const label=chartString('查看行情','株価を見る','View chart');
+ const shortLabel=chartString('行情','株価','Chart');
+ return '<button type="button" class="fin-quote-link" data-fin-quote="'+h(x.id)+'" aria-label="'+h(label+' · '+code)+'">'+
+  '<span>'+h(shortLabel)+'</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></button>';
 };
 const quoteText=(zh,ja,en)=>language==='zh'?zh:language==='ja'?ja:en;
 // v217 native chart: draws only ticker-specific OHLC data from our quote endpoint.
@@ -414,8 +412,7 @@ function openNativeQuote(x){
    "图表由 My Planner 绘制，数据为非官方参考行情，可能延迟或不可用；不会修改持仓成本。",
    "My Planner独自表示。非公式参考データのため遅延・取得失敗の可能性があります。取得原価は変更しません。",
    "Chart rendered by My Planner using unofficial reference data; may be delayed or unavailable. Cost basis is unchanged.")+'</p>'+
-  '<footer class="fin-quote-footer"><button type="button" data-quote-refresh>'+
-  chartString("刷新数据","再取得","Refresh")+'</button><button type="button" data-quote-close>'+
+  '<footer class="fin-quote-footer"><button type="button" data-quote-close>'+
   chartString("完成","閉じる","Done")+'</button></footer></div>';
  document.body.append(box);
  const chartNode=box.querySelector(".fin-quote-frame"),summary=box.querySelector("[data-chart-summary]");
@@ -484,9 +481,12 @@ function openNativeQuote(x){
   if(cached){box.querySelectorAll("[data-chart-mode]").forEach(c=>{c.classList.toggle("active",c.dataset.chartMode===mode);c.setAttribute("aria-pressed",String(c.dataset.chartMode===mode))});paint(cached.history)}
   else void load();
  }));
- box.querySelector("[data-quote-refresh]").addEventListener("click",()=>{chartHistoryCache.delete(symbol+":"+period);void load(true)});
+ // Refresh the open chart periodically; no work when the page is backgrounded.
+ const chartAutoTimer=setInterval(()=>{
+  if(box.open&&!document.hidden&&navigator.onLine!==false)void load(true);
+ },180000);
  box.addEventListener("click",e=>{if(e.target===box)box.close()});
- box.addEventListener("close",()=>{seq++;box.remove()},{once:true});
+ box.addEventListener("close",()=>{clearInterval(chartAutoTimer);seq++;box.remove()},{once:true});
  box.showModal();void load();
 }
 
@@ -547,7 +547,7 @@ function portfolio(){
    quoteLink(x)+
    '<button type="button" class="fin-holding-manage" data-fin-holding="'+h(x.id)+'" aria-label="'+
    h(chartString("编辑或删除持仓","保有銘柄の編集・削除","Edit or remove holding"))+'" title="'+
-   h(chartString("管理持仓","保有銘柄の管理","Manage holding"))+'">···</button></div>'+
+   h(chartString("管理持仓","保有銘柄の管理","Manage holding"))+'"><svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.55"/><circle cx="12" cy="12" r="1.55"/><circle cx="19" cy="12" r="1.55"/></svg></button></div>'+
    '<div class="fin-holding-prices"><div><small>'+priceLabel+'</small><strong>'+nativeMoney(p,x.currency)+'</strong>'+
    '<span>'+h(quoteDate)+'</span></div><div><small>'+costLabel+'</small><strong>'+nativeMoney(basis,x.currency)+'</strong>'+
    '<span>'+chartString("每股","1株あたり","Per share")+'</span></div></div>'+
@@ -557,7 +557,7 @@ function portfolio(){
  }).join("");
  return section(chartString("持仓明细","保有銘柄","Holdings"),button("＋ "+t("addHolding"),"holding"),marketStatus()+
   (rows||'<p class="fin-empty">'+t("noHoldings")+'</p>')+
-  '<div class="fin-actions">'+button(t("addTrade"),"trade")+'</div>');
+  '<div class="fin-actions">'+button(t("addTrade"),"trade")+'</div>',"fin-invest-holdings");
 }
 function budgetView(){
  const month=nowDate().slice(0,7);
@@ -917,8 +917,7 @@ function action(what,value){
  else if(what==='holding')addHolding();
  else if(what==='trade')addTrade();
  else if(what==='budget')addBudget();
- else if(what==='refreshQuotes')void refreshQuotes(true);
-  else if(what==='sync')void login();
+ else if(what==='sync')void login();
  else if(what==='export')exportJSON();
  else if(what==='import')importJSON();
  else if(what==='csv')exportCSV();
