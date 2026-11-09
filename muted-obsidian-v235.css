@@ -1,0 +1,193 @@
+/* My Planner v235 — Black first / violet only as a shadow.
+   Color calibration based on user's annotated iPhone screenshots.
+   Deep black covers the canvas and cards; purple is a faint edge tint.
+   Scoped to dark mode. No geometry, viewport, chat scrolling or JS behavior. */
+
+/* Tone down all v234 shared surfaces. Keep accessible text and profit/loss. */
+html[data-theme="dark"] {
+  --bg:#06070a;
+  --surface:#111217;
+  --subtle:#0c0d12;
+  --field:#15151c;
+  --ink:#f3f2f6;
+  --muted:#aaa8b4;
+  --line:#282630;
+  --accent:#62566f;
+  --accent-ink:#c2b8cd;
+  --focus:#aba0b7;
+  --conversation:#090a0e;
+  --mine:#1e1b25;
+
+  --ios-hairline:rgba(193,184,206,.09);
+  --ios-dock:rgba(12,12,17,.92);
+  --ios-dock-active:rgba(85,73,105,.10);
+  --glass-fill:rgba(21,21,27,.78);
+  --glass-stroke:rgba(190,180,207,.09);
+  --glass-highlight:rgba(245,243,252,.035);
+  --glass-shadow:rgba(0,0,0,.29);
+  --group-fill:rgba(19,19,25,.94);
+  --group-line:rgba(191,181,208,.09);
+  --search-fill:rgba(19,18,25,.93);
+
+  --qg-track:rgba(107,98,121,.075);
+  --qg-hairline:rgba(190,177,207,.08);
+  --qg-selected:rgba(86,73,105,.13);
+  --qg-selected-edge:rgba(182,170,199,.10);
+  --qg-ink:#c9c0d3;
+  --qg-muted:#aaa6b2;
+  --qg-shadow:rgba(0,0,0,.22);
+  --qg-focus:rgba(165,149,183,.42);
+  --qg-focus-halo:rgba(130,112,158,.065);
+
+  --qp-card:rgba(18,18,24,.95);
+  --qp-card-soft:rgba(21,20,27,.96);
+  --qp-border:rgba(190,179,207,.09);
+  --qp-shadow:0 10px 26px rgba(0,0,0,.22),0 1px 2px rgba(0,0,0,.09);
+  --qp-frost:rgba(22,22,29,.83);
+  --qp-pressed:rgba(89,76,109,.11);
+  --qp-input-focus:rgba(161,143,184,.40);
+
+  /* Black, slightly cool at top left; negligible violet reflection. */
+  --q231-canvas:
+    radial-gradient(ellipse 70% 28% at 1% 4%,rgba(55,52,74,.068),transparent 79%),
+    radial-gradient(ellipse 60% 29% at 102% 102%,rgba(66,51,83,.034),transparent 80%),
+    linear-gradient(152deg,#07080d 0%,#07080c 39%,#0b0c11 74%,#06070a 100%);
+  --q231-panel:
+    radial-gradient(ellipse 75% 100% at -10% -22%,rgba(82,70,101,.055),transparent 82%),
+    linear-gradient(139deg,#16161d 0%,#111218 48%,#15151c 100%);
+  --q231-panel-alt:linear-gradient(144deg,#15151c 0%,#111217 52%,#15151e 100%);
+  --q231-list:linear-gradient(128deg,rgba(21,21,28,.98) 0%,rgba(15,15,21,.98) 56%,rgba(20,19,27,.97) 100%);
+  --q231-control:linear-gradient(145deg,rgba(28,27,36,.96),rgba(18,18,25,.97) 56%,rgba(26,24,34,.96));
+  --q231-selected:linear-gradient(145deg,rgba(76,66,94,.18),rgba(47,42,61,.11));
+  --q231-dock:linear-gradient(121deg,rgba(19,18,26,.95),rgba(11,11,16,.93) 57%,rgba(21,19,28,.94));
+  --q231-conversation:linear-gradient(156deg,rgba(61,54,79,.034),transparent 52%,rgba(62,52,77,.025));
+  --q231-bubble:linear-gradient(140deg,#191920,#13131a);
+  --q231-mine:linear-gradient(137deg,#211e29 0%,#1b1923 55%,#231e2c 100%);
+  --q231-rim:rgba(190,178,205,.083);
+  --q231-shadow:0 9px 24px rgba(0,0,0,.25),inset 0 1px 0 rgba(247,243,254,.026);
+}
+
+/* Ensure the top masthead is exactly the quiet black tone in the screenshot. */
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  background-color:#06070a!important;
+}
+html[data-theme="dark"] body {
+  background-image:var(--q231-canvas)!important;
+}
+html[data-theme="dark"] .topbar {
+  background:transparent!important;
+  border-bottom-color:var(--q231-rim)!important;
+}
+
+/* Original v234 finance hero gradients were the most visibly purple.
+   Replace them with near-black gradient and very faint violet shadows. */
+html[data-theme="dark"] #pageFinance .fin-hero {
+  background:
+    radial-gradient(ellipse 104% 120% at -8% -20%,rgba(78,68,94,.073),transparent 79%),
+    radial-gradient(ellipse 86% 104% at 108% 109%,rgba(74,63,91,.036),transparent 77%),
+    linear-gradient(128deg,#17171e 0%,#111218 35%,#0c0d12 69%,#16161d 100%)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-invest-summary {
+  background:
+    radial-gradient(ellipse 102% 119% at -10% -21%,rgba(78,65,98,.066),transparent 78%),
+    radial-gradient(ellipse 88% 107% at 111% 110%,rgba(73,59,88,.032),transparent 77%),
+    linear-gradient(128deg,#15151d 0%,#101117 34%,#0b0c11 70%,#15141c 100%)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-hero,
+html[data-theme="dark"] #pageFinance .fin-invest-summary {
+  border-color:rgba(190,179,207,.085)!important;
+  box-shadow:0 12px 27px rgba(0,0,0,.27),inset 0 1px 0 rgba(245,243,252,.034)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-hero::before,
+html[data-theme="dark"] #pageFinance .fin-invest-summary::before {
+  background:linear-gradient(158deg,rgba(237,230,247,.029),rgba(238,235,248,.005) 39%,transparent 68%)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-hero::after,
+html[data-theme="dark"] #pageFinance .fin-invest-summary::after {
+  box-shadow:inset 0 1px 0 rgba(246,242,251,.033),inset 0 -1px 0 rgba(0,0,0,.20)!important;
+}
+html[data-theme="dark"] #pageFinance :is(.fin-invest-summary-stats,.fin-hero > div) {
+  border-top-color:rgba(188,179,205,.10)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-daily-plot.net {
+  --fin-line:#9f97ac;
+  --fin-area:rgba(134,119,154,.075);
+}
+html[data-theme="dark"] #pageFinance .fin-daily-plot.investment {
+  --fin-line:#a1a0b4;
+  --fin-area:rgba(136,128,154,.075);
+}
+
+/* Quiet segmented controls and floating dock. Only selection hints at purple. */
+html[data-theme="dark"] .bottom-tabs {
+  background:var(--q231-dock)!important;
+  border-color:var(--q231-rim)!important;
+  box-shadow:0 7px 23px rgba(0,0,0,.21),inset 0 1px 0 rgba(248,243,252,.025)!important;
+}
+html[data-theme="dark"] .bottom-tabs .tab.active {
+  background:var(--q231-selected)!important;
+  border-color:rgba(190,176,209,.085)!important;
+  box-shadow:none!important;
+}
+html[data-theme="dark"] #pageChat .chat-mode-switch button:is(.active,[aria-pressed="true"]),
+html[data-theme="dark"] #pageFinance .fin-tabs button.active,
+html[data-theme="dark"] #pageFinance .fin-daily-toolbar button[aria-pressed="true"],
+html[data-theme="dark"] #pageSettings .appearance-options button[aria-pressed="true"],
+html[data-theme="dark"] #pageTasks #taskTabs .tab.active {
+  background:var(--q231-selected)!important;
+  border-color:rgba(190,178,205,.095)!important;
+  box-shadow:inset 0 1px 0 rgba(238,233,247,.025),0 1px 4px rgba(0,0,0,.16)!important;
+}
+html[data-theme="dark"] #pageChat .chat-mode-switch,
+html[data-theme="dark"] #pageFinance :is(.fin-tabs,.fin-daily-toolbar,.fin-chart-periods,.fin-chart-modes),
+html[data-theme="dark"] #pageSettings .appearance-options,
+html[data-theme="dark"] #pageTasks #taskTabs {
+  background:var(--q231-control)!important;
+  border-color:var(--q231-rim)!important;
+}
+
+/* More black, less purple on settings and chat rows. Use v234 variable-based
+   gradients so text contrast stays high and press states still work. */
+html[data-theme="dark"] #pageTasks .tasks-panel,
+html[data-theme="dark"] #pageCalendar .calendar-panel,
+html[data-theme="dark"] #pageLongTerm :is(.tasks-panel,.countdown-panel),
+html[data-theme="dark"] #pageSettings :is(.appearance-panel,.auth-panel),
+html[data-theme="dark"] #pageChat .chat-panel > :is(.chat-invite-section,.chat-group-tools),
+html[data-theme="dark"] #pageFinance .fin-card {
+  background:var(--q231-panel)!important;
+  border-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] #pageChat :is(#chatFriends,#chatGroups) .chat-friend,
+html[data-theme="dark"] #pageFinance .fin-holding-card {
+  background:var(--q231-list)!important;
+  border-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] #pageChat .chat-list-search {
+  background:var(--q231-control)!important;
+  border-color:var(--q231-rim)!important;
+}
+html[data-theme="dark"] #pageChat :is(.chat-messages,.chat-conversation) {
+  background-color:var(--conversation)!important;
+}
+html[data-theme="dark"] #pageChat .chat-messages {
+  background-image:var(--q231-conversation)!important;
+}
+html[data-theme="dark"] #pageChat .chat-send,
+html[data-theme="dark"] #pageChat .chat-conversation-header {
+  background:var(--q231-panel-alt)!important;
+}
+html[data-theme="dark"] #pageChat .chat-send textarea {
+  background:var(--field)!important;
+  border-color:var(--q231-rim)!important;
+}
+
+/* Dark-mode input detail tint is less purple than v234. */
+html[data-theme="dark"] #pageFinance .fin-dialog :is(input,select,textarea),
+html[data-theme="dark"] #pageSettings :is(input,select,textarea),
+html[data-theme="dark"] #pageTasks :is(input,select,textarea),
+html[data-theme="dark"] #pageLongTerm :is(input,select,textarea) {
+  background-color:var(--field)!important;
+  background-image:linear-gradient(135deg,rgba(86,77,103,.026),transparent 76%)!important;
+  border-color:var(--q231-rim)!important;
+}
