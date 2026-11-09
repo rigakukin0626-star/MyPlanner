@@ -1,0 +1,54 @@
+/* My Planner v237 — budget continuity + daily progress surface.
+   Fixes two genuine cascade collisions without touching layout or data:
+   v231 painted individual budget rows; v231 also made the task overview
+   transparent, obscuring v185's glass-card background. */
+
+/* Finance budget: one large seamless gradient on the SECTION, not separate
+   row-sized image layers. Prevent hard rectangular starts at the row edges. */
+html[data-theme="dark"] #pageFinance .fin-card:has(> .fin-budget) {
+  background:
+    radial-gradient(ellipse 115% 94% at 108% 106%,
+      rgba(67,27,102,.16) 0%,transparent 81%),
+    radial-gradient(ellipse 95% 100% at -28% -21%,
+      rgba(65,44,85,.10) 0%,transparent 80%),
+    linear-gradient(143deg,
+      #19151f 0%,#15121b 32%,#111017 65%,#191320 100%) !important;
+  border-color:rgba(186,166,205,.12)!important;
+  box-shadow:0 9px 26px rgba(0,0,0,.18),
+    inset 0 1px 0 rgba(248,231,255,.038)!important;
+}
+html[data-theme="dark"] #pageFinance .fin-card:has(> .fin-budget) > .fin-budget {
+  background:transparent!important;
+  background-image:none!important;
+  background-color:transparent!important;
+  box-shadow:none!important;
+  border-bottom-color:rgba(182,164,202,.105)!important;
+}
+/* Track is a light indent in the same surface, not a dark rectangle. */
+html[data-theme="dark"] #pageFinance .fin-card:has(> .fin-budget) .fin-track {
+  background:linear-gradient(90deg,rgba(41,35,52,.62),rgba(35,31,47,.54))!important;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.075);
+}
+
+/* Daily task overview: v231 used background:transparent!important, so
+   the pre-existing v185 rounded card appeared solid black. Restore a soft,
+   continuous dark-purple reflection on the CARD without changing the grid,
+   padding, date/stat layout, or the progress tracking behavior. */
+html[data-theme="dark"] #pageTasks > .overview {
+  background:
+    radial-gradient(ellipse 105% 120% at -15% -28%,
+      rgba(81,43,114,.155) 0%,transparent 79%),
+    radial-gradient(ellipse 96% 118% at 112% 116%,
+      rgba(71,35,99,.09) 0%,transparent 79%),
+    linear-gradient(142deg,
+      #19141f 0%,#14111b 35%,#0e0e15 72%,#18121e 100%)!important;
+  border-color:rgba(190,168,209,.14)!important;
+  box-shadow:0 10px 27px rgba(0,0,0,.19),
+    inset 0 1px 0 rgba(244,233,255,.043)!important;
+}
+html[data-theme="dark"] #pageTasks > .overview .progress-track {
+  background:linear-gradient(90deg,#2c2635 0%,#22212d 100%)!important;
+}
+html[data-theme="dark"] #pageTasks > .overview .progress-bar {
+  background:linear-gradient(95deg,#8e6ca4 0%,#684d88 100%)!important;
+}
