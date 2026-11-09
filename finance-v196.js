@@ -491,32 +491,43 @@ function openNativeQuote(x){
 }
 
 // v223: Investment tab metrics are independent of cash/credit account presentation.
+/* v224: separate unrealized winners from unrealized losers.
+   No account balances or credit liabilities belong in this investment-only view. */
 function investmentSummary(){
- let marketJPY=0,costJPY=0,active=0,allCostsKnown=true;
+ let marketJPY=0,grossProfitJPY=0,grossLossJPY=0,active=0,knownBasis=true;
  for(const item of doc.holdings){
-  const shares=qty(item);if(!(shares>0))continue;
+  const shares=qty(item);
+  if(!(shares>0))continue;
   active++;
-  marketJPY+=priceValue(item);
-  const unit=holdingBasis(item),fx=holdingFX(item);
-  if(!(unit>0)||fx===null){allCostsKnown=false;continue}
-  costJPY+=shares*unit*fx;
+  const holdingMarketJPY=priceValue(item);
+  marketJPY+=holdingMarketJPY;
+  const averageCost=holdingBasis(item),fx=holdingFX(item);
+  if(!(averageCost>0)||fx===null||!Number.isFinite(holdingMarketJPY)){
+   knownBasis=false;
+   continue;
+  }
+  const basisJPY=shares*averageCost*fx;
+  const unrealizedJPY=holdingMarketJPY-basisJPY;
+  if(unrealizedJPY>0)grossProfitJPY+=unrealizedJPY;
+  else if(unrealizedJPY<0)grossLossJPY+=-unrealizedJPY;
  }
- const validMarket=Number.isFinite(marketJPY),validCost=allCostsKnown&&Number.isFinite(costJPY);
- const change=validMarket&&validCost?marketJPY-costJPY:null;
- const pct=change!==null&&costJPY>0?change/costJPY*100:null;
- const tone=change===null?'is-neutral':change>0?'is-profit':change<0?'is-loss':'is-neutral';
- const diff=change===null?'—':(change>0?'+':change<0?'−':'')+historyMoney(Math.abs(change));
- const pctLabel=pct===null?'':(pct>0?'+':'')+pct.toFixed(2)+'%';
+ const hasMarket=Number.isFinite(marketJPY);
+ const hasPnL=hasMarket&&knownBasis;
  const label=(zh,ja,en)=>chartString(zh,ja,en);
+ const profitDisplay=hasPnL?(grossProfitJPY>0?'+':'')+historyMoney(grossProfitJPY):'—';
+ const lossDisplay=hasPnL?(grossLossJPY>0?'−':'')+historyMoney(grossLossJPY):'—';
+ const profitTone=hasPnL&&grossProfitJPY>0?'is-profit':'is-neutral';
+ const lossTone=hasPnL&&grossLossJPY>0?'is-loss':'is-neutral';
  return '<section class="fin-invest-summary" aria-label="'+label('投资概况','投資サマリー','Investment overview')+'">'+
-  '<div class="fin-invest-summary-main"><small>'+label('投资总市值','保有資産評価額','Total market value')+
-  '</small><strong>'+(validMarket?historyMoney(marketJPY):'—')+'</strong>'+
+  '<div class="fin-invest-summary-main"><small>'+label('总市值','総時価評価額','Total market value')+
+  '</small><strong>'+(hasMarket?historyMoney(marketJPY):'—')+'</strong>'+
   '<span>'+active+' '+label('项持仓','銘柄','holdings')+'</span></div>'+
-  '<div class="fin-invest-summary-stats"><div><small>'+label('持仓成本','保有原価','Cost basis')+
-  '</small><strong>'+(validCost?historyMoney(costJPY):'—')+'</strong></div>'+
-  '<div><small>'+label('浮动盈亏','評価損益','Unrealized P/L')+
-  '</small><strong class="'+tone+'">'+diff+'</strong>'+
-  (pctLabel?'<span class="'+tone+'">'+pctLabel+'</span>':'')+'</div></div></section>';
+  '<div class="fin-invest-summary-stats">'+
+  '<div><small>'+label('总盈利','評価益合計','Total gains')+
+  '</small><strong class="'+profitTone+'">'+profitDisplay+'</strong></div>'+
+  '<div><small>'+label('总亏损','評価損合計','Total losses')+
+  '</small><strong class="'+lossTone+'">'+lossDisplay+'</strong></div>'+
+  '</div></section>';
 }
 function portfolio(){
  const rows=doc.holdings.map(x=>{
