@@ -297,7 +297,7 @@ html[data-theme="dark"] #pageFinance .fin-invest-summary{
   -webkit-backdrop-filter:blur(8px) saturate(115%)!important;
   backdrop-filter:blur(8px) saturate(115%)!important;
 }
-#pageChat :is(.chat-invite-section,.chat-group-tools){
+#pageChat .chat-panel > :is(.chat-invite-section,.chat-group-tools){
   background:var(--qp-card)!important;
   border-color:var(--qp-border)!important;
 }
