@@ -77,6 +77,8 @@ const converted=jpy=>{
  return fx===null?'—':nativeMoney(jpy/fx,code);
 };
 let language='zh',owner='guest',doc=blank(),pane='overview',revision=null,dirty=false,cloud='local',remote=null,api=null,modal=null,busy=false,pushTimer=null;
+// v222: poll reference quotes while Finance is in view; upstream prices may be delayed.
+const LIVE_FINANCE_POLL_MS=3*60*1000;
 const liveQuotes=new Map();let liveBusy=false,liveAttempt=0,liveError='';
 const financeHistoryRange={net:30,investment:30};let lastFinanceDate='';
 const liveCode=x=>String(x?.symbol||'').trim().toUpperCase().replace(/\.T$/,'');
@@ -98,10 +100,11 @@ const quoteClock=at=>{try{return new Intl.DateTimeFormat(language==='ja'?'ja-JP'
 async function refreshQuotes(force=false){
  if(!api||owner==='guest'||liveBusy||document.hidden)return;
  const symbols=[...new Set(doc.holdings.filter(x=>x.currency==='JPY').map(liveCode).filter(x=>/^([0-9]{4}|[0-9]{3}[A-Z])$/.test(x)))];
- if(!symbols.length||(!force&&Date.now()-liveAttempt<300000))return;
- liveAttempt=Date.now();liveBusy=true;liveError='';
+ if(!symbols.length||(!force&&Date.now()-liveAttempt<LIVE_FINANCE_POLL_MS))return;
+ liveAttempt=Date.now();liveBusy=true;liveError='';const requestOwner=owner;
  try{
   const {data,error}=await api.functions.invoke('finance-quotes',{body:{symbols}});
+  if(owner!==requestOwner)return;
   if(error||!Array.isArray(data?.quotes))throw error||Error('Invalid quote response');
   for(const q of data.quotes){
    const symbol=String(q.symbol||'').toUpperCase(),price=Number(q.price),asOf=String(q.asOf||'');
@@ -109,14 +112,34 @@ async function refreshQuotes(force=false){
     liveQuotes.set(symbol,{price,asOf});
   }
   if(!data.quotes.length)liveError=language==='zh'?'暂时无法取得行情报价':language==='ja'?'参考株価なし':'No quotes available';
- }catch(e){liveError=language==='zh'?'行情接口未就绪，使用手动价格':language==='ja'?'株価API未接続、手入力価格を使用':'Quote API unavailable; manual price retained'}
- finally{liveBusy=false;captureFinanceDay(true);render()}
+ }catch(e){if(owner===requestOwner)liveError=language==='zh'?'行情接口暂时不可用，保留现有价格':language==='ja'?'株価APIに接続できません。既存価格を維持':'Quote API unavailable; existing prices retained'}
+ finally{
+  liveBusy=false;
+  if(owner===requestOwner){
+   // Update both same-day series from the same market/account state.
+   captureFinanceDay(true);
+   render();
+  }
+ }
 }
 function marketStatus(){
- const count=doc.holdings.filter(x=>liveQuote(x)).length;
- const text=count?(language==='zh'?'已取得 '+count+' 个参考报价（可能延迟）':language==='ja'?'参考株価 '+count+' 件（遅延あり）':count+' reference quotes (may be delayed)'):liveError||t('manual');
- return '<p class="fin-note fin-market-status">'+h(liveBusy?(language==='zh'?'获取行情中…':language==='ja'?'取得中…':'Loading…'):text)+
-  ' <button type="button" data-fin-action="refreshQuotes">'+(language==='zh'?'更新行情':language==='ja'?'株価更新':'Refresh quotes')+'</button></p>';
+ const quotes=doc.holdings.map(x=>liveQuote(x)).filter(Boolean);
+ const count=quotes.length;
+ const newest=count?quotes.reduce((a,b)=>Date.parse(a.asOf)>=Date.parse(b.asOf)?a:b):null;
+ const base=count?(
+   language==='zh'?'已获取 '+count+' 个参考报价 · 数据截至 '+quoteClock(newest.asOf):
+   language==='ja'?'参考株価 '+count+' 件 · 更新時刻 '+quoteClock(newest.asOf):
+   count+' reference quotes · as of '+quoteClock(newest.asOf)
+ ):liveError||t('manual');
+ const detail=language==='zh'?'资产页打开时每约3分钟检查行情（报价可能延迟）':
+  language==='ja'?'資産画面表示中、約3分ごとに参考株価を確認（遅延あり）':
+  'Checks reference quotes about every 3 minutes while Finance is open (may be delayed)';
+ const label=language==='zh'?'更新行情':language==='ja'?'株価更新':'Refresh quotes';
+ return '<p class="fin-note fin-market-status">'+h(liveBusy?(
+   language==='zh'?'正在检查行情…':language==='ja'?'参考株価を確認中…':'Checking reference quotes…'
+  ):base)+
+  ' <button type="button" data-fin-action="refreshQuotes">'+label+'</button>'+
+  '<small style="display:block;margin-top:5px;font-size:11px;line-height:1.5">'+h(detail)+'</small></p>';
 }
 
 const t=k=>translations[language]?.[k]||translations.en[k]||k;
@@ -301,9 +324,9 @@ function historyCard(kind){
    "口座・投資・負債を含みます。外貨は現在の手動レートで換算。",
    "Includes accounts, investments and debt; foreign currencies use current manual FX.");
  const collection=chartString(
-  "每日记录在打开 App、返回前台或取得新行情时更新；完全关闭期间不会后台补录。",
-  "アプリ起動・復帰・株価更新時に記録。完全終了中は自動記録されません。",
-  "Records update on app open, resume or quote refresh; no updates while the app is fully closed.");
+  "当天曲线随持仓行情、消费、收入和负债变化自动更新；资产页打开时每约3分钟检查报价。完全关闭期间不会后台更新。",
+  "当日の記録は株価・支出・収入・負債の変更で更新。資産画面では約3分ごとに株価を確認。完全終了中は更新されません。",
+  "Today's record follows quotes, spending, income and liabilities. Checks prices about every 3 minutes while Finance is open; no updates when fully closed.");
  return '<section class="fin-card fin-daily-chart"><div class="fin-section-title"><h2>'+title+
   '</h2></div><div class="fin-daily-toolbar" role="group" aria-label="'+title+'">'+periods+'</div>'+
   content+'<p class="fin-daily-footnote">'+note+'</p><p class="fin-daily-footnote">'+collection+'</p></section>';
@@ -866,14 +889,18 @@ document.addEventListener('DOMContentLoaded',()=>{
    })();
   });
   window.addEventListener('online',()=>{if(!document.hidden){captureFinanceDay(true);if(owner!=='guest')void refreshQuotes()}});
+  // v222: poll in foreground only. Quote requests are throttled to 3 minutes.
   setInterval(()=>{
    if(document.hidden)return;
-   const today=japanFinanceDate();
-   if(today===lastFinanceDate)return;
-   lastFinanceDate=today;
-   captureFinanceDay(true);
-   if(owner!=='guest')void refreshQuotes(true);
-   if(document.body.dataset.activePage==='finance')render();
-  },10*60*1000);
+   const today=japanFinanceDate(),rollover=today!==lastFinanceDate;
+   if(rollover){
+    lastFinanceDate=today;
+    captureFinanceDay(true);
+    if(document.body.dataset.activePage==='finance')render();
+   }
+   if(owner!=='guest'&&navigator.onLine!==false&&
+      document.body.dataset.activePage==='finance'&&(pane==='overview'||pane==='invest'))
+    void refreshQuotes(rollover);
+  },60*1000);
 },{once:true});
 })();
