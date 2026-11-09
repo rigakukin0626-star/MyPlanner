@@ -33,14 +33,16 @@ html[data-theme="dark"] {
 /* iOS Home Screen web apps may sample the HTML root instead of BODY for
  * native status-bar tint. Both now carry identical top-anchored layers;
  * browser-controlled bars inherit a close solid base via theme-color. */
-html {
+html,
+html[data-theme] {
   background-color:var(--q238-status-base)!important;
   background-image:var(--q238-top-blend),var(--q231-canvas)!important;
   background-position:top center,top center!important;
   background-repeat:no-repeat!important;
   background-size:100% 100%,100% 100%!important;
 }
-html body {
+html body,
+html[data-theme] body {
   background-color:var(--q238-status-base)!important;
   background-image:var(--q238-top-blend),var(--q231-canvas)!important;
   background-position:top center,top center!important;
