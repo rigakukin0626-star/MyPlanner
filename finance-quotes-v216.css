@@ -1,0 +1,17 @@
+/* Finance quote and unrealized P&L styling v216 */
+.fin-holding-row .fin-account{min-width:0;flex:1 1 auto}
+.fin-holding-row .fin-account-name{min-width:0}
+.fin-holding-row .fin-account-name small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:normal}
+.fin-holding-row .fin-holding-value{display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:118px;flex:0 0 auto}
+.fin-holding-value>strong{font-size:clamp(13px,3.5vw,17px)}
+.fin-holding-pnl{font-size:12px;font-weight:750;letter-spacing:0;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fin-holding-pnl.is-profit{color:#118456}
+.fin-holding-pnl.is-loss{color:#c04554}
+.fin-holding-pnl.is-flat{color:var(--muted,#778397)}
+.fin-market-status{font-size:12px;line-height:1.5;letter-spacing:0;word-break:break-word}
+.fin-market-status button{border:1px solid var(--line,#dbe4f1);color:var(--ink,#20334a);border-radius:20px;padding:5px 12px;background:var(--field,#eef3fa);margin-left:7px;font-size:12px;font-weight:650}
+.fin-quote-price-detail{display:flex;flex-direction:column;gap:2px}
+.fin-quote-price-detail small{font-size:10px;color:var(--muted,#718093)}
+html[data-theme="dark"] .fin-holding-pnl.is-profit{color:#61d7a0}
+html[data-theme="dark"] .fin-holding-pnl.is-loss{color:#ff8893}
+@media (max-width:370px){.fin-holding-row .fin-holding-value{min-width:95px}.fin-holding-pnl{font-size:11px}}
