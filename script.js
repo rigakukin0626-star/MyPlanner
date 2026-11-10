@@ -596,7 +596,7 @@ $("languageSelect")?.addEventListener("change",()=>queueMicrotask(refreshReminde
 document.querySelector("#taskForm")?.addEventListener("submit",()=>queueMicrotask(refreshReminderDisplay));
 refreshReminderDisplay();
 
-/* MY SUITE Chat V1. Requires the chat database SQL before use. */
+/* SOVEREIGN Chat V1. Requires the chat database SQL before use. */
 let chatPeer=null,chatSubscription=null,chatRefreshBusy=false,chatLastSignature="",chatReloadQueued=false;
 let chatConfirmedCache=[],chatCachePeer=null;
 let chatReadBusy=false,chatReadLastId=null;
@@ -1633,7 +1633,7 @@ $("chatCopyCode").addEventListener("click",async()=>{
 $("chatShareCode").addEventListener("click",async()=>{
  if(!currentUser)return;
  const code=currentUser.id;
- if(navigator.share){try{await navigator.share({title:"MY SUITE",text:chatText("在 MY SUITE 添加我为好友：","MY SUITE で友達に追加：","Add me on MY SUITE: ")+code});return}catch(error){if(error.name==="AbortError")return}}
+ if(navigator.share){try{await navigator.share({title:"SOVEREIGN",text:chatText("在 SOVEREIGN 添加我为好友：","SOVEREIGN で友達に追加：","Add me on SOVEREIGN: ")+code});return}catch(error){if(error.name==="AbortError")return}}
  try{await navigator.clipboard.writeText(code);chatStatus(chatText("邀请码已复制，可以发送给好友","コードをコピーしました","Code copied; send it to your friend"))}
  catch{const identity=$("chatIdentity");identity.hidden=false;identity.textContent=code}
 });
@@ -2542,7 +2542,7 @@ $("chatGroupCopyInvite").addEventListener("click",async()=>{
 });
 $("chatGroupShareInvite").addEventListener("click",async()=>{
  const code=$("chatGroupInviteCode").value;
- if(navigator.share){try{await navigator.share({title:"MY SUITE",text:chatText("加入我的 MY SUITE 群聊：","MY SUITE のグループに参加：","Join my MY SUITE group: ")+code});return}catch(e){if(e?.name==="AbortError")return}}
+ if(navigator.share){try{await navigator.share({title:"SOVEREIGN",text:chatText("加入我的 SOVEREIGN 群聊：","SOVEREIGN のグループに参加：","Join my SOVEREIGN group: ")+code});return}catch(e){if(e?.name==="AbortError")return}}
  $("chatGroupInviteCode").focus();$("chatGroupInviteCode").select();
  $("chatGroupInviteFeedback").textContent=chatText("请复制上方邀请码分享给好友","上のコードをコピーして共有","Copy the code above to share");
 });

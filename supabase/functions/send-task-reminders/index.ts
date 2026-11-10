@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
             keys: { p256dh: sub.p256dh, auth: sub.auth }
           }, JSON.stringify({
             type: "task",
-            title: "My Planner · 任务提醒",
+            title: "SOVEREIGN · 任务提醒",
             body: String(task.text || "你有一项待办任务").slice(0, 160),
             url: "./",
             tag: "task-" + task.id + "-" + task.reminder_at,
