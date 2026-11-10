@@ -283,7 +283,13 @@ function historyCard(kind){
   const L=18,R=618,T=20,B=158;
   const hi=Math.max(...points.map(p=>p.value)),lo=Math.min(...points.map(p=>p.value));
   const pad=Math.max(1,(hi-lo)*.12,Math.max(Math.abs(hi),Math.abs(lo))*.016);
-  const X=p=>L+(dateNumber(p.date)-start)/(Math.max(days-1,1)*86400000)*(R-L);
+  // Show all recorded days without compressing a short history into a right-edge vertical line.
+  // The selected filter is still applied above; only the visible x-axis is auto-zoomed.
+  const observedDays=Math.round((dateNumber(last.date)-dateNumber(first.date))/86400000)+1;
+  const visibleDays=Math.min(days,Math.max(7,observedDays));
+  const plotStart=Math.max(start,dateNumber(last.date)-(visibleDays-1)*86400000);
+  const plotEnd=dateNumber(last.date);
+  const X=p=>L+(dateNumber(p.date)-plotStart)/Math.max(plotEnd-plotStart,86400000)*(R-L);
   const Y=p=>T+(hi+pad-p.value)/(hi-lo+2*pad)*(B-T);
   let lines="",previous=null;
   for(const point of points){
@@ -298,8 +304,8 @@ function historyCard(kind){
    X(p).toFixed(2)+'" cy="'+Y(p).toFixed(2)+'" r="'+(p===last?4.5:3)+'"/>').join("");
   const grid=[0,1,2,3].map(i=>'<line class="fin-daily-grid" x1="'+L+'" y1="'+
    (T+i*(B-T)/3).toFixed(2)+'" x2="'+R+'" y2="'+(T+i*(B-T)/3).toFixed(2)+'"/>').join("");
-  const from=new Date(start).toISOString().slice(5,10).replace("-","/");
-  const to=japanFinanceDate().slice(5).replace("-","/");
+  const from=new Date(plotStart).toISOString().slice(5,10).replace("-","/");
+  const to=last.date.slice(5).replace("-","/");
   const svg='<svg viewBox="0 0 640 210" role="img" aria-label="'+title+'">'+grid+lines+dots+
     '<text x="'+L+'" y="197" text-anchor="start" class="fin-daily-label">'+from+'</text>'+
     '<text x="'+R+'" y="197" text-anchor="end" class="fin-daily-label">'+to+'</text></svg>';
@@ -307,7 +313,8 @@ function historyCard(kind){
     '<span class="fin-daily-delta '+up+'">'+change+'</span>'+
     '<div class="fin-daily-plot '+(investing?"investment":"net")+'">'+svg+'</div>'+
     '<p class="fin-daily-caption"><span class="fin-dot"></span>'+points.length+' '+
-    chartString("个记录日","日分の記録","recorded days")+' · '+last.date+'</p>';
+    chartString("个记录日","日分の記録","recorded days")+' · '+last.date+
+    (visibleDays<days?' · '+chartString("图表聚焦已记录日期","記録済み期間に自動拡大","Chart zoomed to recorded dates"):'')+'</p>';
  }
  const note=investing?
   chartString("每日估值 · 参考行情可能延迟","日次評価 · 参考株価は遅延する場合があります","Daily valuation · reference prices may be delayed"):
