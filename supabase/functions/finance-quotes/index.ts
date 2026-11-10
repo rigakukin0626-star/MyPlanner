@@ -73,12 +73,12 @@ async function getHistory(symbol:string,period:string):Promise<History|null>{
 // Check the caller's user JWT with Supabase Auth even if gateway verify_jwt was disabled.
 async function validUserToken(req:Request):Promise<boolean>{
  const bearer=req.headers.get("authorization")||"";
- if(!/^Bearer\\s+\\S+$/i.test(bearer))return false;
+ if(!/^Bearer\s+\S+$/i.test(bearer))return false;
  const base=Deno.env.get("SUPABASE_URL");
  const anon=Deno.env.get("SUPABASE_ANON_KEY");
  if(!base||!anon)return false; // fail closed if the environment is incomplete
  try{
-  const response=await fetch(base.replace(/\\/+$/,"")+"/auth/v1/user",{
+  const response=await fetch(base.replace(/\/+$/,"")+"/auth/v1/user",{
    headers:{Authorization:bearer,apikey:anon},
    signal:AbortSignal.timeout(5000),
   });
