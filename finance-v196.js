@@ -77,6 +77,8 @@ const converted=jpy=>{
  return fx===null?'—':nativeMoney(jpy/fx,code);
 };
 let language='zh',owner='guest',doc=blank(),pane='overview',revision=null,dirty=false,cloud='local',remote=null,api=null,modal=null,busy=false,pushTimer=null;
+let syncCheckBusy=false,syncNotice='';
+const syncWords=(zh,ja,en)=>language==='ja'?ja:language==='en'?en:zh;
 // v222: poll reference quotes while Finance is in view; upstream prices may be delayed.
 const LIVE_FINANCE_POLL_MS=3*60*1000;
 const liveQuotes=new Map();let liveBusy=false,liveAttempt=0,liveError='';
@@ -611,11 +613,32 @@ function changeDisplay(currency){
  doc.preferences.display=currency;save();
 }
 function settings(){
- const status=cloud==='synced'?t('synced'):cloud==='missing'?t('missing'):cloud==='failed'?t('failed'):cloud==='conflict'?t('conflict'):t('local');
- return section(t('manage'),'','<p class="fin-note">'+t('warning')+'</p><p class="fin-sync">'+status+'</p><div class="fin-actions">'+button(t('sync'),'sync')+button(t('export'),'export')+'</div><div class="fin-actions">'+button(t('import'),'import')+button(t('csv'),'csv')+'</div>'+
- (cloud==='conflict'?'<div class="fin-actions">'+button(t('useCloud'),'useCloud')+button(t('useDevice'),'upload')+'</div>':'')+
- (cloud==='ready'?button(t('useDevice'),'upload'):'')+
- (owner!=='guest'&&localStorage.getItem(BASE+'guest')?button(t('guest'),'guest'):''));
+ const hasLocal=Boolean(hasRecords());
+ const status=syncCheckBusy?syncWords('正在检查云端…','クラウド確認中…','Checking cloud…'):
+ cloud==='synced'?(dirty?syncWords('本机已保存 · 等待上传','端末保存済み・アップロード待ち','Saved locally · upload pending'):t('synced')+' · '+syncWords('自动同步已开启','自動同期オン','Auto-sync on')):
+ cloud==='ready'?syncWords('云端尚无资产备份','クラウドに資産バックアップなし','No cloud backup yet'):
+ cloud==='missing'?t('missing'):cloud==='failed'?t('failed'):cloud==='conflict'?t('conflict'):
+ owner==='guest'?syncWords('尚未登录 · 仅本机保存','未ログイン・端末のみ','Not signed in · device only'):t('local');
+ const advice=cloud==='ready'?
+ (hasLocal?syncWords('先导出 JSON 备份，再从有完整资产记录的设备首次上传。成功后自动同步。','JSONを保存後、記録のある端末から初回アップロードしてください。以降は自動同期です。','Export JSON first, then upload from the device containing full records. Future changes sync automatically.'):
+ syncWords('本设备没有资产记录。请从有记录的 Safari 版本上传，切勿上传空白数据。','この端末に資産がありません。記録のあるSafari側からアップロードしてください。','This device is empty. Upload from Safari with existing records, not from here.')):
+ cloud==='synced'?syncWords('之后的资产修改会自动同步到 Supabase。','今後の資産変更はSupabaseに自動同期されます。','Future asset changes sync automatically to Supabase.'):
+ cloud==='conflict'?syncWords('云端和本机资产不同。先导出备份，再决定使用哪一份。','クラウドと端末でデータが異なります。先にバックアップしてください。','Cloud and device differ. Export backups before choosing.'):
+ cloud==='failed'?syncWords('检查网络、登录和 Supabase 权限。','接続・ログイン・権限を確認してください。','Check network, sign-in and Supabase permissions.'):
+ cloud==='missing'?syncWords('请在 Supabase 创建 finance_documents 表。','finance_documentsテーブルを作成してください。','Create the finance_documents table in Supabase.'):
+ syncWords('登录账户后才能启用云端保存。','ログインしてからクラウド同期を開始してください。','Sign in to enable cloud backup.');
+ const notes=syncNotice?'<p class="fin-sync-feedback" role="status">'+h(syncNotice)+'</p>':'';
+ const first=cloud==='ready'&&hasLocal&&owner!=='guest'?
+ '<div class="fin-sync-upload">'+button(syncWords('启用自动同步 · 上传当前资产','自動同期を開始 · この端末の資産を送信','Enable auto-sync · Upload assets'),'upload')+'</div>':'';
+ const conflict=cloud==='conflict'?
+ '<div class="fin-actions fin-sync-conflict-actions">'+button(t('useCloud'),'useCloud')+'</div><div class="fin-sync-upload">'+button(syncWords('覆盖云端（请先备份）','クラウドを上書き（要バックアップ）','Overwrite cloud (back up first)'),'upload')+'</div>':'';
+ return section(t('manage'),'','<p class="fin-note">'+t('warning')+'</p>'+
+ '<div class="fin-sync-panel"><p class="fin-sync" role="status" aria-live="polite">'+h(status)+'</p>'+
+ '<p class="fin-sync-description">'+h(advice)+'</p>'+notes+
+ '<div class="fin-actions fin-sync-main-actions">'+button(syncWords('检查云端状态','クラウド状態を確認','Check cloud status'),'sync')+button(t('export'),'export')+'</div>'+
+ first+conflict+'</div>'+
+ '<div class="fin-actions fin-sync-secondary-actions">'+button(t('import'),'import')+button(t('csv'),'csv')+'</div>'+
+ (owner!=='guest'&&localStorage.getItem(BASE+'guest')?'<div class="fin-sync-guest">'+button(t('guest'),'guest')+'</div>':''));
 }
 function render(){
  const root=document.getElementById('financeRoot');if(!root)return;
@@ -888,7 +911,7 @@ async function fetchCloud(){
   if(error){cloud=['42P01','PGRST205'].includes(error.code)?'missing':'failed';render();return}
   remote=data;
   if(!data){cloud='ready';render();return}
-  if(!hasRecords()&&!dirty){doc=data.payload;ensurePrefs();revision=data.revision;dirty=false;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
+  if(!hasRecords()){const prev=localStorage.getItem(BASE+owner);if(dirty&&prev)localStorage.setItem(BASE+owner+'.backup.before-cloud-restore.'+Date.now(),prev);doc=data.payload;ensurePrefs();revision=data.revision;dirty=false;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
   if(JSON.stringify(doc)===JSON.stringify(data.payload)){revision=data.revision;dirty=false;localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
   if(revision===data.revision&&dirty){cloud='synced';schedulePush();render();return}
   if(revision!==null&&data.revision>revision&&!dirty){doc=data.payload;ensurePrefs();revision=data.revision;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
@@ -905,13 +928,56 @@ async function login(){
    if(owner!=='guest')void refreshQuotes();
  }catch(e){cloud='failed';render()}
 }
+async function checkSyncNow(){
+ if(syncCheckBusy)return;
+ syncCheckBusy=true;syncNotice=syncWords('正在检查云端…','クラウド確認中…','Checking cloud…');render();
+ try {
+  await login();
+  if(owner==='guest')syncNotice=syncWords('尚未登录，请先登录原来的账号。','まず元のアカウントにログインしてください。','Sign in to your original account.');
+  else if(cloud==='ready')syncNotice=hasRecords()?
+   syncWords('云端连接正常，但尚无资产备份。请先导出 JSON，再点击启用自动同步。','クラウドにバックアップがありません。JSON保存後に自動同期を開始してください。','Cloud connected but empty. Export JSON before enabling auto-sync.'):
+   syncWords('云端和本机都没有资产。请从有记录的 Safari 上传。','クラウドも端末も空です。Safariの元データを使用してください。','Cloud and device are empty. Upload from Safari with records.');
+  else if(cloud==='synced')syncNotice=syncWords('云端连接正常。自动同步已开启。','クラウド接続済み、自動同期オン。','Cloud connected. Auto-sync is enabled.');
+  else if(cloud==='missing')syncNotice=syncWords('未找到 finance_documents 数据表。','finance_documentsテーブルがありません。','finance_documents table is missing.');
+  else if(cloud==='conflict')syncNotice=syncWords('本机和云端记录不同。请先备份再处理。','端末とクラウドの記録が異なります。先に保存してください。','Local and cloud differ. Back up before resolving.');
+  else if(cloud==='failed')syncNotice=syncWords('连接失败：检查网络、登录与表权限。','接続失敗。ネットワーク、ログイン、権限を確認。','Connection failed. Check network, sign-in and permissions.');
+  else syncNotice=syncWords('未启用云同步。','クラウド同期未設定。','Cloud sync is not enabled.');
+ }catch(e){syncNotice=syncWords('检查失败：','確認失敗：','Check failed: ')+String(e?.message||e)}
+ finally{syncCheckBusy=false;render();}
+}
 async function upload(){
- if(!api||owner==='guest'||!confirm(t('replace')))return;
- const r=remote?.revision??null,request=r?api.from('finance_documents').update({payload:doc,revision:r+1,updated_at:new Date().toISOString()}).eq('user_id',owner).eq('revision',r).select('revision').maybeSingle():
- api.from('finance_documents').insert({user_id:owner,payload:doc,revision:1}).select('revision').maybeSingle();
- const {data,error}=await request;
- if(error||!data){cloud='conflict';render();return}
- revision=data.revision;dirty=false;localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();
+ if(busy||!api||owner==='guest')return;
+ if(!hasRecords()){syncNotice=syncWords('已阻止上传空白资产。','空の資産データのアップロードを防止しました。','Blocked empty asset upload.');render();return;}
+ const first=cloud==='ready';
+ if(!first&&cloud!=='conflict'){syncNotice=syncWords('请先检查云端状态。','先にクラウド状態を確認してください。','Check cloud status first.');render();return;}
+ const warning=first?
+  syncWords('请确认已导出 JSON 备份。现在上传此设备的完整资产，成功后开启自动同步？','JSONバックアップを保存しましたか？端末の資産をアップロードし自動同期を開始しますか？','Have you saved a JSON backup? Upload complete local records and enable automatic sync?'):
+  syncWords('警告：可能覆盖云端已有资产！请确认已分别备份本机和云端数据。','警告：クラウドの資産を上書きします。両方のバックアップがありますか？','Warning: this may overwrite cloud assets. Have you backed up both copies?');
+ if(!confirm(warning))return;
+ const uid=owner,snapshot=JSON.stringify(doc);
+ busy=true;syncNotice=syncWords('正在上传资产…','資産をアップロード中…','Uploading assets…');render();
+ try {
+  const {data:latest,error:readError}=await api.from('finance_documents').select('revision').eq('user_id',uid).maybeSingle();
+  if(readError)throw readError;
+  if(uid!==owner)return;
+  if(first&&latest){cloud='conflict';syncNotice=syncWords('云端已有记录，为防覆盖已取消上传。','クラウドにデータが存在するため中止しました。','Cloud data exists. Upload cancelled.');return;}
+  if(!first&&(!latest||latest.revision!==remote?.revision)){cloud='conflict';syncNotice=syncWords('云端版本已变化，覆盖已取消。','クラウド版が変更されたため中止しました。','Cloud version changed. Cancelled.');return;}
+  const request=first?
+   api.from('finance_documents').insert({user_id:uid,payload:JSON.parse(snapshot),revision:1}).select('revision').maybeSingle():
+   api.from('finance_documents').update({payload:JSON.parse(snapshot),revision:latest.revision+1,updated_at:new Date().toISOString()}).eq('user_id',uid).eq('revision',latest.revision).select('revision').maybeSingle();
+  const {data,error}=await request;
+  if(error||!data)throw error||new Error('Server did not confirm upload');
+  if(uid!==owner)return;
+  revision=data.revision;remote={revision,payload:JSON.parse(snapshot)};
+  dirty=JSON.stringify(doc)!==snapshot;
+  localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));
+  cloud='synced';syncNotice=syncWords('上传成功！自动同步已开启。','アップロード成功。自動同期オン。','Upload successful! Auto-sync enabled.');
+  if(dirty)schedulePush();
+ }catch(e){
+  if(uid!==owner)return;
+  cloud=e?.code==='23505'?'conflict':'failed';
+  syncNotice=syncWords('上传失败：','アップロード失敗：','Upload failed: ')+String(e?.message||e);
+ }finally{busy=false;render();}
 }
 function useCloud(){
  if(!remote?.payload||!confirm(t('replace')))return;
@@ -924,7 +990,7 @@ function action(what,value){
  else if(what==='holding')addHolding();
  else if(what==='trade')addTrade();
  else if(what==='budget')addBudget();
- else if(what==='sync')void login();
+ else if(what==='sync')void checkSyncNow();
  else if(what==='export')exportJSON();
  else if(what==='import')importJSON();
  else if(what==='csv')exportCSV();
