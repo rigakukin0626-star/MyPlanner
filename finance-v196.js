@@ -79,6 +79,19 @@ const converted=jpy=>{
 let language='zh',owner='guest',doc=blank(),pane='overview',revision=null,dirty=false,cloud='local',remote=null,api=null,modal=null,busy=false,pushTimer=null;
 let syncCheckBusy=false,syncNotice='';
 const syncWords=(zh,ja,en)=>language==='ja'?ja:language==='en'?en:zh;
+/* v247: PostgreSQL jsonb can reorder object keys; stringification alone
+   creates false finance conflicts. Arrays retain their original order. */
+function stableFinanceObject(value){
+ if(Array.isArray(value))return value.map(stableFinanceObject);
+ if(value&&typeof value==='object'){
+  const result={};
+  for(const key of Object.keys(value).sort())result[key]=stableFinanceObject(value[key]);
+  return result;
+ }
+ return value;
+}
+const financeContentEqual=(a,b)=>JSON.stringify(stableFinanceObject(a))===JSON.stringify(stableFinanceObject(b));
+let financeSyncEpoch=0;
 // v222: poll reference quotes while Finance is in view; upstream prices may be delayed.
 const LIVE_FINANCE_POLL_MS=3*60*1000;
 const liveQuotes=new Map();let liveBusy=false,liveAttempt=0,liveError='';
@@ -896,27 +909,70 @@ function importJSON(){
 function schedulePush(){clearTimeout(pushTimer);pushTimer=setTimeout(()=>void push(),850)}
 async function push(){
  if(busy||cloud!=='synced'||!api||owner==='guest')return;
- busy=true;const snapshot=JSON.stringify(doc),starting=revision;
+ const uid=owner,stamp=++financeSyncEpoch;
+ busy=true;
+ const snapshot=JSON.stringify(doc),submitted=JSON.parse(snapshot),starting=revision;
  try{
-  const {data,error}=await api.from('finance_documents').update({payload:JSON.parse(snapshot),revision:starting+1,updated_at:new Date().toISOString()}).eq('user_id',owner).eq('revision',starting).select('revision').maybeSingle();
+  const {data,error}=await api.from('finance_documents').update({payload:submitted,revision:starting+1,updated_at:new Date().toISOString()}).eq('user_id',uid).eq('revision',starting).select('revision,payload').maybeSingle();
+  if(uid!==owner||stamp!==financeSyncEpoch)return;
   if(error)throw error;
-  if(!data){cloud='conflict';return}
-  revision=data.revision;dirty=JSON.stringify(doc)!==snapshot;localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';
- }catch(e){cloud='failed'}finally{busy=false;render();if(cloud==='synced'&&dirty)schedulePush()}
+  if(!data){cloud='conflict';syncNotice=syncWords('云端记录已更新，本机改动暂未上传。请先备份并检查。','クラウドが更新されました。先にバックアップして確認してください。','Cloud changed. Local edits were not uploaded. Back up and review.');return;}
+  revision=data.revision;remote=data;
+  dirty=!financeContentEqual(doc,data.payload);
+  localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));
+  if(!financeContentEqual(submitted,data.payload)){
+   cloud='conflict';syncNotice=syncWords('服务器返回的资产与上传内容不同。请备份并重新检查。','サーバーと送信記録が異なります。バックアップして確認してください。','Server records differ from submitted data. Back up and review.');
+   return;
+  }
+  cloud='synced';
+ }catch(e){
+  if(uid!==owner||stamp!==financeSyncEpoch)return;
+  cloud='failed';syncNotice=syncWords('自动同步失败，本机数据仍保留。','自動同期失敗。端末の記録は保持されています。','Auto-sync failed; local records retained.');
+ }finally{
+  busy=false;
+  render();
+  if(cloud==='synced'&&dirty)schedulePush();
+ }
 }
 async function fetchCloud(){
- if(!api||owner==='guest')return;
+ if(!api||owner==='guest'||busy)return;
+ const uid=owner,stamp=++financeSyncEpoch;
  try{
-  const {data,error}=await api.from('finance_documents').select('payload,revision').eq('user_id',owner).maybeSingle();
-  if(error){cloud=['42P01','PGRST205'].includes(error.code)?'missing':'failed';render();return}
+  const {data,error}=await api.from('finance_documents').select('payload,revision').eq('user_id',uid).maybeSingle();
+  // Ignore older read requests that would reintroduce a conflict after
+  // another device has uploaded or a newer fetch has completed.
+  if(uid!==owner||stamp!==financeSyncEpoch||busy)return;
+  if(error){cloud=['42P01','PGRST205'].includes(error.code)?'missing':'failed';render();return;}
   remote=data;
-  if(!data){cloud='ready';render();return}
-  if(!hasRecords()){const prev=localStorage.getItem(BASE+owner);if(dirty&&prev)localStorage.setItem(BASE+owner+'.backup.before-cloud-restore.'+Date.now(),prev);doc=data.payload;ensurePrefs();revision=data.revision;dirty=false;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
-  if(JSON.stringify(doc)===JSON.stringify(data.payload)){revision=data.revision;dirty=false;localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
-  if(revision===data.revision&&dirty){cloud='synced';schedulePush();render();return}
-  if(revision!==null&&data.revision>revision&&!dirty){doc=data.payload;ensurePrefs();revision=data.revision;localStorage.setItem(BASE+owner,JSON.stringify(doc));localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));cloud='synced';render();return}
+  if(!data){cloud='ready';render();return;}
+  if(!hasRecords()){
+   const prev=localStorage.getItem(BASE+owner);
+   if(dirty&&prev)localStorage.setItem(BASE+owner+'.backup.before-cloud-restore.'+Date.now(),prev);
+   doc=data.payload;ensurePrefs();revision=data.revision;dirty=false;
+   localStorage.setItem(BASE+owner,JSON.stringify(doc));metadata();
+   cloud='synced';render();return;
+  }
+  if(financeContentEqual(doc,data.payload)){
+   const wasConflict=cloud==='conflict';
+   revision=data.revision;dirty=false;metadata();cloud='synced';
+   if(wasConflict)syncNotice=syncWords('已核对：云端与本机内容一致，冲突已解除。','確認完了：クラウドと端末の内容は一致し、競合が解消されました。','Verified: cloud and local records match. Conflict cleared.');
+   render();return;
+  }
+  if(revision===data.revision&&dirty){
+   cloud='synced';schedulePush();render();return;
+  }
+  if(revision!==null&&data.revision>revision&&!dirty){
+   const prev=localStorage.getItem(BASE+owner);
+   if(prev)localStorage.setItem(BASE+owner+'.backup.before-cloud-update.'+Date.now(),prev);
+   doc=data.payload;ensurePrefs();revision=data.revision;dirty=false;
+   localStorage.setItem(BASE+owner,JSON.stringify(doc));metadata();
+   cloud='synced';render();return;
+  }
   cloud='conflict';render();
- }catch(e){cloud='failed';render()}
+ }catch(e){
+  if(uid!==owner||stamp!==financeSyncEpoch)return;
+  cloud='failed';render();
+ }
 }
 async function login(){
  api=typeof supabaseClient!=='undefined'?supabaseClient:null;if(!api)return;
@@ -954,7 +1010,7 @@ async function upload(){
   syncWords('请确认已导出 JSON 备份。现在上传此设备的完整资产，成功后开启自动同步？','JSONバックアップを保存しましたか？端末の資産をアップロードし自動同期を開始しますか？','Have you saved a JSON backup? Upload complete local records and enable automatic sync?'):
   syncWords('警告：可能覆盖云端已有资产！请确认已分别备份本机和云端数据。','警告：クラウドの資産を上書きします。両方のバックアップがありますか？','Warning: this may overwrite cloud assets. Have you backed up both copies?');
  if(!confirm(warning))return;
- const uid=owner,snapshot=JSON.stringify(doc);
+ const uid=owner,snapshot=JSON.stringify(doc),stamp=++financeSyncEpoch;
  busy=true;syncNotice=syncWords('正在上传资产…','資産をアップロード中…','Uploading assets…');render();
  try {
   const {data:latest,error:readError}=await api.from('finance_documents').select('revision').eq('user_id',uid).maybeSingle();
@@ -963,18 +1019,21 @@ async function upload(){
   if(first&&latest){cloud='conflict';syncNotice=syncWords('云端已有记录，为防覆盖已取消上传。','クラウドにデータが存在するため中止しました。','Cloud data exists. Upload cancelled.');return;}
   if(!first&&(!latest||latest.revision!==remote?.revision)){cloud='conflict';syncNotice=syncWords('云端版本已变化，覆盖已取消。','クラウド版が変更されたため中止しました。','Cloud version changed. Cancelled.');return;}
   const request=first?
-   api.from('finance_documents').insert({user_id:uid,payload:JSON.parse(snapshot),revision:1}).select('revision').maybeSingle():
-   api.from('finance_documents').update({payload:JSON.parse(snapshot),revision:latest.revision+1,updated_at:new Date().toISOString()}).eq('user_id',uid).eq('revision',latest.revision).select('revision').maybeSingle();
+   api.from('finance_documents').insert({user_id:uid,payload:JSON.parse(snapshot),revision:1}).select('revision,payload').maybeSingle():
+   api.from('finance_documents').update({payload:JSON.parse(snapshot),revision:latest.revision+1,updated_at:new Date().toISOString()}).eq('user_id',uid).eq('revision',latest.revision).select('revision,payload').maybeSingle();
   const {data,error}=await request;
   if(error||!data)throw error||new Error('Server did not confirm upload');
-  if(uid!==owner)return;
-  revision=data.revision;remote={revision,payload:JSON.parse(snapshot)};
-  dirty=JSON.stringify(doc)!==snapshot;
+  if(uid!==owner||stamp!==financeSyncEpoch)return;
+  revision=data.revision;remote=data;
+  dirty=!financeContentEqual(doc,data.payload);
+  if(!financeContentEqual(JSON.parse(snapshot),data.payload)){
+   cloud='conflict';syncNotice=syncWords('上传已返回，但服务器数据不一致。请导出备份并检查。','送信記録とサーバー内容が一致しません。バックアップして確認してください。','Server record does not match uploaded data. Back up and review.');render();return;
+  }
   localStorage.setItem(META+owner,JSON.stringify({revision,dirty}));
   cloud='synced';syncNotice=syncWords('上传成功！自动同步已开启。','アップロード成功。自動同期オン。','Upload successful! Auto-sync enabled.');
   if(dirty)schedulePush();
  }catch(e){
-  if(uid!==owner)return;
+  if(uid!==owner||stamp!==financeSyncEpoch)return;
   cloud=e?.code==='23505'?'conflict':'failed';
   syncNotice=syncWords('上传失败：','アップロード失敗：','Upload failed: ')+String(e?.message||e);
  }finally{busy=false;render();}
