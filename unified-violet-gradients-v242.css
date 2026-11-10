@@ -1,0 +1,142 @@
+/* My Planner v242 — restore v240 Obsidian / Violet and make buttons consistent.
+   Dark appearance only; no changes to financial records, JS, chat keyboard,
+   safe-area geometry, notifications, light mode, or the original v240 panels.
+   Red destructive actions remain red; disabled controls remain disabled. */
+
+html[data-theme="dark"] {
+  /* Reuse the palette established in v236 and retained by v240. */
+  --q242-primary:var(--q236-primary,
+    linear-gradient(137deg,#594368 0%,#453351 57%,#33283e 100%));
+  --q242-secondary:var(--q236-small,
+    linear-gradient(135deg,#271d32 0%,#19151f 62%,#211927 100%));
+  --q242-active:var(--q231-selected,
+    linear-gradient(133deg,#30203c 0%,#201728 54%,#18131f 100%));
+  --q242-track:var(--q231-control,
+    linear-gradient(135deg,#201827 0%,#14111c 57%,#1c1526 100%));
+  --q242-rim:rgba(196,171,215,.15);
+  --q242-text:#e9ddf0;
+}
+
+/* Primary buttons – all follow the same black-to-amethyst material.
+   Explicitly cover modules with stronger historic blue button rules. */
+html[data-theme="dark"] :is(.button-primary,.button.button-primary),
+html[data-theme="dark"] #pageTasks #taskForm > button[type="submit"],
+html[data-theme="dark"] #pageFinance .fin-actions button:first-child:not(.fin-holding-delete),
+html[data-theme="dark"] #pageFinance .fin-invest-holdings .fin-actions [data-fin-action="trade"],
+html[data-theme="dark"] #pageFinance .fin-dialog footer button[type="submit"],
+html[data-theme="dark"] #pageChat .chat-send .button-primary {
+  background:var(--q242-primary)!important;
+  border:1px solid rgba(210,182,226,.20)!important;
+  color:#fff!important;
+  box-shadow:inset 0 1px 0 rgba(255,245,255,.095),0 4px 12px rgba(0,0,0,.14)!important;
+  text-shadow:none!important;
+}
+
+/* Secondary controls – the same violet direction at reduced luminance.
+   Avoid painting destructive, close/dismiss and inline text-only buttons. */
+html[data-theme="dark"] .button-ghost:not(.chat-group-leave):not(.chat-group-disband):not(.fin-holding-delete),
+html[data-theme="dark"] #pageFinance .fin-small:not(.fin-holding-delete):not(.fin-danger),
+html[data-theme="dark"] #pageFinance .fin-actions button:not(:first-child):not(.fin-holding-delete):not(.fin-danger),
+html[data-theme="dark"] #pageFinance .fin-invest-holdings .fin-holding-card-head :is(.fin-quote-link,.fin-holding-manage),
+html[data-theme="dark"] #pageFinance .fin-dialog footer button[data-close],
+html[data-theme="dark"] #pageChat :is(.chat-header-add,.chat-jump-to-latest,#linePrivateMore,#lineGroupMore),
+html[data-theme="dark"] #pageCalendar .calendar-nav .icon-button,
+html[data-theme="dark"] #pageSettings .appearance-options button:not([aria-pressed="true"]),
+html[data-theme="dark"] #pageTasks :is(#repeatInput,#priorityInput),
+html[data-theme="dark"] #pageFinance .fin-record-currency select,
+html[data-theme="dark"] .language-picker select {
+  background:var(--q242-secondary)!important;
+  border-color:var(--q242-rim)!important;
+  box-shadow:inset 0 1px 0 rgba(247,231,255,.04)!important;
+}
+/* Buttons and pickers used in task and calendar views are secondary, not blue. */
+html[data-theme="dark"] #pageTasks .task-action:not(.danger):not([data-action="delete"]),
+html[data-theme="dark"] #pageCalendar .calendar-nav button:not(.danger) {
+  background:var(--q242-secondary)!important;
+  border-color:var(--q242-rim)!important;
+}
+
+/* One common gradient track for segmented navigation and filters. */
+html[data-theme="dark"] #pageTasks #taskTabs,
+html[data-theme="dark"] #pageFinance :is(.fin-tabs,.fin-daily-toolbar,.fin-chart-periods,.fin-chart-modes),
+html[data-theme="dark"] #pageChat .chat-mode-switch,
+html[data-theme="dark"] #pageSettings .appearance-options {
+  background:var(--q242-track)!important;
+  border-color:rgba(196,171,215,.12)!important;
+  box-shadow:inset 0 1px 0 rgba(249,232,255,.027)!important;
+}
+/* The visible choice has an actual violet gradient, not a flat fill. */
+html[data-theme="dark"] #pageTasks #taskTabs .tab.active,
+html[data-theme="dark"] #pageFinance .fin-tabs button.active,
+html[data-theme="dark"] #pageFinance .fin-daily-toolbar button[aria-pressed="true"],
+html[data-theme="dark"] #pageFinance :is(.fin-chart-periods,.fin-chart-modes) button.active,
+html[data-theme="dark"] #pageChat .chat-mode-switch button:is(.active,[aria-pressed="true"]),
+html[data-theme="dark"] #pageSettings .appearance-options button:is(.active,[aria-pressed="true"]) {
+  background:var(--q242-active)!important;
+  color:var(--q242-text)!important;
+  border-color:rgba(201,174,219,.18)!important;
+  box-shadow:inset 0 1px 0 rgba(249,231,255,.07),0 2px 7px rgba(0,0,0,.13)!important;
+}
+html[data-theme="dark"] #pageTasks #taskTabs .tab:not(.active),
+html[data-theme="dark"] #pageFinance .fin-tabs button:not(.active) {
+  color:#b0a7b8!important;
+}
+/* Dock: return to v240's violet active capsule; keep dock glass itself unchanged. */
+html[data-theme="dark"] body .bottom-tabs .tab.active,
+html[data-theme="dark"] body[data-active-page="finance"] .bottom-tabs .tab.active {
+  background:var(--q242-active)!important;
+  border:1px solid rgba(194,172,211,.14)!important;
+  color:var(--q242-text)!important;
+  box-shadow:inset 0 1px 0 rgba(245,230,255,.07)!important;
+}
+html[data-theme="dark"] body .bottom-tabs .tab.active .tab-icon,
+html[data-theme="dark"] body[data-active-page="finance"] .bottom-tabs .tab.active .tab-icon {
+  background:transparent!important;
+  border-color:transparent!important;
+  color:#dacbe5!important;
+  box-shadow:none!important;
+}
+html[data-theme="dark"] body .bottom-tabs .tab.active svg {
+  stroke:currentColor!important;
+}
+
+/* Focus and selection also belong to violet, without altering native input size. */
+html[data-theme="dark"] :is(#pageTasks,#pageLongTerm,#pageCalendar,#pageFinance,#pageSettings,#pageChat)
+:is(input,select,textarea):focus {
+  border-color:rgba(176,141,201,.40)!important;
+  outline-color:rgba(187,152,215,.60)!important;
+  box-shadow:0 0 0 3px rgba(127,91,153,.13)!important;
+}
+html[data-theme="dark"] :is(#pageTasks,#pageLongTerm,#pageCalendar,#pageFinance,#pageSettings,#pageChat)
+:is(input,select,textarea):focus-visible {
+  outline:2px solid rgba(187,152,215,.60)!important;
+  outline-offset:1px!important;
+}
+html[data-theme="dark"] #pageCalendar .calendar-day.selected {
+  background:var(--q242-active)!important;
+  border-color:rgba(198,172,214,.22)!important;
+  color:var(--q242-text)!important;
+}
+
+/* Do not turn negative actions into reassuring purple buttons. */
+html[data-theme="dark"] :is(.fin-holding-delete,.fin-danger,.chat-group-leave,.chat-group-disband) {
+  color:var(--danger,#f0a0ab)!important;
+}
+/* Preserve disabled/reduced transparency preferences. */
+html[data-theme="dark"] :is(.button-primary,.button.button-primary):disabled,
+html[data-theme="dark"] #pageTasks #taskForm > button[type="submit"]:disabled {
+  opacity:.55;
+  box-shadow:none!important;
+}
+@media(prefers-reduced-transparency:reduce) {
+  html[data-theme="dark"] .bottom-tabs {
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  html[data-theme="dark"] #pageTasks #taskTabs button,
+  html[data-theme="dark"] #pageFinance .fin-tabs button {
+    transition:none!important;
+  }
+}
