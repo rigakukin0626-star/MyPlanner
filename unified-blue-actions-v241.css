@@ -1,0 +1,113 @@
+/* My Planner v241 — unified blue action system.
+   Dark mode ONLY. Preserve background/card gradients, layout, values,
+   keyboard geometry and all JS behavior. Light-mode 06 is unchanged. */
+
+html[data-theme="dark"] {
+  --brand-blue-1:#4A8DFF;
+  --brand-blue-2:#2F6FEA;
+  --brand-blue-soft:rgba(74,141,255,.18);
+  --brand-blue-border:rgba(110,160,255,.22);
+  --brand-blue-text:#DCE9FF;
+  --brand-blue-shadow:rgba(47,111,234,.20);
+}
+
+/* Main calls to action: a single recognizable gradient in all modules. */
+html[data-theme="dark"] :is(.button-primary,.button.button-primary),
+html[data-theme="dark"] #pageTasks .task-form > button[type="submit"],
+html[data-theme="dark"] #pageFinance .fin-actions button:first-child:not(.fin-holding-delete),
+html[data-theme="dark"] #pageFinance .fin-invest-holdings .fin-actions [data-fin-action="trade"],
+html[data-theme="dark"] #pageChat .chat-send .button-primary {
+  background:linear-gradient(158deg,var(--brand-blue-1) 0%,#3E82F5 42%,var(--brand-blue-2) 100%)!important;
+  background-color:var(--brand-blue-2)!important;
+  border:1px solid rgba(147,188,255,.30)!important;
+  color:#fff!important;
+  box-shadow:0 5px 16px var(--brand-blue-shadow),inset 0 1px 0 rgba(255,255,255,.19)!important;
+  text-shadow:none!important;
+}
+html[data-theme="dark"] :is(.button-primary,.button.button-primary):disabled,
+html[data-theme="dark"] #pageTasks .task-form > button[type="submit"]:disabled {
+  box-shadow:none!important;
+  opacity:.55;
+}
+html[data-theme="dark"] :is(.button-primary,.button.button-primary):active:not(:disabled),
+html[data-theme="dark"] #pageTasks .task-form > button[type="submit"]:active:not(:disabled) {
+  filter:brightness(.96);
+}
+
+/* Filter bars: cool black glass with a blue selected state, not purple glow. */
+html[data-theme="dark"] #pageTasks #taskTabs,
+html[data-theme="dark"] #pageFinance :is(.fin-tabs,.fin-daily-toolbar,.fin-chart-periods,.fin-chart-modes),
+html[data-theme="dark"] #pageChat .chat-mode-switch,
+html[data-theme="dark"] #pageSettings .appearance-options {
+  background:linear-gradient(139deg,rgba(32,37,52,.77),rgba(20,22,32,.89))!important;
+  border:1px solid rgba(133,165,218,.12)!important;
+  box-shadow:inset 0 1px 0 rgba(240,247,255,.025)!important;
+}
+html[data-theme="dark"] #pageTasks #taskTabs .tab.active,
+html[data-theme="dark"] #pageFinance .fin-tabs button.active,
+html[data-theme="dark"] #pageFinance .fin-daily-toolbar button[aria-pressed="true"],
+html[data-theme="dark"] #pageFinance :is(.fin-chart-periods,.fin-chart-modes) button.active,
+html[data-theme="dark"] #pageChat .chat-mode-switch button:is(.active,[aria-pressed="true"]),
+html[data-theme="dark"] #pageSettings .appearance-options button:is(.active,[aria-pressed="true"]) {
+  background:
+    linear-gradient(145deg,rgba(74,141,255,.23),rgba(47,111,234,.13))!important;
+  color:var(--brand-blue-text)!important;
+  border:1px solid var(--brand-blue-border)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.075)!important;
+  text-shadow:none!important;
+}
+
+/* Active tab: keep the native floating dock but unify its selected hue. */
+html[data-theme="dark"] body .bottom-tabs .tab.active,
+html[data-theme="dark"] body[data-active-page="finance"] .bottom-tabs .tab.active {
+  background:linear-gradient(145deg,rgba(74,141,255,.18),rgba(47,111,234,.095))!important;
+  border:1px solid rgba(110,160,255,.18)!important;
+  color:var(--brand-blue-text)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055)!important;
+}
+html[data-theme="dark"] body .bottom-tabs .tab.active .tab-icon,
+html[data-theme="dark"] body[data-active-page="finance"] .bottom-tabs .tab.active .tab-icon {
+  background:transparent!important;
+  border-color:transparent!important;
+  color:#CFE0FF!important;
+  box-shadow:none!important;
+}
+html[data-theme="dark"] body .bottom-tabs .tab.active svg {
+  stroke:currentColor!important;
+}
+
+/* Input focus: a small, consistent blue ring, without touching dimensions. */
+html[data-theme="dark"] :is(#pageTasks,#pageLongTerm,#pageCalendar,#pageFinance,#pageSettings,#pageChat) :is(input,select,textarea):focus {
+  border-color:rgba(110,160,255,.42)!important;
+  outline-color:rgba(110,160,255,.55)!important;
+  box-shadow:0 0 0 3px rgba(74,141,255,.10)!important;
+}
+html[data-theme="dark"] :is(#pageTasks,#pageLongTerm,#pageCalendar,#pageFinance,#pageSettings,#pageChat) :is(input,select,textarea):focus-visible {
+  outline:2px solid rgba(110,160,255,.55)!important;
+  outline-offset:1px!important;
+}
+
+/* Other affirmative UI controls use the same cool-blue family. */
+html[data-theme="dark"] #pageCalendar .calendar-day.selected {
+  background:linear-gradient(145deg,rgba(74,141,255,.21),rgba(47,111,234,.11))!important;
+  border-color:rgba(110,160,255,.22)!important;
+  color:var(--brand-blue-text)!important;
+}
+html[data-theme="dark"] #pageTasks #taskTabs .tab:not(.active),
+html[data-theme="dark"] #pageFinance .fin-tabs button:not(.active) {
+  color:#A6AFBF!important;
+}
+@media(prefers-reduced-transparency:reduce) {
+  html[data-theme="dark"] #pageTasks #taskTabs,
+  html[data-theme="dark"] #pageFinance :is(.fin-tabs,.fin-daily-toolbar,.fin-chart-periods,.fin-chart-modes),
+  html[data-theme="dark"] #pageChat .chat-mode-switch,
+  html[data-theme="dark"] #pageSettings .appearance-options {
+    background:#1C2230!important;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  html[data-theme="dark"] #pageTasks #taskTabs button,
+  html[data-theme="dark"] #pageFinance .fin-tabs button {
+    transition:none!important;
+  }
+}
