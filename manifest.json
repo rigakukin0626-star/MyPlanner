@@ -8,16 +8,16 @@
   "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "my-suite-icon-v245.png?v=245",
+      "src": "sovereign-icon-v253.png?v=253",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon.svg?v=245",
+      "src": "sovereign-icon-v253.svg?v=253",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "id": "/MyPlanner/",
