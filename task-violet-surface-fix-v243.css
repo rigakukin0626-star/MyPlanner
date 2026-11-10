@@ -1,0 +1,60 @@
+/* v243: Repair task controls in BOTH plans and long-term plans.
+   script.js moves the SAME #taskForm between #pageTasks and #pageLongTerm.
+   The old v185 file supplied blue surfaces and a blue long-term submit.
+   Dark theme only; keep native select arrows and date input interaction. */
+html[data-theme="dark"] {
+  /* v242 consumes this variable in main action buttons across the app. */
+  --q242-primary:
+    radial-gradient(ellipse 110% 150% at -18% -35%,
+      rgba(169,120,184,.20) 0%,transparent 71%),
+    linear-gradient(120deg,#594365 0%,#473351 36%,#32263c 67%,#1e1b29 100%);
+}
+/* Two IDs outrank the older hard-coded blue button backgrounds.
+   The bright purple becomes a dark, visibly directional violet gradient. */
+html[data-theme="dark"] :is(#pageTasks,#pageLongTerm) #taskForm > button[type="submit"] {
+  background:
+    radial-gradient(ellipse 110% 150% at -18% -35%,
+      rgba(169,120,184,.20) 0%,transparent 71%),
+    linear-gradient(120deg,#594365 0%,#473351 36%,#32263c 67%,#1e1b29 100%)!important;
+  background-color:#32263c!important;
+  border:1px solid rgba(202,175,218,.19)!important;
+  color:#f9f5fb!important;
+  box-shadow:inset 0 1px 0 rgba(255,245,255,.09),0 5px 14px rgba(0,0,0,.15)!important;
+  text-shadow:none!important;
+}
+html[data-theme="dark"] :is(#pageTasks,#pageLongTerm) #taskForm > button[type="submit"]:active:not(:disabled) {
+  filter:brightness(.94);
+}
+/* Text box, reminder field beneath the overlay, and priority/repeat selects. */
+html[data-theme="dark"] :is(#pageTasks,#pageLongTerm) #taskForm :is(input,select),
+html[data-theme="dark"] :is(#pageTasks,#pageLongTerm) #reminderDisplay {
+  background:
+    radial-gradient(ellipse 110% 130% at -20% -30%,rgba(117,79,138,.13),transparent 76%),
+    linear-gradient(130deg,#292231 0%,#211c2a 48%,#18161f 100%)!important;
+  background-color:#211b29!important;
+  border-color:rgba(183,163,203,.19)!important;
+  color:#f0eaf3!important;
+  box-shadow:inset 0 1px 0 rgba(245,232,255,.045)!important;
+}
+/* The date text is a visual overlay; match its surface exactly. */
+html[data-theme="dark"] :is(#pageTasks,#pageLongTerm) #reminderDisplay {
+  color:#eae1ef!important;
+}
+html[data-theme="dark"] :is(#pageTasks,#pageLongTerm) #taskInput::placeholder {
+  color:#a9a0b1!important;
+  opacity:1;
+}
+html[data-theme="dark"] :is(#pageTasks,#pageLongTerm) #taskForm :is(input,select):focus {
+  border-color:rgba(188,158,214,.40)!important;
+  box-shadow:0 0 0 3px rgba(127,91,153,.12)!important;
+}
+html[data-theme="dark"] :is(#pageTasks,#pageLongTerm) #taskForm :is(input,select):focus-visible {
+  outline:2px solid rgba(187,152,215,.56)!important;
+  outline-offset:1px!important;
+}
+@media(prefers-reduced-transparency:reduce) {
+  html[data-theme="dark"] :is(#pageTasks,#pageLongTerm) #taskForm :is(input,select),
+  html[data-theme="dark"] :is(#pageTasks,#pageLongTerm) #reminderDisplay {
+    background:#211b29!important;
+  }
+}
