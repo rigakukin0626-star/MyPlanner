@@ -864,13 +864,17 @@ function addBudget(category){
   });
 }
 function download(name,content,type){
- const url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
+ const url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');
+ a.href=url;a.download=name;a.style.display='none';document.body.append(a);a.click();
+ setTimeout(()=>a.remove(),0);
+ setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
-function exportJSON(){download('myplanner-finance-'+nowDate()+'.json',JSON.stringify({format:'mpfinance-v196',doc},null,2),'application/json')}
+function exportJSON(){download('my-suite-finance-'+nowDate()+'.json',JSON.stringify({format:'mpfinance-v196',doc},null,2),'application/json')}
 function exportCSV(){
- const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+ // CSV formula injection guard for user-created labels and notes.
+ const q=v=>{const raw=String(v??'');const safe=typeof v==='string'&&/^[\s\uFEFF\u200B]*[=+@-]/.test(raw)?"'"+raw:raw;return '"'+safe.replace(/"/g,'""')+'"'};
  const rows=[['Date','Type','Original Amount','Currency','JPY Book Value','From','To','Category','Note'],...doc.transactions.map(x=>[x.date,x.kind,x.amount,account(x.from||x.to)?.currency||'JPY',Number.isFinite(bookedJPY(x))?bookedJPY(x):'',account(x.from)?.name,account(x.to)?.name,x.category,x.note])];
- download('myplanner-finance-'+nowDate()+'.csv','\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n'),'text/csv;charset=utf-8');
+ download('my-suite-finance-'+nowDate()+'.csv','\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n'),'text/csv;charset=utf-8');
 }
 function importJSON(){
  const file=document.createElement('input');file.type='file';file.accept='.json,application/json';
@@ -924,7 +928,7 @@ async function push(){
    cloud='conflict';syncNotice=syncWords('服务器返回的资产与上传内容不同。请备份并重新检查。','サーバーと送信記録が異なります。バックアップして確認してください。','Server records differ from submitted data. Back up and review.');
    return;
   }
-  cloud='synced';
+  cloud='synced';syncNotice='';
  }catch(e){
   if(uid!==owner||stamp!==financeSyncEpoch)return;
   cloud='failed';syncNotice=syncWords('自动同步失败，本机数据仍保留。','自動同期失敗。端末の記録は保持されています。','Auto-sync failed; local records retained.');
@@ -945,6 +949,9 @@ async function fetchCloud(){
   if(error){cloud=['42P01','PGRST205'].includes(error.code)?'missing':'failed';render();return;}
   remote=data;
   if(!data){cloud='ready';render();return;}
+  if(!data.payload||data.payload.version!==1||!['accounts','transactions','holdings','trades','budgets','snapshots'].every(k=>Array.isArray(data.payload[k]))){
+   cloud='failed';syncNotice=syncWords('云端资产格式异常。没有覆盖本机记录，请保留备份。','クラウドの資産形式が不正です。端末は上書きされていません。','Invalid cloud finance data. Local data was not overwritten.');render();return;
+  }
   if(!hasRecords()){
    const prev=localStorage.getItem(BASE+owner);
    if(dirty&&prev)localStorage.setItem(BASE+owner+'.backup.before-cloud-restore.'+Date.now(),prev);

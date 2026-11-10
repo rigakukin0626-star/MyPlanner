@@ -95,6 +95,31 @@ function applyLanguage(){
  window.chatRefreshLocalizedViews?.();
 }
 const STORAGE_KEY = "myPlannerTasks";
+const TASK_LEGACY_OWNER_KEY="myPlannerTasksLegacyOwner";
+let activeTaskOwnerId=null;
+function taskCacheKey(base,id=activeTaskOwnerId){
+ if(id)return base+":user:"+id;
+ return localStorage.getItem(TASK_LEGACY_OWNER_KEY)?base+":guest":base;
+}
+function activateTaskOwner(id){
+ if(activeTaskOwnerId===id)return;
+ if(id&&localStorage.getItem(taskCacheKey(STORAGE_KEY,id))===null){
+  // Backwards-compatible, non-destructive one-time migration. Keep original keys.
+  // Legacy local data is assigned to the FIRST signed-in user only.
+  const claimed=localStorage.getItem(TASK_LEGACY_OWNER_KEY);
+  if(!claimed){
+   for(const key of [STORAGE_KEY,"myPlannerDeletedTaskIds","myPlannerCloudInitialized"]){
+    const saved=localStorage.getItem(key);
+    if(saved!==null)localStorage.setItem(taskCacheKey(key,id),saved);
+   }
+   localStorage.setItem(TASK_LEGACY_OWNER_KEY,id);
+  }
+ }
+ activeTaskOwnerId=id;
+ cloudReady=false;
+ tasks=loadTasks();
+ render();
+}
 const $ = (id) => document.getElementById(id);
 const taskForm = $("taskForm"), taskInput = $("taskInput"), priorityInput = $("priorityInput");
 const taskList = $("taskList"), emptyState = $("emptyState"), calendarGrid = $("calendarGrid");
@@ -114,33 +139,44 @@ let currentUser = null, cloudReady = false, syncQueue = Promise.resolve();
 
 function loadTasks() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    const saved = JSON.parse(localStorage.getItem(taskCacheKey(STORAGE_KEY)) || "[]");
     return Array.isArray(saved) ? saved.map(t => ({id:String(t.id ?? Date.now()+Math.random()),text:String(t.text ?? ""),date:t.date || null,completed:Boolean(t.completed),priority:["high","medium","low"].includes(t.priority)?t.priority:"medium",reminderAt:t.reminderAt||null,repeat:t.repeat||"none"})).filter(t=>t.text.trim()) : [];
   } catch { return []; }
 }
 const DELETED_TASKS_KEY="myPlannerDeletedTaskIds";
-function deletedTaskIds(){try{return new Set(JSON.parse(localStorage.getItem(DELETED_TASKS_KEY)||"[]").map(String))}catch{return new Set()}}
-function markTaskDeleted(id){const ids=deletedTaskIds();ids.add(String(id));localStorage.setItem(DELETED_TASKS_KEY,JSON.stringify([...ids]));}
+function deletedTaskIds(){try{return new Set(JSON.parse(localStorage.getItem(taskCacheKey(DELETED_TASKS_KEY))||"[]").map(String))}catch{return new Set()}}
+function markTaskDeleted(id){const ids=deletedTaskIds();ids.add(String(id));localStorage.setItem(taskCacheKey(DELETED_TASKS_KEY),JSON.stringify([...ids]));}
 function saveTasks() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(taskCacheKey(STORAGE_KEY), JSON.stringify(tasks));
   if (currentUser && cloudReady) queueCloudUpsert();
 }
-function queueCloudUpsert() {
-  const deleted=deletedTaskIds();
-  const snapshot = tasks.filter(t=>!deleted.has(String(t.id))).map(t=>({id:String(t.id),user_id:currentUser.id,text:t.text,date:t.date||null,completed:Boolean(t.completed),priority:["high","medium","low"].includes(t.priority)?t.priority:"medium",reminder_at:t.reminderAt||null,repeat_rule:t.repeat||"none"}));
-  syncQueue = syncQueue.then(async()=>{
-    if (!currentUser) return;
-    setAuthStatus(bilingual("タスクを同期中…","正在同步任务…"));
-    const {error}=await supabaseClient.from("tasks").upsert(snapshot,{onConflict:"id"});
-    if(error) throw error;
-    setAuthStatus(tr("同期済み","已同步","Synced")+" · "+currentUser.email,"synced");
-  }).catch(error=>{console.error(error);setAuthStatus(tr("同期失敗：","同步失败：","Sync failed: ")+error.message);});
+function queueCloudUpsert(){
+ const uid=currentUser?.id;
+ if(!uid||activeTaskOwnerId!==uid)return;
+ const deleted=deletedTaskIds();
+ const snapshot=tasks.filter(t=>!deleted.has(String(t.id))).map(t=>({
+  id:String(t.id),user_id:uid,text:t.text,date:t.date||null,
+  completed:Boolean(t.completed),priority:["high","medium","low"].includes(t.priority)?t.priority:"medium",
+  reminder_at:t.reminderAt||null,repeat_rule:t.repeat||"none"
+ }));
+ syncQueue=syncQueue.catch(()=>{}).then(async()=>{
+  if(currentUser?.id!==uid||activeTaskOwnerId!==uid||!cloudReady)return;
+  setAuthStatus(tr("タスクを同期中…","正在同步任务…","Syncing tasks…"));
+  const {error}=await supabaseClient.from("tasks").upsert(snapshot,{onConflict:"id"});
+  if(error)throw error;
+  if(currentUser?.id===uid&&activeTaskOwnerId===uid)
+   setAuthStatus(tr("同期済み","已同步","Synced")+" · "+currentUser.email,"synced");
+ }).catch(error=>{
+  console.error(error);
+  if(currentUser?.id===uid)setAuthStatus(tr("同期失敗：","同步失败：","Sync failed: ")+error.message);
+ });
 }
 function queuePendingTaskDeletes(){
  const ids=[...deletedTaskIds()];
  if(!ids.length||!currentUser)return syncQueue;
  const owner=currentUser.id;
  syncQueue=syncQueue.catch(()=>{}).then(async()=>{
+  if(currentUser?.id!==owner||activeTaskOwnerId!==owner)return;
   const {error}=await supabaseClient.from("tasks").delete().eq("user_id",owner).in("id",ids);
   if(error)throw error;
   // Keep tombstones locally to prevent stale cloud records from being reimported.
@@ -148,16 +184,19 @@ function queuePendingTaskDeletes(){
  return syncQueue;
 }
 async function loadCloudTasks() {
+  const uid=currentUser?.id;
+  if(!uid||activeTaskOwnerId!==uid)return;
   setAuthStatus(bilingual("クラウドから読み込み中…","正在读取云端任务…"));
-  const {data,error}=await supabaseClient.from("tasks").select("id,text,date,completed,priority,reminder_at,repeat_rule").order("created_at",{ascending:true});
+  const {data,error}=await supabaseClient.from("tasks").select("id,text,date,completed,priority,reminder_at,repeat_rule").eq("user_id",uid).order("created_at",{ascending:true});
+  if(currentUser?.id!==uid||activeTaskOwnerId!==uid)return;
   if(error) throw error;
   const deleted=deletedTaskIds(),local=loadTasks(), merged=new Map();
   // 云端同 ID 记录优先；本设备尚未上传的新任务也会合并上去。
   for(const t of data||[]) if(!deleted.has(String(t.id))) merged.set(String(t.id),{id:String(t.id),text:t.text,date:t.date||null,completed:Boolean(t.completed),priority:["high","medium","low"].includes(t.priority)?t.priority:"medium",reminderAt:t.reminder_at||null,repeat:t.repeat_rule||"none"});
   // After first successful cloud sync, cloud is authoritative for missing records.
-  const syncedBefore=localStorage.getItem("myPlannerCloudInitialized")==="true";
+  const syncedBefore=localStorage.getItem(taskCacheKey("myPlannerCloudInitialized"))==="true";
   if(!syncedBefore)for(const t of local)if(!deleted.has(String(t.id))&&!merged.has(String(t.id)))merged.set(String(t.id),t);
-  tasks=Array.from(merged.values()); localStorage.setItem(STORAGE_KEY,JSON.stringify(tasks)); cloudReady=true;localStorage.setItem("myPlannerCloudInitialized","true");render();
+  tasks=Array.from(merged.values()); localStorage.setItem(taskCacheKey(STORAGE_KEY),JSON.stringify(tasks)); cloudReady=true;localStorage.setItem(taskCacheKey("myPlannerCloudInitialized"),"true");render();
   // Retry pending deletions before allowing further cloud upserts.
   if(deleted.size)await queuePendingTaskDeletes();
   if(!syncedBefore)queueCloudUpsert();
@@ -186,6 +225,7 @@ async function refreshAuthUI(){
   if(sequence!==authUiRefreshSequence)return;
   const previousUserId=currentUser?.id;
   currentUser=session?.user||null;
+  activateTaskOwner(currentUser?.id||null);
   if(previousUserId!==currentUser?.id){
    chatConfirmedCache=[];chatPending.clear();chatLastSignature="";
    chatRevokeImageBlobUrls();chatImageUrlCache.clear();chatImageUrlRequests.clear();chatClearMediaWarmup();
@@ -285,7 +325,12 @@ $("signUpBtn").addEventListener("click",async()=>{
   catch(err){setAuthStatus(tr("登録失敗：","注册失败：","Sign up failed: ")+err.message)}finally{$("signUpBtn").disabled=false}
 });
 $("signOutBtn").addEventListener("click",async()=>{const {error}=await supabaseClient.auth.signOut();if(error)setAuthStatus(tr("ログアウト失敗：","退出失败：","Sign out failed: ")+error.message);else{currentUser=null;cloudReady=false;await refreshAuthUI()}});
-supabaseClient.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;showWelcomeAuth();if(!currentUser){cloudReady=false;setAuthStatus(tr("未ログインです。タスクはこの端末に保存されます。","尚未登录。当前任务保存在本设备；登录后可同步。","Not signed in. Tasks are saved on this device; sign in to sync."))}});
+supabaseClient.auth.onAuthStateChange((_event,session)=>{
+ const uid=session?.user?.id||null;
+ // Never mutate currentUser before refreshAuthUI can isolate the old cache.
+ // Defer Supabase reads outside the synchronous auth callback.
+ if(uid!==activeTaskOwnerId)setTimeout(()=>void refreshAuthUI().catch(console.error),0);
+});
 
 
 function urlBase64ToUint8Array(base64String){
@@ -462,7 +507,7 @@ function confirmDeleteDialog(){
   dialog.showModal();
  });
 }
-async function deleteTask(id){if(!await confirmDeleteDialog())return;markTaskDeleted(id);tasks=tasks.filter(t=>String(t.id)!==String(id));localStorage.setItem(STORAGE_KEY,JSON.stringify(tasks));render();if(currentUser&&cloudReady)await queuePendingTaskDeletes()}
+async function deleteTask(id){if(!await confirmDeleteDialog())return;markTaskDeleted(id);tasks=tasks.filter(t=>String(t.id)!==String(id));localStorage.setItem(taskCacheKey(STORAGE_KEY),JSON.stringify(tasks));render();if(currentUser&&cloudReady)await queuePendingTaskDeletes()}
 function refreshEditDateDisplays(){
   const date=$("editDate").value;
   const reminder=$("editReminder").value;
