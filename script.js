@@ -223,7 +223,9 @@ async function refreshAuthUI(){
   const sequence=++authUiRefreshSequence;
   const {data:{session}}=await supabaseClient.auth.getSession();
   if(sequence!==authUiRefreshSequence)return;
-  const previousUserId=currentUser?.id;
+  // The auth callback/sign-out handler may already have cleared currentUser.
+  // Use the last active local owner to guarantee prior chat data is purged.
+  const previousUserId=activeTaskOwnerId||currentUser?.id;
   currentUser=session?.user||null;
   activateTaskOwner(currentUser?.id||null);
   if(previousUserId!==currentUser?.id){
