@@ -1,4 +1,4 @@
-// My Planner v217 — authenticated quote/history gateway for Japan-listed securities.
+// MY SUITE v250 — authenticated quote/history gateway for Japan-listed securities.
 // Uses an UNOFFICIAL Yahoo Finance endpoint: may be delayed/blocked/changed,
 // and may not be licensed for commercial redistribution. No trading decisions.
 const ORIGIN="https://rigakukin0626-star.github.io";
@@ -69,9 +69,26 @@ async function getHistory(symbol:string,period:string):Promise<History|null>{
   return value;
  }catch{return null}
 }
+// Defense in depth: do not trust CORS or a publishable key as proof of login.
+// Check the caller's user JWT with Supabase Auth even if gateway verify_jwt was disabled.
+async function validUserToken(req:Request):Promise<boolean>{
+ const bearer=req.headers.get("authorization")||"";
+ if(!/^Bearer\\s+\\S+$/i.test(bearer))return false;
+ const base=Deno.env.get("SUPABASE_URL");
+ const anon=Deno.env.get("SUPABASE_ANON_KEY");
+ if(!base||!anon)return false; // fail closed if the environment is incomplete
+ try{
+  const response=await fetch(base.replace(/\\/+$/,"")+"/auth/v1/user",{
+   headers:{Authorization:bearer,apikey:anon},
+   signal:AbortSignal.timeout(5000),
+  });
+  return response.ok;
+ }catch{return false}
+}
 Deno.serve(async(req)=>{
  if(req.method==="OPTIONS")return new Response(null,{headers});
  if(req.method!=="POST")return new Response(JSON.stringify({error:"Method not allowed"}),{status:405,headers});
+ if(!(await validUserToken(req)))return new Response(JSON.stringify({error:"Authentication required"}),{status:401,headers});
  try{
   const payload=await req.json(),raw=payload?.symbols;
   if(!Array.isArray(raw)||raw.length>12||raw.length<1)return new Response(JSON.stringify({error:"Invalid request"}),{status:400,headers});
