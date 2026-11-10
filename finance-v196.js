@@ -1,4 +1,4 @@
-/* My Planner Finance v196: local-first; optional Supabase when finance_documents exists. */
+/* MY SUITE Finance v196: local-first; optional Supabase when finance_documents exists. */
 (function(){
 'use strict';
 const BASE='mpfinance-v196-',META='mpfinance-meta-v196-';
@@ -416,9 +416,9 @@ function openNativeQuote(x){
   '<div class="fin-quote-frame"><div class="fin-chart-status" role="status">'+chartString("正在读取行情…","株価データを取得中…","Loading market data…")+'</div></div>'+
   '<div class="fin-chart-summary" data-chart-summary></div>'+
   '<p class="fin-quote-explain">'+chartString(
-   "图表由 My Planner 绘制，数据为非官方参考行情，可能延迟或不可用；不会修改持仓成本。",
-   "My Planner独自表示。非公式参考データのため遅延・取得失敗の可能性があります。取得原価は変更しません。",
-   "Chart rendered by My Planner using unofficial reference data; may be delayed or unavailable. Cost basis is unchanged.")+'</p>'+
+   "图表由 MY SUITE 绘制，数据为非官方参考行情，可能延迟或不可用；不会修改持仓成本。",
+   "MY SUITE独自表示。非公式参考データのため遅延・取得失敗の可能性があります。取得原価は変更しません。",
+   "Chart rendered by MY SUITE using unofficial reference data; may be delayed or unavailable. Cost basis is unchanged.")+'</p>'+
   '<footer class="fin-quote-footer"><button type="button" data-quote-close>'+
   chartString("完成","閉じる","Done")+'</button></footer></div>';
  document.body.append(box);
@@ -450,7 +450,7 @@ function openNativeQuote(x){
   if(cached&&!force&&cached.expires>Date.now()){paint(cached.history);return}
   setStatus(chartString("正在读取 "+symbol+" 行情…","株価データを取得中…","Loading "+symbol+" history…"));
   if(!api||owner==="guest"){
-   setStatus(chartString("登录 My Planner 后才能加载在线行情。","ログイン後に株価を取得できます。","Sign in to load market data."));return;
+   setStatus(chartString("登录 MY SUITE 后才能加载在线行情。","ログイン後に株価を取得できます。","Sign in to load market data."));return;
   }
   try{
    const {data,error}=await api.functions.invoke("finance-quotes",{body:{symbols:[symbol],period:requestPeriod}});
@@ -620,7 +620,7 @@ function settings(){
 function render(){
  const root=document.getElementById('financeRoot');if(!root)return;
  const x=nativeTotals(),summary='<div class="fin-hero"><small>'+t('net')+'</small><strong>'+currencyMoney(x.net)+'</strong><div><span>'+t('assets')+'<b>'+currencyMoney(x.assets)+'</b></span><span>'+t('debt')+'<b>'+currencyMoney(x.debt)+'</b></span></div></div>';
- root.innerHTML='<header class="fin-head"><div><p>MY PLANNER / FINANCE</p><h1>'+t('title')+'</h1></div><label class="fin-record-currency">'+option('recordCurrency',currencyOptions(),selectedRecordCurrency())+'</label></header><div class="fin-tabs">'+['overview','history','invest','budgets','manage'].map(k=>'<button data-fin-pane="'+k+'" class="'+(k===pane?'active':'')+'">'+t(k)+'</button>').join('')+'</div>'+
+ root.innerHTML='<header class="fin-head"><div><p>MY SUITE / FINANCE</p><h1>'+t('title')+'</h1></div><label class="fin-record-currency">'+option('recordCurrency',currencyOptions(),selectedRecordCurrency())+'</label></header><div class="fin-tabs">'+['overview','history','invest','budgets','manage'].map(k=>'<button data-fin-pane="'+k+'" class="'+(k===pane?'active':'')+'">'+t(k)+'</button>').join('')+'</div>'+
  (pane==='overview'?summary+netChart()+alerts()+cashFlow()+accounts()+bars()+categoryBreakdown()+entries(7):pane==='history'?entries():pane==='invest'?investmentSummary()+investmentChart()+portfolio():pane==='budgets'?budgetView():settings()+accounts());
  const label=document.getElementById('tabFinanceLabel');if(label)label.textContent=t('title');
   if(document.body.dataset.activePage==='finance'&&(pane==='overview'||pane==='invest'))void refreshQuotes();

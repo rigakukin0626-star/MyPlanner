@@ -1,7 +1,7 @@
 {
-  "name": "My Planner",
-  "short_name": "My Planner",
-  "description": "Tasks, Calendar & Private Chat · v171",
+  "name": "MY SUITE",
+  "short_name": "MY SUITE",
+  "description": "Private wealth, daily plans, calendar and personal communication",
   "start_url": "/MyPlanner/",
   "display": "standalone",
   "background_color": "#ffffff",
