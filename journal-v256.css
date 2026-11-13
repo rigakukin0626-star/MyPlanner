@@ -1,0 +1,66 @@
+/* SOVEREIGN Journal v256 — calm iOS-style journal, matched to existing themes */
+#pageCalendar .journal-open-button{
+  display:flex;align-items:center;gap:12px;width:100%;min-height:58px;margin:2px 0 20px;
+  padding:13px 16px;border:1px solid var(--line);border-radius:17px;
+  background:linear-gradient(118deg,rgba(102,140,169,.15),rgba(225,240,245,.09) 68%),var(--surface);
+  color:var(--ink);font-size:15px;font-weight:650;text-align:left;
+}
+#pageCalendar .journal-open-button svg{color:var(--accent-ink);flex:none}
+#pageCalendar .journal-open-arrow{margin-left:auto;color:var(--muted);font-size:24px;line-height:1}
+#pageCalendar.journal-active .calendar-panel{display:none!important}
+#pageCalendar .journal-view{max-width:680px;margin:0 auto 36px;min-width:0}
+#pageCalendar .journal-header{display:flex;align-items:center;gap:14px;min-height:52px}
+#pageCalendar .journal-header h2{font-size:22px;line-height:1.25;letter-spacing:-.035em;margin:0;flex:1}
+#pageCalendar .journal-back{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--accent-ink);font-size:24px;padding:7px 6px 7px 0}
+#pageCalendar .journal-back span{font-size:13px;font-weight:600}
+#pageCalendar .journal-new{min-height:36px;border:1px solid var(--line);border-radius:12px;padding:6px 13px;background:var(--glass-fill,var(--surface));color:var(--ink);font-size:13px;font-weight:650}
+#pageCalendar .journal-subtitle{font-size:13px;color:var(--muted);margin:4px 0 21px;line-height:1.7}
+#pageCalendar .journal-toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 18px}
+#pageCalendar .journal-toolbar input[type=search]{flex:1 1 210px;width:100%;min-width:0;min-height:42px;font-size:16px;border:1px solid var(--line);background:var(--field);color:var(--ink);padding:8px 14px;border-radius:13px}
+#pageCalendar .journal-toolbar button,#pageCalendar .journal-import{display:inline-flex;align-items:center;justify-content:center;min-height:41px;white-space:nowrap;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);padding:9px 12px;font-size:12px;font-weight:600}
+#pageCalendar .journal-import{cursor:pointer}
+#pageCalendar .journal-form{margin:0 0 20px;padding:20px;border:1px solid var(--line);border-radius:21px;background:var(--surface);box-shadow:0 8px 30px rgba(0,0,0,.035)}
+#pageCalendar .journal-form-top{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:13px}
+#pageCalendar .journal-form label{display:grid;gap:7px;color:var(--muted);font-size:12px;font-weight:600}
+#pageCalendar .journal-form :is(input,select,textarea){min-width:0;width:100%;background:var(--field);color:var(--ink);border:1px solid var(--line);border-radius:12px;font-size:16px;font-weight:450}
+#pageCalendar .journal-form input,#pageCalendar .journal-form select{min-height:46px}
+#pageCalendar .journal-field{margin-bottom:14px}
+#pageCalendar .journal-form textarea{min-height:218px;line-height:1.7;resize:vertical;letter-spacing:.01em;padding:13px 14px}
+#pageCalendar .journal-form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+#pageCalendar .journal-form-actions button{min-height:42px;border:1px solid var(--line);padding:10px 18px;border-radius:12px;background:var(--field);color:var(--ink);font-weight:600}
+#pageCalendar #journalSave{border-color:transparent;background:var(--accent);color:var(--on-accent,#fff)}
+#pageCalendar .journal-list{display:grid;gap:13px}
+#pageCalendar .journal-entry{padding:19px 19px 13px;border:1px solid var(--line);border-radius:19px;background:var(--surface);overflow-wrap:anywhere;box-shadow:0 4px 24px rgba(0,0,0,.024)}
+#pageCalendar .journal-entry-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;color:var(--muted);font-size:12px;font-weight:600}
+#pageCalendar .journal-entry-mood{border:1px solid var(--line);border-radius:40px;padding:3px 9px;font-size:11px;color:var(--accent-ink);background:var(--field)}
+#pageCalendar .journal-entry h3{font-size:17px;font-weight:720;line-height:1.45;letter-spacing:-.02em;margin:0 0 8px}
+#pageCalendar .journal-entry p{white-space:pre-wrap;line-height:1.68;font-size:13px;color:var(--muted);margin:0 0 13px;overflow-wrap:anywhere}
+#pageCalendar .journal-entry-actions{display:flex;justify-content:flex-end;gap:13px;padding-top:8px;border-top:1px solid var(--line)}
+#pageCalendar .journal-entry-actions button{border:0;background:none;color:var(--accent-ink);min-height:34px;padding:6px 8px;font-size:12px;font-weight:650}
+#pageCalendar .journal-entry-actions button[data-action=delete]{color:var(--danger,#c64a62)}
+#pageCalendar .journal-empty{text-align:center;color:var(--muted);font-size:13px;padding:42px 10px;line-height:1.8}
+#pageCalendar .journal-status{font-size:11px;color:var(--muted);min-height:20px;margin:16px 2px;line-height:1.7}
+html:not([data-theme="dark"]) #pageCalendar .journal-view{
+  --journal-fill:linear-gradient(145deg,rgba(244,249,251,.97),rgba(217,231,240,.85));
+}
+html:not([data-theme="dark"]) #pageCalendar :is(.journal-entry,.journal-form){
+  background:linear-gradient(145deg,rgba(252,254,255,.97),rgba(235,244,248,.88));
+  border-color:rgba(109,142,165,.19);
+}
+html[data-theme="dark"] #pageCalendar .journal-open-button{
+  background:linear-gradient(120deg,rgba(106,80,131,.11),rgba(18,17,23,.95) 67%);border-color:rgba(173,148,196,.14)
+}
+html[data-theme="dark"] #pageCalendar :is(.journal-entry,.journal-form){
+  background:linear-gradient(140deg,rgba(25,23,32,.96),rgba(15,14,20,.97));border-color:rgba(173,148,196,.13);
+}
+html[data-theme="dark"] #pageCalendar .journal-entry-mood{background:rgba(122,95,142,.12)}
+@media(max-width:480px){
+  #pageCalendar .journal-header{gap:8px}
+  #pageCalendar .journal-header h2{font-size:20px}
+  #pageCalendar .journal-toolbar{gap:7px}
+  #pageCalendar .journal-toolbar input[type=search]{flex-basis:100%}
+  #pageCalendar .journal-toolbar button,#pageCalendar .journal-import{flex:1}
+  #pageCalendar .journal-form{padding:15px 13px;border-radius:17px}
+  #pageCalendar .journal-entry{padding:17px 15px 12px}
+  #pageCalendar .journal-form-top{gap:8px}
+}
