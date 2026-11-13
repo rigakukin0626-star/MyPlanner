@@ -64,7 +64,9 @@
     el("journalSearch").placeholder=dict.search;
     el("journalHeading").placeholder=dict.headingPlaceholder;
     el("journalBody").placeholder=dict.bodyPlaceholder;
+    const selectedMood=el("journalMood").value;
     el("journalMood").replaceChildren(...MOODS.map((value,i)=>{const o=document.createElement("option");o.value=value;o.textContent=dict.moods[i];return o;}));
+    el("journalMood").value=MOODS.includes(selectedMood)?selectedMood:"normal";
     renderList();
   }
   function showJournal(value) {
@@ -88,13 +90,14 @@
     const record=id?entries.get(id):null;
     if(id&&(!record||record.deletedAt))return;
     editing=record?.id||null;
-    const saved=!id?draft():null;
-    el("journalDate").value=record?.date||saved?.date||day();
-    el("journalHeading").value=record?.title||saved?.title||"";
-    el("journalBody").value=record?.body||saved?.body||"";
-    el("journalMood").value=record?.mood||saved?.mood||"normal";
+    const pending=draft();
+    const saved=pending?.id===(id||null)?pending:null;
+    el("journalDate").value=saved?.date||record?.date||day();
+    el("journalHeading").value=saved?.title??record?.title??"";
+    el("journalBody").value=saved?.body??record?.body??"";
+    el("journalMood").value=saved?.mood||record?.mood||"normal";
     el("journalForm").hidden=false;
-    if(saved&&!id)status(dict.draft);
+    if(saved)status(dict.draft);
     el("journalForm").scrollIntoView({block:"start",behavior:"smooth"});
   }
   el("journalNew").addEventListener("click",()=>editRecord(null));
@@ -218,7 +221,7 @@
       status(cloudAvailable?dict.offline:dict.missing);
     }finally{
       syncing=false;
-      if(rerun&&owner===uid){rerun=false;scheduleSync();}
+      if(rerun){rerun=false;scheduleSync();}
     }
   }
   function setOwner(id) {
