@@ -7,7 +7,7 @@ create table if not exists public.journal_entries (
   entry_date date not null,
   title text not null default '' check (char_length(title) <= 120),
   body text not null default '' check (char_length(body) <= 30000),
-  mood text not null default 'normal' check (mood in ('calm','happy','normal','tired','sad')),
+  mood text not null default 'normal' check (mood in ('calm','happy','normal','uneasy','tired','sad')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz
@@ -27,3 +27,10 @@ create policy "journal_update_own" on public.journal_entries
   for update to authenticated using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()));
 -- 使用 deleted_at 软删除并跨设备同步删除状态，因此不授予客户端 DELETE 权限。
+
+-- Upgrade existing v256 tables (CREATE TABLE IF NOT EXISTS does not change old CHECK constraints).
+alter table public.journal_entries
+  drop constraint if exists journal_entries_mood_check;
+alter table public.journal_entries
+  add constraint journal_entries_mood_check
+  check (mood in ('calm','happy','normal','uneasy','tired','sad'));
