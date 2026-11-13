@@ -26,6 +26,10 @@
 #pageCalendar .journal-form label{display:grid;gap:7px;color:var(--muted);font-size:12px;font-weight:600}
 #pageCalendar .journal-form :is(input,select,textarea){min-width:0;width:100%;background:var(--field);color:var(--ink);border:1px solid var(--line);border-radius:12px;font-size:16px;font-weight:450}
 #pageCalendar .journal-form input,#pageCalendar .journal-form select{min-height:46px}
+/* Keep the iOS date picker compact instead of stretching across the card. */
+#pageCalendar .journal-form #journalDate{width:220px;max-width:100%;min-height:42px;height:42px;box-sizing:border-box;padding:7px 12px;font-size:15px;text-align:left;justify-self:start}
+#pageCalendar .journal-form #journalDate::-webkit-date-and-time-value{text-align:left;min-height:1.2em}
+#pageCalendar .journal-form #journalDate::-webkit-datetime-edit{text-align:left;padding:0}
 #pageCalendar .journal-field{margin-bottom:14px}
 #pageCalendar .journal-form textarea{min-height:218px;line-height:1.7;resize:vertical;letter-spacing:.01em;padding:13px 14px}
 #pageCalendar .journal-form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
