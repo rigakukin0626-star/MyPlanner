@@ -20,7 +20,9 @@
 #pageCalendar .journal-toolbar button,#pageCalendar .journal-import{display:inline-flex;align-items:center;justify-content:center;min-height:41px;white-space:nowrap;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);padding:9px 12px;font-size:12px;font-weight:600}
 #pageCalendar .journal-import{cursor:pointer}
 #pageCalendar .journal-form{margin:0 0 20px;padding:20px;border:1px solid var(--line);border-radius:21px;background:var(--surface);box-shadow:0 8px 30px rgba(0,0,0,.035)}
-#pageCalendar .journal-form-top{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:13px}
+#pageCalendar .journal-form-top{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:13px}
+#pageCalendar .journal-form-top > label{min-width:0;width:100%}
+#pageCalendar .journal-form-top :is(input,select){display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;}
 #pageCalendar .journal-form label{display:grid;gap:7px;color:var(--muted);font-size:12px;font-weight:600}
 #pageCalendar .journal-form :is(input,select,textarea){min-width:0;width:100%;background:var(--field);color:var(--ink);border:1px solid var(--line);border-radius:12px;font-size:16px;font-weight:450}
 #pageCalendar .journal-form input,#pageCalendar .journal-form select{min-height:46px}
@@ -54,6 +56,11 @@ html[data-theme="dark"] #pageCalendar :is(.journal-entry,.journal-form){
   background:linear-gradient(140deg,rgba(25,23,32,.96),rgba(15,14,20,.97));border-color:rgba(173,148,196,.13);
 }
 html[data-theme="dark"] #pageCalendar .journal-entry-mood{background:rgba(122,95,142,.12)}
+/* Native iOS date controls have a large intrinsic width: stack on narrow screens. */
+@media(max-width:600px){
+  #pageCalendar .journal-form-top{grid-template-columns:minmax(0,1fr);gap:14px}
+  #pageCalendar .journal-form-top > label{min-width:0}
+}
 @media(max-width:480px){
   #pageCalendar .journal-header{gap:8px}
   #pageCalendar .journal-header h2{font-size:20px}
