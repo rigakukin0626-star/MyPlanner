@@ -119,7 +119,7 @@
   function renderList() {
     if(!el("journalList"))return;
     const query=el("journalSearch").value.trim().toLocaleLowerCase();
-    const all=[...entries.values()].filter(v=>!v.deletedAt).sort((a,b)=>b.date.localeCompare(a.date)||b.updatedAt.localeCompare(a.updatedAt));
+    const all=[...entries.values()].filter(v=>!v.deletedAt).sort((a,b)=>a.date.localeCompare(b.date)||a.createdAt.localeCompare(b.createdAt)||a.id.localeCompare(b.id));
     const visible=all.filter(v=>!query||(v.title+" "+v.body+" "+v.date+" "+dict.moods[MOODS.indexOf(v.mood)]).toLocaleLowerCase().includes(query));
     el("journalEmpty").hidden=visible.length>0;
     el("journalEmpty").textContent=all.length?dict.noResults:dict.empty;
